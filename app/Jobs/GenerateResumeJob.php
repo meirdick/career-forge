@@ -1,0 +1,95 @@
+<?php
+
+namespace App\Jobs;
+
+use App\Ai\Agents\ResumeGenerator;
+use App\Enums\ResumeSectionType;
+use App\Models\Resume;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Queue\Queueable;
+
+class GenerateResumeJob implements ShouldQueue
+{
+    use Queueable;
+
+    public int $timeout = 300;
+
+    public int $tries = 1;
+
+    public function __construct(
+        public Resume $resume,
+    ) {}
+
+    public function handle(): void
+    {
+        $gapAnalysis = $this->resume->gapAnalysis;
+        $profile = $gapAnalysis->idealCandidateProfile;
+        $jobPosting = $profile->jobPosting;
+        $user = $this->resume->user;
+
+        $library = [
+            'experiences' => $user->experiences()->with(['accomplishments', 'projects', 'skills'])->get()->toArray(),
+            'skills' => $user->skills()->get()->toArray(),
+            'education' => $user->educationEntries()->get()->toArray(),
+            'identity' => $user->professionalIdentity?->toArray(),
+        ];
+
+        $sectionTypes = [
+            ResumeSectionType::Summary,
+            ResumeSectionType::Experience,
+            ResumeSectionType::Skills,
+            ResumeSectionType::Education,
+        ];
+
+        $sectionOrder = [];
+
+        foreach ($sectionTypes as $index => $type) {
+            $prompt = view('prompts.resume-section', [
+                'sectionType' => $type->value,
+                'jobTitle' => $jobPosting->title ?? 'Target Role',
+                'company' => $jobPosting->company ?? 'Target Company',
+                'requirements' => $profile->required_skills ?? [],
+                'gapInsights' => [
+                    'strengths' => $gapAnalysis->strengths ?? [],
+                    'gaps' => $gapAnalysis->gaps ?? [],
+                ],
+                'experience' => $library,
+                'languageGuidance' => $profile->language_guidance ?? [],
+            ])->render();
+
+            $response = (new ResumeGenerator)->prompt($prompt);
+
+            $section = $this->resume->sections()->create([
+                'type' => $type,
+                'title' => ucfirst($type->value),
+                'sort_order' => $index,
+            ]);
+
+            $variants = $response['variants'] ?? [];
+            $firstVariant = null;
+
+            foreach ($variants as $vIndex => $variant) {
+                $created = $section->variants()->create([
+                    'label' => $variant['label'] ?? 'Variant '.($vIndex + 1),
+                    'content' => $variant['content'] ?? '',
+                    'emphasis' => $variant['emphasis'] ?? null,
+                    'is_ai_generated' => true,
+                    'is_user_edited' => false,
+                    'sort_order' => $vIndex,
+                ]);
+
+                if ($firstVariant === null) {
+                    $firstVariant = $created;
+                }
+            }
+
+            if ($firstVariant) {
+                $section->update(['selected_variant_id' => $firstVariant->id]);
+            }
+
+            $sectionOrder[] = $section->id;
+        }
+
+        $this->resume->update(['section_order' => $sectionOrder]);
+    }
+}

@@ -1,0 +1,137 @@
+<?php
+
+use App\Jobs\AnalyzeJobPostingJob;
+use App\Models\IdealCandidateProfile;
+use App\Models\JobPosting;
+use App\Models\User;
+use Illuminate\Support\Facades\Queue;
+
+beforeEach(function () {
+    $this->user = User::factory()->create();
+    Queue::fake();
+});
+
+test('guest cannot access job posting pages', function () {
+    $this->get('/job-postings')->assertRedirect('/login');
+    $this->post('/job-postings')->assertRedirect('/login');
+});
+
+test('index displays job postings', function () {
+    JobPosting::factory()->count(3)->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->get('/job-postings')
+        ->assertSuccessful()
+        ->assertInertia(
+            fn ($page) => $page
+                ->component('job-postings/index')
+                ->has('postings', 3)
+        );
+});
+
+test('create page renders', function () {
+    $this->actingAs($this->user)
+        ->get('/job-postings/create')
+        ->assertSuccessful()
+        ->assertInertia(fn ($page) => $page->component('job-postings/create'));
+});
+
+test('store creates posting and dispatches analysis job', function () {
+    $this->actingAs($this->user)->post('/job-postings', [
+        'raw_text' => 'We are looking for a Senior Software Engineer...',
+        'title' => 'Senior Engineer',
+        'company' => 'Acme Corp',
+    ])->assertRedirect();
+
+    $posting = JobPosting::first();
+    expect($posting)
+        ->raw_text->toContain('Senior Software Engineer')
+        ->user_id->toBe($this->user->id);
+
+    Queue::assertPushed(AnalyzeJobPostingJob::class, function ($job) use ($posting) {
+        return $job->jobPosting->id === $posting->id;
+    });
+});
+
+test('store validates raw_text is required', function () {
+    $this->actingAs($this->user)
+        ->post('/job-postings', [])
+        ->assertSessionHasErrors('raw_text');
+});
+
+test('show displays posting with profile', function () {
+    $posting = JobPosting::factory()->analyzed()->create(['user_id' => $this->user->id]);
+    IdealCandidateProfile::factory()->create(['job_posting_id' => $posting->id]);
+
+    $this->actingAs($this->user)
+        ->get("/job-postings/{$posting->id}")
+        ->assertSuccessful()
+        ->assertInertia(
+            fn ($page) => $page
+                ->component('job-postings/show')
+                ->has('posting.ideal_candidate_profile')
+        );
+});
+
+test('show returns 403 for other users posting', function () {
+    $other = User::factory()->create();
+    $posting = JobPosting::factory()->create(['user_id' => $other->id]);
+
+    $this->actingAs($this->user)
+        ->get("/job-postings/{$posting->id}")
+        ->assertForbidden();
+});
+
+test('edit page renders', function () {
+    $posting = JobPosting::factory()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->get("/job-postings/{$posting->id}/edit")
+        ->assertSuccessful()
+        ->assertInertia(fn ($page) => $page->component('job-postings/edit'));
+});
+
+test('update modifies posting', function () {
+    $posting = JobPosting::factory()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->put("/job-postings/{$posting->id}", [
+            'raw_text' => 'Updated posting text',
+            'title' => 'Updated Title',
+        ])
+        ->assertRedirect("/job-postings/{$posting->id}");
+
+    expect($posting->fresh())
+        ->raw_text->toBe('Updated posting text')
+        ->title->toBe('Updated Title');
+});
+
+test('destroy deletes posting', function () {
+    $posting = JobPosting::factory()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->delete("/job-postings/{$posting->id}")
+        ->assertRedirect('/job-postings');
+
+    expect(JobPosting::find($posting->id))->toBeNull();
+});
+
+test('reanalyze dispatches new analysis job', function () {
+    $posting = JobPosting::factory()->analyzed()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->post("/job-postings/{$posting->id}/reanalyze")
+        ->assertRedirect("/job-postings/{$posting->id}");
+
+    expect($posting->fresh()->analyzed_at)->toBeNull();
+    Queue::assertPushed(AnalyzeJobPostingJob::class);
+});
+
+test('reanalyze returns 403 for other users posting', function () {
+    $other = User::factory()->create();
+    $posting = JobPosting::factory()->create(['user_id' => $other->id]);
+
+    $this->actingAs($this->user)
+        ->post("/job-postings/{$posting->id}/reanalyze")
+        ->assertForbidden();
+});
