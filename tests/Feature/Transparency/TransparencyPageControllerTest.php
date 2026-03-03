@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Application;
+use App\Models\JobPosting;
 use App\Models\TransparencyPage;
+use App\Models\TransparencyPageView;
 use App\Models\User;
 
 beforeEach(function () {
@@ -120,4 +122,64 @@ test('public page returns 404 for unpublished page', function () {
 test('public page returns 404 for non-existent slug', function () {
     $this->get('/t/non-existent-slug-12345')
         ->assertNotFound();
+});
+
+test('auto-populates transparency page from job posting data', function () {
+    $jobPosting = JobPosting::factory()->analyzed()->create([
+        'user_id' => $this->user->id,
+        'title' => 'Staff Engineer',
+        'company' => 'BigCo',
+        'location' => 'Remote',
+    ]);
+    $application = Application::factory()->create([
+        'user_id' => $this->user->id,
+        'job_posting_id' => $jobPosting->id,
+    ]);
+
+    $this->actingAs($this->user)
+        ->get("/applications/{$application->id}/transparency")
+        ->assertSuccessful();
+
+    $page = $application->fresh()->transparencyPage;
+    expect($page)
+        ->authorship_statement->toContain('CareerForge')
+        ->research_summary->toContain('Staff Engineer')
+        ->research_summary->toContain('BigCo')
+        ->tool_description->toContain('CareerForge');
+});
+
+test('public page logs view', function () {
+    $application = Application::factory()->create(['user_id' => $this->user->id]);
+    $page = TransparencyPage::factory()->published()->create([
+        'user_id' => $this->user->id,
+        'application_id' => $application->id,
+    ]);
+
+    $this->get("/t/{$page->slug}")
+        ->assertSuccessful();
+
+    expect(TransparencyPageView::where('transparency_page_id', $page->id)->count())->toBe(1);
+});
+
+test('show includes view count', function () {
+    $application = Application::factory()->create(['user_id' => $this->user->id]);
+    $page = TransparencyPage::factory()->published()->create([
+        'user_id' => $this->user->id,
+        'application_id' => $application->id,
+    ]);
+
+    TransparencyPageView::create([
+        'transparency_page_id' => $page->id,
+        'ip_address' => '127.0.0.1',
+        'viewed_at' => now(),
+    ]);
+
+    $this->actingAs($this->user)
+        ->get("/applications/{$application->id}/transparency")
+        ->assertSuccessful()
+        ->assertInertia(
+            fn ($inertia) => $inertia
+                ->where('viewCount', 1)
+                ->has('recentViews', 1)
+        );
 });

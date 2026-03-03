@@ -1,5 +1,5 @@
 import { Form, Head, Link, router } from '@inertiajs/react';
-import { Edit, Plus, Trash2 } from 'lucide-react';
+import { Edit, Plus, Tag, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -9,10 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import RichTextEditor from '@/components/rich-text-editor';
 import AppLayout from '@/layouts/app-layout';
 import AccomplishmentController from '@/actions/App/Http/Controllers/ExperienceLibrary/AccomplishmentController';
 import ExperienceController from '@/actions/App/Http/Controllers/ExperienceLibrary/ExperienceController';
 import ProjectController from '@/actions/App/Http/Controllers/ExperienceLibrary/ProjectController';
+import TagController from '@/actions/App/Http/Controllers/ExperienceLibrary/TagController';
 import { edit as experienceEdit, show as experienceShow } from '@/routes/experiences';
 import type { BreadcrumbItem } from '@/types';
 
@@ -43,9 +45,18 @@ function formatDate(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 
-export default function ShowExperience({ experience }: { experience: Experience }) {
+type AvailableTag = { id: number; name: string };
+
+export default function ShowExperience({ experience, tags: availableTags }: { experience: Experience; tags: AvailableTag[] }) {
     const [showAccomplishmentForm, setShowAccomplishmentForm] = useState(false);
     const [showProjectForm, setShowProjectForm] = useState(false);
+    const [showTagPicker, setShowTagPicker] = useState(false);
+
+    function toggleTag(tagId: number, taggableId: number, taggableType: 'experience' | 'accomplishment' | 'project') {
+        router.post(TagController.toggle().url, { tag_id: tagId, taggable_id: taggableId, taggable_type: taggableType }, { preserveScroll: true });
+    }
+
+    const experienceTagIds = experience.tags.map((t) => t.id);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Experience Library', href: '/experience-library' },
@@ -89,7 +100,7 @@ export default function ShowExperience({ experience }: { experience: Experience 
                 </div>
 
                 {experience.description && (
-                    <p className="text-muted-foreground">{experience.description}</p>
+                    <div className="prose prose-sm text-muted-foreground max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4" dangerouslySetInnerHTML={{ __html: experience.description }} />
                 )}
 
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
@@ -106,13 +117,35 @@ export default function ShowExperience({ experience }: { experience: Experience 
                     </div>
                 )}
 
-                {experience.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
+                <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-1">
                         {experience.tags.map((tag) => (
-                            <Badge key={tag.id} variant="outline">#{tag.name}</Badge>
+                            <Badge key={tag.id} variant="outline" className="cursor-pointer" onClick={() => toggleTag(tag.id, experience.id, 'experience')}>
+                                #{tag.name} &times;
+                            </Badge>
                         ))}
+                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setShowTagPicker(!showTagPicker)}>
+                            <Tag className="mr-1 h-3 w-3" /> {showTagPicker ? 'Hide' : 'Tag'}
+                        </Button>
                     </div>
-                )}
+                    {showTagPicker && availableTags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                            {availableTags.filter((t) => !experienceTagIds.includes(t.id)).map((tag) => (
+                                <Badge
+                                    key={tag.id}
+                                    variant="secondary"
+                                    className="cursor-pointer opacity-60 hover:opacity-100"
+                                    onClick={() => toggleTag(tag.id, experience.id, 'experience')}
+                                >
+                                    + #{tag.name}
+                                </Badge>
+                            ))}
+                            {availableTags.filter((t) => !experienceTagIds.includes(t.id)).length === 0 && (
+                                <span className="text-xs text-muted-foreground">All tags applied</span>
+                            )}
+                        </div>
+                    )}
+                </div>
 
                 <Separator />
 
@@ -139,7 +172,7 @@ export default function ShowExperience({ experience }: { experience: Experience 
                                             </div>
                                             <div>
                                                 <Label htmlFor="acc-description">Description</Label>
-                                                <textarea id="acc-description" name="description" required rows={2} placeholder="What did you accomplish?" className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm" />
+                                                <RichTextEditor name="description" required placeholder="What did you accomplish?" />
                                                 <InputError message={errors.description} />
                                             </div>
                                             <div>
@@ -175,7 +208,7 @@ export default function ShowExperience({ experience }: { experience: Experience 
                                     </Button>
                                 </CardHeader>
                                 <CardContent className="space-y-2 pt-0">
-                                    <p className="text-sm text-muted-foreground">{acc.description}</p>
+                                    <div className="prose prose-sm text-muted-foreground max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4" dangerouslySetInnerHTML={{ __html: acc.description }} />
                                     {acc.impact && <p className="text-sm font-medium">{acc.impact}</p>}
                                     {acc.skills.length > 0 && (
                                         <div className="flex flex-wrap gap-1">
@@ -219,7 +252,7 @@ export default function ShowExperience({ experience }: { experience: Experience 
                                             </div>
                                             <div>
                                                 <Label htmlFor="proj-description">Description</Label>
-                                                <textarea id="proj-description" name="description" required rows={2} placeholder="What was the project about?" className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm" />
+                                                <RichTextEditor name="description" required placeholder="What was the project about?" />
                                                 <InputError message={errors.description} />
                                             </div>
                                             <div>
@@ -258,7 +291,7 @@ export default function ShowExperience({ experience }: { experience: Experience 
                                     </Button>
                                 </CardHeader>
                                 <CardContent className="space-y-2 pt-0">
-                                    <p className="text-sm text-muted-foreground">{proj.description}</p>
+                                    <div className="prose prose-sm text-muted-foreground max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4" dangerouslySetInnerHTML={{ __html: proj.description }} />
                                     {proj.skills.length > 0 && (
                                         <div className="flex flex-wrap gap-1">
                                             {proj.skills.map((s) => <Badge key={s.id} variant="secondary" className="text-xs">{s.name}</Badge>)}

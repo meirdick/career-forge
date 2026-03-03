@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\AnalyzeJobPostingJob;
+use App\Jobs\FetchJobPostingUrlJob;
 use App\Models\IdealCandidateProfile;
 use App\Models\JobPosting;
 use App\Models\User;
@@ -53,10 +54,39 @@ test('store creates posting and dispatches analysis job', function () {
     });
 });
 
-test('store validates raw_text is required', function () {
+test('store validates raw_text is required when no url', function () {
     $this->actingAs($this->user)
         ->post('/job-postings', [])
         ->assertSessionHasErrors('raw_text');
+});
+
+test('store with url and no raw_text dispatches fetch job', function () {
+    $this->actingAs($this->user)->post('/job-postings', [
+        'url' => 'https://example.com/jobs/123',
+        'title' => 'Remote Engineer',
+        'company' => 'Test Co',
+    ])->assertRedirect();
+
+    $posting = JobPosting::first();
+    expect($posting)
+        ->url->toBe('https://example.com/jobs/123')
+        ->raw_text->toBeNull();
+
+    Queue::assertPushed(FetchJobPostingUrlJob::class, function ($job) use ($posting) {
+        return $job->jobPosting->id === $posting->id;
+    });
+    Queue::assertNotPushed(AnalyzeJobPostingJob::class);
+});
+
+test('store with url and raw_text dispatches analyze job directly', function () {
+    $this->actingAs($this->user)->post('/job-postings', [
+        'url' => 'https://example.com/jobs/456',
+        'raw_text' => 'We need a great engineer...',
+        'title' => 'Engineer',
+    ])->assertRedirect();
+
+    Queue::assertNotPushed(FetchJobPostingUrlJob::class);
+    Queue::assertPushed(AnalyzeJobPostingJob::class);
 });
 
 test('show displays posting with profile', function () {
@@ -133,5 +163,30 @@ test('reanalyze returns 403 for other users posting', function () {
 
     $this->actingAs($this->user)
         ->post("/job-postings/{$posting->id}/reanalyze")
+        ->assertForbidden();
+});
+
+test('update profile sets is_user_edited and updates data', function () {
+    $posting = JobPosting::factory()->analyzed()->create(['user_id' => $this->user->id]);
+    $profile = IdealCandidateProfile::factory()->create(['job_posting_id' => $posting->id]);
+
+    $this->actingAs($this->user)
+        ->put("/job-postings/{$posting->id}/profile", [
+            'red_flags' => ['No remote', 'Unrealistic deadlines'],
+        ])
+        ->assertRedirect();
+
+    expect($profile->fresh())
+        ->is_user_edited->toBeTrue()
+        ->red_flags->toHaveCount(2);
+});
+
+test('update profile returns 403 for other users posting', function () {
+    $other = User::factory()->create();
+    $posting = JobPosting::factory()->analyzed()->create(['user_id' => $other->id]);
+    IdealCandidateProfile::factory()->create(['job_posting_id' => $posting->id]);
+
+    $this->actingAs($this->user)
+        ->put("/job-postings/{$posting->id}/profile", ['red_flags' => []])
         ->assertForbidden();
 });

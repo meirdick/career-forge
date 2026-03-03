@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ApplicationStatus;
 use App\Models\Resume;
 use App\Services\ResumeExportService;
 use Illuminate\Http\Request;
@@ -49,7 +50,21 @@ class ResumeExportController extends Controller
 
         $resume->update(['is_finalized' => true]);
 
-        return to_route('resumes.show', $resume)
-            ->with('success', 'Resume finalized.');
+        $jobPosting = $resume->jobPosting;
+
+        $application = $request->user()->applications()->create([
+            'job_posting_id' => $jobPosting?->id,
+            'resume_id' => $resume->id,
+            'status' => ApplicationStatus::Draft,
+            'company' => $jobPosting?->company ?? 'Unknown',
+            'role' => $jobPosting?->title ?? $resume->title,
+        ]);
+
+        $application->statusChanges()->create([
+            'to_status' => ApplicationStatus::Draft,
+        ]);
+
+        return to_route('applications.show', $application)
+            ->with('success', 'Resume finalized and application created.');
     }
 }

@@ -41,8 +41,9 @@ export default function CreateJobPosting() {
                                     </div>
 
                                     <div>
-                                        <Label htmlFor="url">Posting URL (optional)</Label>
+                                        <Label htmlFor="url">Posting URL</Label>
                                         <Input id="url" name="url" type="url" placeholder="https://careers.example.com/job/123" />
+                                        <p className="text-muted-foreground text-xs mt-1">Provide a URL to auto-fetch the posting content, or paste the text below.</p>
                                         <InputError message={errors.url} />
                                     </div>
 
@@ -51,9 +52,8 @@ export default function CreateJobPosting() {
                                         <textarea
                                             id="raw_text"
                                             name="raw_text"
-                                            required
                                             rows={12}
-                                            placeholder="Paste the full job posting text here..."
+                                            placeholder="Paste the full job posting text here, or provide a URL above to auto-fetch..."
                                             className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
                                         />
                                         <InputError message={errors.raw_text} />

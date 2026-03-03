@@ -66,10 +66,19 @@ class ResumeController extends Controller
         $request->validate([
             'title' => 'sometimes|string|max:255',
             'section_order' => 'sometimes|array',
+            'section_order.*' => 'integer|exists:resume_sections,id',
             'is_finalized' => 'sometimes|boolean',
         ]);
 
         $resume->update($request->only(['title', 'section_order', 'is_finalized']));
+
+        if ($request->has('section_order')) {
+            foreach ($request->input('section_order') as $index => $sectionId) {
+                ResumeSection::where('id', $sectionId)
+                    ->where('resume_id', $resume->id)
+                    ->update(['sort_order' => $index]);
+            }
+        }
 
         return to_route('resumes.show', $resume)
             ->with('success', 'Resume updated.');

@@ -22,19 +22,28 @@ class TransparencyPageController extends Controller
             $page = $application->transparencyPage()->create([
                 'user_id' => $request->user()->id,
                 'slug' => Str::slug($application->company.'-'.$application->role.'-'.Str::random(6)),
-                'authorship_statement' => '',
-                'research_summary' => '',
-                'ideal_profile_summary' => '',
-                'section_decisions' => [],
+                'authorship_statement' => 'This resume was created with the assistance of CareerForge, an AI-powered career tools application. All content is based on my actual professional experience and has been reviewed and approved by me.',
+                'research_summary' => $this->buildResearchSummary($application),
+                'ideal_profile_summary' => $this->buildProfileSummary($application),
+                'section_decisions' => $this->buildSectionDecisions($application),
+                'tool_description' => 'CareerForge — an open-source, AI-powered career management tool that helps job seekers organize their experience, analyze job postings, and generate tailored resumes with full transparency.',
                 'is_published' => false,
             ]);
         }
 
         $application->load(['jobPosting', 'resume']);
 
+        $viewCount = $page->views()->count();
+        $recentViews = $page->views()
+            ->orderByDesc('viewed_at')
+            ->limit(10)
+            ->get(['viewed_at', 'referer']);
+
         return Inertia::render('transparency/show', [
             'application' => $application,
             'page' => $page,
+            'viewCount' => $viewCount,
+            'recentViews' => $recentViews,
         ]);
     }
 
@@ -73,13 +82,98 @@ class TransparencyPageController extends Controller
             ->with('success', 'Transparency page published.');
     }
 
-    public function publicPage(TransparencyPage $transparencyPage): Response
+    public function publicPage(Request $request, TransparencyPage $transparencyPage): Response
     {
         abort_unless($transparencyPage->is_published, 404);
+
+        $transparencyPage->views()->create([
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'referer' => $request->header('referer'),
+            'viewed_at' => now(),
+        ]);
 
         return Inertia::render('transparency/public', [
             'page' => $transparencyPage,
         ]);
+    }
+
+    private function buildResearchSummary(Application $application): string
+    {
+        $jobPosting = $application->jobPosting;
+        if (! $jobPosting) {
+            return '';
+        }
+
+        $parts = ["Applied for {$jobPosting->title} at {$jobPosting->company}."];
+        if ($jobPosting->location) {
+            $parts[] = "Location: {$jobPosting->location}.";
+        }
+        if ($jobPosting->seniority_level) {
+            $parts[] = "Level: {$jobPosting->seniority_level}.";
+        }
+        if ($jobPosting->analyzed_at) {
+            $parts[] = 'AI-assisted analysis of job requirements was performed to identify key qualifications and match criteria.';
+        }
+
+        return implode(' ', $parts);
+    }
+
+    private function buildProfileSummary(Application $application): string
+    {
+        $resume = $application->resume;
+        if (! $resume) {
+            return '';
+        }
+
+        $gapAnalysis = $resume->gapAnalysis;
+        if (! $gapAnalysis) {
+            return 'Resume was generated to match the job posting requirements.';
+        }
+
+        $parts = [];
+        if ($gapAnalysis->overall_match_score) {
+            $parts[] = "Overall match score: {$gapAnalysis->overall_match_score}%.";
+        }
+        if (! empty($gapAnalysis->strengths)) {
+            $count = count($gapAnalysis->strengths);
+            $parts[] = "{$count} key strength(s) identified.";
+        }
+        if (! empty($gapAnalysis->gaps)) {
+            $count = count($gapAnalysis->gaps);
+            $parts[] = "{$count} gap(s) identified and addressed in the resume.";
+        }
+
+        return implode(' ', $parts);
+    }
+
+    /**
+     * @return array<int, array{section: string, variant: string, reason: string}>
+     */
+    private function buildSectionDecisions(Application $application): array
+    {
+        $resume = $application->resume;
+        if (! $resume) {
+            return [];
+        }
+
+        $resume->load('sections.selectedVariant');
+        $decisions = [];
+
+        foreach ($resume->sections as $section) {
+            $variant = $section->selectedVariant;
+            if (! $variant) {
+                continue;
+            }
+
+            $decisions[] = [
+                'section' => $section->title,
+                'variant' => $variant->label,
+                'reason' => $variant->is_user_edited ? 'User edited the AI-generated content' : ($variant->is_ai_generated ? 'AI-generated, reviewed and approved' : 'User-authored content'),
+            ];
+        }
+
+        return $decisions;
     }
 
     private function renderHtml(TransparencyPage $page): string

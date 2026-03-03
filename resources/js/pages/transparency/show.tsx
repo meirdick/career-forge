@@ -1,5 +1,5 @@
 import { Head, router, Link } from '@inertiajs/react';
-import { Globe, Save } from 'lucide-react';
+import { Eye, Globe, Save } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -28,7 +28,9 @@ type ApplicationData = {
     role: string;
 };
 
-export default function ShowTransparency({ application, page }: { application: ApplicationData; page: TransparencyPage }) {
+type RecentView = { viewed_at: string; referer: string | null };
+
+export default function ShowTransparency({ application, page, viewCount = 0, recentViews = [] }: { application: ApplicationData; page: TransparencyPage; viewCount?: number; recentViews?: RecentView[] }) {
     const [form, setForm] = useState({
         authorship_statement: page.authorship_statement ?? '',
         research_summary: page.research_summary ?? '',
@@ -147,6 +149,31 @@ export default function ShowTransparency({ application, page }: { application: A
                         </div>
                     </CardContent>
                 </Card>
+
+                {page.is_published && (
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center gap-2">
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                                <CardTitle className="text-base">Page Views ({viewCount})</CardTitle>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            {recentViews.length === 0 ? (
+                                <p className="text-muted-foreground text-sm">No views yet.</p>
+                            ) : (
+                                <div className="space-y-1">
+                                    {recentViews.map((view, i) => (
+                                        <div key={i} className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">{new Date(view.viewed_at).toLocaleString()}</span>
+                                            {view.referer && <span className="truncate text-muted-foreground text-xs max-w-[200px]">{view.referer}</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
             </div>
         </AppLayout>
     );

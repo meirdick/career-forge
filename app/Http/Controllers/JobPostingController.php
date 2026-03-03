@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreJobPostingRequest;
 use App\Http\Requests\UpdateJobPostingRequest;
 use App\Jobs\AnalyzeJobPostingJob;
+use App\Jobs\FetchJobPostingUrlJob;
 use App\Models\JobPosting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,6 +34,13 @@ class JobPostingController extends Controller
     public function store(StoreJobPostingRequest $request): RedirectResponse
     {
         $posting = $request->user()->jobPostings()->create($request->validated());
+
+        if ($posting->url && ! $posting->raw_text) {
+            FetchJobPostingUrlJob::dispatch($posting);
+
+            return to_route('job-postings.show', $posting)
+                ->with('success', 'Job posting created. Fetching content from URL...');
+        }
 
         AnalyzeJobPostingJob::dispatch($posting);
 
@@ -78,6 +86,29 @@ class JobPostingController extends Controller
 
         return to_route('job-postings.index')
             ->with('success', 'Job posting deleted.');
+    }
+
+    public function updateProfile(Request $request, JobPosting $jobPosting): RedirectResponse
+    {
+        abort_unless($jobPosting->user_id === $request->user()->id, 403);
+        abort_unless($jobPosting->idealCandidateProfile !== null, 404);
+
+        $validated = $request->validate([
+            'required_skills' => 'nullable|array',
+            'preferred_skills' => 'nullable|array',
+            'experience_profile' => 'nullable|array',
+            'cultural_fit' => 'nullable|array',
+            'language_guidance' => 'nullable|array',
+            'red_flags' => 'nullable|array',
+        ]);
+
+        $jobPosting->idealCandidateProfile->update([
+            ...$validated,
+            'is_user_edited' => true,
+        ]);
+
+        return to_route('job-postings.show', $jobPosting)
+            ->with('success', 'Ideal candidate profile updated.');
     }
 
     public function reanalyze(Request $request, JobPosting $jobPosting): RedirectResponse

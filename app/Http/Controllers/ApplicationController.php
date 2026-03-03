@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Ai\Agents\CoverLetterWriter;
 use App\Enums\ApplicationStatus;
 use App\Models\Application;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -126,6 +128,67 @@ class ApplicationController extends Controller
 
         return to_route('applications.show', $application)
             ->with('success', 'Status updated.');
+    }
+
+    public function generateCoverLetter(Request $request, Application $application): JsonResponse
+    {
+        abort_unless($application->user_id === $request->user()->id, 403);
+
+        $context = $this->buildWritingContext($request, $application);
+
+        $response = (new CoverLetterWriter(context: $context))
+            ->prompt('Write a cover letter for this position.');
+
+        $application->update(['cover_letter' => $response->text]);
+
+        return response()->json(['cover_letter' => $response->text]);
+    }
+
+    public function generateEmail(Request $request, Application $application): JsonResponse
+    {
+        abort_unless($application->user_id === $request->user()->id, 403);
+
+        $context = $this->buildWritingContext($request, $application);
+        $coverLetter = $application->cover_letter;
+
+        $prompt = $coverLetter
+            ? "Write a brief, professional submission email for this application. The cover letter is already written and will be attached. Keep the email body short — just introduce yourself, mention the role, and reference the attached cover letter and resume.\n\nCover letter:\n{$coverLetter}"
+            : 'Write a professional submission email for this application. Include a brief introduction, mention the role, and highlight 2-3 key qualifications.';
+
+        $response = (new CoverLetterWriter(context: $context))
+            ->prompt($prompt);
+
+        $application->update(['submission_email' => $response->text]);
+
+        return response()->json(['submission_email' => $response->text]);
+    }
+
+    private function buildWritingContext(Request $request, Application $application): string
+    {
+        $application->load(['jobPosting', 'resume.sections.variants']);
+
+        $parts = ["Company: {$application->company}", "Role: {$application->role}"];
+
+        if ($application->jobPosting) {
+            $parts[] = "Job Posting:\n{$application->jobPosting->raw_text}";
+        }
+
+        if ($application->resume) {
+            $sections = $application->resume->sections->map(function ($section) {
+                $variant = $section->variants->firstWhere('is_selected', true) ?? $section->variants->first();
+
+                return $variant ? "{$section->heading}:\n{$variant->content}" : null;
+            })->filter()->join("\n\n");
+
+            $parts[] = "Resume:\n{$sections}";
+        }
+
+        $identity = $request->user()->professionalIdentity;
+        if ($identity) {
+            $parts[] = "Professional Identity: {$identity->title} — {$identity->summary}";
+        }
+
+        return implode("\n\n", $parts);
     }
 
     public function destroy(Request $request, Application $application): RedirectResponse

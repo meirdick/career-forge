@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Eye, Globe, Pencil, Trash2 } from 'lucide-react';
+import axios from 'axios';
+import { FileText, Globe, Loader2, Mail, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +43,30 @@ export default function ShowApplication({ application }: { application: Applicat
     const [noteContent, setNoteContent] = useState('');
     const [statusNote, setStatusNote] = useState('');
     const [newStatus, setNewStatus] = useState('');
+    const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false);
+    const [generatingEmail, setGeneratingEmail] = useState(false);
+    const [coverLetter, setCoverLetter] = useState(application.cover_letter);
+    const [submissionEmail, setSubmissionEmail] = useState(application.submission_email);
+
+    async function generateCoverLetter() {
+        setGeneratingCoverLetter(true);
+        try {
+            const { data } = await axios.post(`/applications/${application.id}/generate-cover-letter`);
+            setCoverLetter(data.cover_letter);
+        } finally {
+            setGeneratingCoverLetter(false);
+        }
+    }
+
+    async function generateEmail() {
+        setGeneratingEmail(true);
+        try {
+            const { data } = await axios.post(`/applications/${application.id}/generate-email`);
+            setSubmissionEmail(data.submission_email);
+        } finally {
+            setGeneratingEmail(false);
+        }
+    }
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Applications', href: '/applications' },
@@ -134,26 +159,62 @@ export default function ShowApplication({ application }: { application: Applicat
                     </CardContent>
                 </Card>
 
-                {/* Details */}
-                {(application.submission_email || application.notes || application.cover_letter) && (
+                {/* Cover Letter */}
+                <Card>
+                    <CardHeader className="flex-row items-center justify-between">
+                        <CardTitle className="text-base">Cover Letter</CardTitle>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={generateCoverLetter}
+                            disabled={generatingCoverLetter}
+                        >
+                            {generatingCoverLetter ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <FileText className="mr-1 h-4 w-4" />}
+                            {coverLetter ? 'Regenerate' : 'Generate'}
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        {coverLetter ? (
+                            <p className="text-sm whitespace-pre-wrap">{coverLetter}</p>
+                        ) : (
+                            <p className="text-muted-foreground text-sm">
+                                {generatingCoverLetter ? 'Generating cover letter...' : 'No cover letter yet. Click Generate to create one from your resume and job posting.'}
+                            </p>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Submission Email */}
+                <Card>
+                    <CardHeader className="flex-row items-center justify-between">
+                        <CardTitle className="text-base">Submission Email</CardTitle>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={generateEmail}
+                            disabled={generatingEmail}
+                        >
+                            {generatingEmail ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Mail className="mr-1 h-4 w-4" />}
+                            {submissionEmail ? 'Regenerate' : 'Generate'}
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        {submissionEmail ? (
+                            <p className="text-sm whitespace-pre-wrap">{submissionEmail}</p>
+                        ) : (
+                            <p className="text-muted-foreground text-sm">
+                                {generatingEmail ? 'Generating email...' : 'No submission email yet. Click Generate to draft one.'}
+                            </p>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Notes/Details */}
+                {application.notes && (
                     <Card>
-                        <CardHeader><CardTitle className="text-base">Details</CardTitle></CardHeader>
-                        <CardContent className="space-y-3">
-                            {application.submission_email && (
-                                <p className="text-sm"><strong>Email:</strong> {application.submission_email}</p>
-                            )}
-                            {application.notes && (
-                                <div>
-                                    <p className="text-sm font-medium">Notes</p>
-                                    <p className="text-muted-foreground text-sm whitespace-pre-wrap">{application.notes}</p>
-                                </div>
-                            )}
-                            {application.cover_letter && (
-                                <div>
-                                    <p className="text-sm font-medium">Cover Letter</p>
-                                    <p className="text-muted-foreground text-sm whitespace-pre-wrap">{application.cover_letter}</p>
-                                </div>
-                            )}
+                        <CardHeader><CardTitle className="text-base">Application Notes</CardTitle></CardHeader>
+                        <CardContent>
+                            <p className="text-muted-foreground text-sm whitespace-pre-wrap">{application.notes}</p>
                         </CardContent>
                     </Card>
                 )}

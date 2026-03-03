@@ -23,7 +23,7 @@ export default function UploadResume() {
             <Head title="Upload Resume" />
 
             <div className="mx-auto max-w-2xl space-y-6 p-4">
-                <Heading title="Upload Resume" description="Upload a PDF, DOCX, or TXT resume to auto-populate your experience library." />
+                <Heading title="Upload Resume" description="Upload a PDF, DOCX, TXT, or JSON (LinkedIn export) file to auto-populate your experience library." />
 
                 <Card>
                     <CardContent className="pt-6">
@@ -40,14 +40,14 @@ export default function UploadResume() {
                                         ) : (
                                             <>
                                                 <p className="font-medium">Click to select a file</p>
-                                                <p className="text-muted-foreground text-sm">PDF, DOCX, or TXT up to 10MB</p>
+                                                <p className="text-muted-foreground text-sm">PDF, DOCX, TXT, or JSON up to 10MB</p>
                                             </>
                                         )}
                                         <input
                                             ref={fileInputRef}
                                             type="file"
                                             name="file"
-                                            accept=".pdf,.docx,.doc,.txt"
+                                            accept=".pdf,.docx,.doc,.txt,.json"
                                             className="hidden"
                                             onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
                                         />

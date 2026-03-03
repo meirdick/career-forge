@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import RichTextEditor from '@/components/rich-text-editor';
 import AppLayout from '@/layouts/app-layout';
 import ExperienceController from '@/actions/App/Http/Controllers/ExperienceLibrary/ExperienceController';
 import { create as experienceCreate } from '@/routes/experiences';
@@ -70,13 +71,7 @@ export default function CreateExperience({ skills }: { skills: Skill[] }) {
 
                                     <div>
                                         <Label htmlFor="description">Description</Label>
-                                        <textarea
-                                            id="description"
-                                            name="description"
-                                            rows={4}
-                                            placeholder="Describe your role and responsibilities..."
-                                            className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
-                                        />
+                                        <RichTextEditor name="description" placeholder="Describe your role and responsibilities..." />
                                         <InputError message={errors.description} />
                                     </div>
 

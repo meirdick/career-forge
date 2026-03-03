@@ -1,9 +1,11 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
+import { Plus, Search, X } from 'lucide-react';
+import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import { index as experienceLibraryIndex } from '@/routes/experience-library';
 import { create as experienceCreate, show as experienceShow } from '@/routes/experiences';
@@ -52,7 +54,38 @@ function formatDate(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
-export default function ExperienceLibraryIndex({ experiences }: { experiences: Experience[] }) {
+type FilterSkill = { id: number; name: string };
+type FilterTag = { id: number; name: string };
+type Filters = { search: string; skill_id: string; tag_id: string; from: string; to: string };
+
+export default function ExperienceLibraryIndex({ experiences, skills = [], tags = [], filters = { search: '', skill_id: '', tag_id: '', from: '', to: '' } }: { experiences: Experience[]; skills?: FilterSkill[]; tags?: FilterTag[]; filters?: Filters }) {
+    const [search, setSearch] = useState(filters.search);
+    const [skillId, setSkillId] = useState(filters.skill_id);
+    const [tagId, setTagId] = useState(filters.tag_id);
+    const [from, setFrom] = useState(filters.from);
+    const [to, setTo] = useState(filters.to);
+
+    function applyFilters() {
+        router.get(experienceLibraryIndex(), {
+            search: search || undefined,
+            skill_id: skillId || undefined,
+            tag_id: tagId || undefined,
+            from: from || undefined,
+            to: to || undefined,
+        }, { preserveState: true, replace: true });
+    }
+
+    function clearFilters() {
+        setSearch('');
+        setSkillId('');
+        setTagId('');
+        setFrom('');
+        setTo('');
+        router.get(experienceLibraryIndex(), {}, { preserveState: true, replace: true });
+    }
+
+    const hasFilters = search || skillId || tagId || from || to;
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Experience Library" />
@@ -67,6 +100,59 @@ export default function ExperienceLibraryIndex({ experiences }: { experiences: E
                         </Link>
                     </Button>
                 </div>
+
+                <Card>
+                    <CardContent className="pt-4">
+                        <div className="flex flex-wrap items-end gap-3">
+                            <div className="flex-1 min-w-[200px]">
+                                <Input
+                                    placeholder="Search experiences..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
+                                />
+                            </div>
+                            <div>
+                                <select
+                                    value={skillId}
+                                    onChange={(e) => setSkillId(e.target.value)}
+                                    className="border-input bg-background flex h-9 w-full rounded-md border px-3 py-1 text-sm min-w-[150px]"
+                                >
+                                    <option value="">All Skills</option>
+                                    {skills.map((s) => (
+                                        <option key={s.id} value={s.id}>{s.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <select
+                                    value={tagId}
+                                    onChange={(e) => setTagId(e.target.value)}
+                                    className="border-input bg-background flex h-9 w-full rounded-md border px-3 py-1 text-sm min-w-[150px]"
+                                >
+                                    <option value="">All Tags</option>
+                                    {tags.map((t) => (
+                                        <option key={t.id} value={t.id}>#{t.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} placeholder="From" className="w-[140px]" />
+                            </div>
+                            <div>
+                                <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} placeholder="To" className="w-[140px]" />
+                            </div>
+                            <Button size="sm" onClick={applyFilters}>
+                                <Search className="mr-1 h-4 w-4" /> Filter
+                            </Button>
+                            {hasFilters && (
+                                <Button size="sm" variant="ghost" onClick={clearFilters}>
+                                    <X className="mr-1 h-4 w-4" /> Clear
+                                </Button>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
 
                 {experiences.length === 0 ? (
                     <Card>

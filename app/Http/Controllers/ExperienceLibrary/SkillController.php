@@ -15,8 +15,22 @@ class SkillController extends Controller
 {
     public function index(Request $request): Response
     {
-        $skills = $request->user()
-            ->skills()
+        $query = $request->user()->skills();
+
+        if ($search = $request->input('search')) {
+            $scoutResults = Skill::search($search)
+                ->where('user_id', $request->user()->id)
+                ->get()
+                ->pluck('id');
+            $query->whereIn('id', $scoutResults);
+        }
+
+        if ($category = $request->input('category')) {
+            $query->where('category', $category);
+        }
+
+        $skills = $query
+            ->with(['experiences:id,company,title', 'accomplishments:id,title', 'projects:id,name'])
             ->orderBy('category')
             ->orderBy('name')
             ->get()
@@ -24,6 +38,10 @@ class SkillController extends Controller
 
         return Inertia::render('experience-library/skills', [
             'skillsByCategory' => $skills,
+            'filters' => [
+                'search' => $request->input('search', ''),
+                'category' => $request->input('category', ''),
+            ],
         ]);
     }
 

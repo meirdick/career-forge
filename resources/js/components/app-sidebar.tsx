@@ -6,7 +6,9 @@ import {
     LayoutGrid,
     Library,
     LinkIcon,
+    MessageCircle,
     Sparkles,
+    Tag,
     Target,
     Upload,
     User,
@@ -25,11 +27,17 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index as applicationsIndex } from '@/routes/applications';
 import { index as educationIndex } from '@/routes/education';
 import { index as evidenceIndex } from '@/routes/evidence';
 import { index as experienceLibraryIndex } from '@/routes/experience-library';
 import { edit as identityEdit } from '@/routes/identity';
+import { index as interviewIndex } from '@/routes/interview';
+import { index as jobPostingsIndex } from '@/routes/job-postings';
+import { index as resumesIndex } from '@/routes/resumes';
+import { create as resumeUploadCreate } from '@/routes/resume-upload';
 import { index as skillsIndex } from '@/routes/skills';
+import { index as tagsIndex } from '@/routes/tags';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
@@ -62,13 +70,23 @@ const experienceLibraryItems: NavItem[] = [
         icon: GraduationCap,
     },
     {
+        title: 'Tags',
+        href: tagsIndex(),
+        icon: Tag,
+    },
+    {
         title: 'Evidence',
         href: evidenceIndex(),
         icon: LinkIcon,
     },
     {
+        title: 'Interview',
+        href: interviewIndex(),
+        icon: MessageCircle,
+    },
+    {
         title: 'Upload',
-        href: '/resume-upload',
+        href: resumeUploadCreate(),
         icon: Upload,
     },
 ];
@@ -76,17 +94,17 @@ const experienceLibraryItems: NavItem[] = [
 const applicationsItems: NavItem[] = [
     {
         title: 'Job Postings',
-        href: '/job-postings',
+        href: jobPostingsIndex(),
         icon: Target,
     },
     {
         title: 'Resumes',
-        href: '/resumes',
+        href: resumesIndex(),
         icon: FileText,
     },
     {
         title: 'Applications',
-        href: '/applications',
+        href: applicationsIndex(),
         icon: Briefcase,
     },
 ];
@@ -112,8 +130,8 @@ export function AppSidebar() {
 
             <SidebarContent>
                 <NavMain items={mainNavItems} />
-                <NavMain items={experienceLibraryItems} label="Experience Library" />
                 <NavMain items={applicationsItems} label="Applications" />
+                <NavMain items={experienceLibraryItems} label="Experience Library" />
             </SidebarContent>
 
             <SidebarFooter>

@@ -182,3 +182,51 @@ test('destroy returns 403 for other users experience', function () {
         ->delete("/experiences/{$experience->id}")
         ->assertForbidden();
 });
+
+test('index filters by skill', function () {
+    $skill = Skill::factory()->create(['user_id' => $this->user->id, 'name' => 'PHP']);
+    $matching = Experience::factory()->create(['user_id' => $this->user->id, 'company' => 'PHP Co']);
+    $matching->skills()->attach($skill);
+    Experience::factory()->create(['user_id' => $this->user->id, 'company' => 'Other Co']);
+
+    $this->actingAs($this->user)
+        ->get("/experience-library?skill_id={$skill->id}")
+        ->assertSuccessful()
+        ->assertInertia(
+            fn ($page) => $page
+                ->has('experiences', 1)
+                ->where('experiences.0.company', 'PHP Co')
+        );
+});
+
+test('index filters by date range', function () {
+    Experience::factory()->create([
+        'user_id' => $this->user->id,
+        'started_at' => '2020-01-01',
+        'ended_at' => '2021-01-01',
+        'is_current' => false,
+    ]);
+    Experience::factory()->create([
+        'user_id' => $this->user->id,
+        'started_at' => '2023-01-01',
+        'is_current' => true,
+    ]);
+
+    $this->actingAs($this->user)
+        ->get('/experience-library?from=2022-01-01')
+        ->assertSuccessful()
+        ->assertInertia(fn ($page) => $page->has('experiences', 1));
+});
+
+test('index returns skills for filter dropdown', function () {
+    Skill::factory()->create(['user_id' => $this->user->id, 'name' => 'Laravel']);
+
+    $this->actingAs($this->user)
+        ->get('/experience-library')
+        ->assertSuccessful()
+        ->assertInertia(
+            fn ($page) => $page
+                ->has('skills', 1)
+                ->has('filters')
+        );
+});

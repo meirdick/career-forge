@@ -15,15 +15,53 @@ class ExperienceController extends Controller
 {
     public function index(Request $request): Response
     {
-        $experiences = $request->user()
-            ->experiences()
+        $query = $request->user()->experiences();
+
+        if ($search = $request->input('search')) {
+            $scoutResults = Experience::search($search)
+                ->where('user_id', $request->user()->id)
+                ->get()
+                ->pluck('id');
+            $query->whereIn('id', $scoutResults);
+        }
+
+        if ($skillId = $request->input('skill_id')) {
+            $query->whereHas('skills', fn ($q) => $q->where('skills.id', $skillId));
+        }
+
+        if ($tagId = $request->input('tag_id')) {
+            $query->whereHas('tags', fn ($q) => $q->where('tags.id', $tagId));
+        }
+
+        if ($from = $request->input('from')) {
+            $query->where('started_at', '>=', $from);
+        }
+        if ($to = $request->input('to')) {
+            $query->where(function ($q) use ($to) {
+                $q->whereNull('ended_at')->orWhere('ended_at', '<=', $to);
+            });
+        }
+
+        $experiences = $query
             ->with(['accomplishments', 'projects', 'skills'])
             ->orderBy('is_current', 'desc')
             ->orderByDesc('started_at')
             ->get();
 
+        $skills = $request->user()->skills()->orderBy('name')->get(['id', 'name']);
+        $tags = $request->user()->tags()->orderBy('name')->get(['id', 'name']);
+
         return Inertia::render('experience-library/index', [
             'experiences' => $experiences,
+            'skills' => $skills,
+            'tags' => $tags,
+            'filters' => [
+                'search' => $request->input('search', ''),
+                'skill_id' => $request->input('skill_id', ''),
+                'tag_id' => $request->input('tag_id', ''),
+                'from' => $request->input('from', ''),
+                'to' => $request->input('to', ''),
+            ],
         ]);
     }
 
@@ -54,8 +92,11 @@ class ExperienceController extends Controller
 
         $experience->load(['accomplishments.skills', 'projects.skills', 'skills', 'tags', 'documents']);
 
+        $tags = $request->user()->tags()->orderBy('name')->get(['id', 'name']);
+
         return Inertia::render('experience-library/experiences/show', [
             'experience' => $experience,
+            'tags' => $tags,
         ]);
     }
 

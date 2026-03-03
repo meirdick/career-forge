@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\ExperienceLibrary;
 
+use App\Ai\Agents\LinkIndexer;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ExperienceLibrary\StoreEvidenceEntryRequest;
 use App\Http\Requests\ExperienceLibrary\UpdateEvidenceEntryRequest;
 use App\Models\EvidenceEntry;
+use App\Services\WebScraperService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -41,6 +44,26 @@ class EvidenceEntryController extends Controller
 
         return to_route('evidence.index')
             ->with('success', 'Evidence entry updated.');
+    }
+
+    public function indexLink(Request $request, EvidenceEntry $evidenceEntry, WebScraperService $scraper): JsonResponse
+    {
+        abort_unless($evidenceEntry->user_id === $request->user()->id, 403);
+        abort_unless($evidenceEntry->url, 422, 'Evidence entry has no URL.');
+
+        $content = $scraper->scrape($evidenceEntry->url);
+
+        if (! $content) {
+            return response()->json(['error' => 'Could not fetch URL content.'], 422);
+        }
+
+        $response = (new LinkIndexer)->prompt("Analyze this web page content and extract professional information:\n\n{$content}");
+
+        return response()->json([
+            'skills' => $response['skills'] ?? [],
+            'accomplishments' => $response['accomplishments'] ?? [],
+            'projects' => $response['projects'] ?? [],
+        ]);
     }
 
     public function destroy(Request $request, EvidenceEntry $evidenceEntry): RedirectResponse

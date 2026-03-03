@@ -15,7 +15,7 @@ class StoreJobPostingRequest extends FormRequest
     {
         return [
             'url' => 'nullable|url|max:2048',
-            'raw_text' => 'required|string',
+            'raw_text' => 'required_without:url|nullable|string',
             'title' => 'nullable|string|max:255',
             'company' => 'nullable|string|max:255',
         ];

@@ -4,10 +4,12 @@ use App\Http\Controllers\ExperienceLibrary\AccomplishmentController;
 use App\Http\Controllers\ExperienceLibrary\EducationEntryController;
 use App\Http\Controllers\ExperienceLibrary\EvidenceEntryController;
 use App\Http\Controllers\ExperienceLibrary\ExperienceController;
+use App\Http\Controllers\ExperienceLibrary\InterviewController;
 use App\Http\Controllers\ExperienceLibrary\ProfessionalIdentityController;
 use App\Http\Controllers\ExperienceLibrary\ProjectController;
 use App\Http\Controllers\ExperienceLibrary\ResumeUploadController;
 use App\Http\Controllers\ExperienceLibrary\SkillController;
+use App\Http\Controllers\ExperienceLibrary\TagController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -48,6 +50,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('evidence', [EvidenceEntryController::class, 'store'])->name('evidence.store');
     Route::put('evidence/{evidenceEntry}', [EvidenceEntryController::class, 'update'])->name('evidence.update');
     Route::delete('evidence/{evidenceEntry}', [EvidenceEntryController::class, 'destroy'])->name('evidence.destroy');
+    Route::post('evidence/{evidenceEntry}/index-link', [EvidenceEntryController::class, 'indexLink'])->name('evidence.index-link');
+
+    // Tags
+    Route::get('tags', [TagController::class, 'index'])->name('tags.index');
+    Route::post('tags', [TagController::class, 'store'])->name('tags.store');
+    Route::put('tags/{tag}', [TagController::class, 'update'])->name('tags.update');
+    Route::delete('tags/{tag}', [TagController::class, 'destroy'])->name('tags.destroy');
+    Route::post('tags/toggle', [TagController::class, 'toggle'])->name('tags.toggle');
+
+    // Interview
+    Route::get('interview', [InterviewController::class, 'index'])->name('interview.index');
+    Route::post('interview', [InterviewController::class, 'chat'])->name('interview.chat');
 
     // Resume Upload & Import
     Route::get('resume-upload', [ResumeUploadController::class, 'create'])->name('resume-upload.create');

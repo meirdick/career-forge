@@ -1,5 +1,6 @@
 import { Form, Head, router } from '@inertiajs/react';
-import { ExternalLink, LinkIcon, Plus, Trash2 } from 'lucide-react';
+import axios from 'axios';
+import { ExternalLink, LinkIcon, Loader2, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -38,8 +39,28 @@ type EvidenceEntry = {
     content: string | null;
 };
 
+type IndexResult = {
+    skills: { name: string; category: string }[];
+    accomplishments: { title: string; description: string; impact?: string }[];
+    projects: { name: string; description: string; role?: string }[];
+};
+
 export default function Evidence({ entries }: { entries: EvidenceEntry[] }) {
     const [showForm, setShowForm] = useState(false);
+    const [indexingId, setIndexingId] = useState<number | null>(null);
+    const [indexResults, setIndexResults] = useState<Record<number, IndexResult>>({});
+
+    async function indexLink(entryId: number) {
+        setIndexingId(entryId);
+        try {
+            const { data } = await axios.post(EvidenceEntryController.indexLink(entryId).url);
+            setIndexResults((prev) => ({ ...prev, [entryId]: data }));
+        } catch {
+            // error handled silently
+        } finally {
+            setIndexingId(null);
+        }
+    }
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -124,6 +145,17 @@ export default function Evidence({ entries }: { entries: EvidenceEntry[] }) {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Badge variant="outline">{typeLabels[entry.type] ?? entry.type}</Badge>
+                                        {entry.url && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => indexLink(entry.id)}
+                                                disabled={indexingId === entry.id}
+                                            >
+                                                {indexingId === entry.id ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+                                                Index
+                                            </Button>
+                                        )}
                                         <Button
                                             variant="ghost"
                                             size="icon"
@@ -134,11 +166,42 @@ export default function Evidence({ entries }: { entries: EvidenceEntry[] }) {
                                         </Button>
                                     </div>
                                 </CardHeader>
-                                {entry.description && (
-                                    <CardContent className="pt-0">
+                                <CardContent className="space-y-2 pt-0">
+                                    {entry.description && (
                                         <p className="text-sm text-muted-foreground">{entry.description}</p>
-                                    </CardContent>
-                                )}
+                                    )}
+                                    {indexResults[entry.id] && (
+                                        <div className="space-y-2 rounded-md bg-muted/50 p-3">
+                                            <p className="text-xs font-medium">Extracted from URL:</p>
+                                            {indexResults[entry.id].skills.length > 0 && (
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground">Skills</p>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {indexResults[entry.id].skills.map((s, i) => (
+                                                            <Badge key={i} variant="secondary" className="text-xs">{s.name}</Badge>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {indexResults[entry.id].accomplishments.length > 0 && (
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground">Accomplishments</p>
+                                                    {indexResults[entry.id].accomplishments.map((a, i) => (
+                                                        <p key={i} className="text-xs">{a.title} — {a.description}</p>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {indexResults[entry.id].projects.length > 0 && (
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground">Projects</p>
+                                                    {indexResults[entry.id].projects.map((p, i) => (
+                                                        <p key={i} className="text-xs">{p.name} — {p.description}</p>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </CardContent>
                             </Card>
                         ))}
                     </div>

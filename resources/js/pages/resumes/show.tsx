@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Check, Download, Eye, Loader2, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Bot, Check, Download, Eye, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +37,16 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
             return () => clearInterval(interval);
         }
     }, [isGenerating]);
+
+    const sortedSections = [...resume.sections].sort((a, b) => a.sort_order - b.sort_order);
+
+    function moveSection(fromIndex: number, toIndex: number) {
+        const reordered = [...sortedSections];
+        const [moved] = reordered.splice(fromIndex, 1);
+        reordered.splice(toIndex, 0, moved);
+        const newOrder = reordered.map((s) => s.id);
+        router.put(`/resumes/${resume.id}`, { section_order: newOrder }, { preserveScroll: true });
+    }
 
     function selectVariant(sectionId: number, variantId: number) {
         router.put(`/resumes/${resume.id}/sections/${sectionId}`, { variant_id: variantId }, { preserveScroll: true });
@@ -90,16 +100,51 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
                     </Card>
                 )}
 
-                {resume.sections
-                    .sort((a, b) => a.sort_order - b.sort_order)
-                    .map((section) => (
+                {sortedSections.map((section, index) => (
                         <div key={section.id} className="space-y-3">
                             <Separator />
-                            <h2 className="text-lg font-semibold">{section.title}</h2>
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-lg font-semibold">{section.title}</h2>
+                                {!resume.is_finalized && sortedSections.length > 1 && (
+                                    <div className="flex gap-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            disabled={index === 0}
+                                            onClick={() => moveSection(index, index - 1)}
+                                            title="Move up"
+                                        >
+                                            <ArrowUp className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            disabled={index === sortedSections.length - 1}
+                                            onClick={() => moveSection(index, index + 1)}
+                                            title="Move down"
+                                        >
+                                            <ArrowDown className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
 
                             {section.selected_variant && (
-                                <Card>
+                                <Card className={section.selected_variant.is_ai_generated && !section.selected_variant.is_user_edited ? 'border-l-4 border-l-blue-400' : section.selected_variant.is_user_edited ? 'border-l-4 border-l-green-400' : ''}>
                                     <CardContent className="pt-4">
+                                        {section.selected_variant.is_ai_generated && (
+                                            <div className="mb-2 flex items-center gap-1.5">
+                                                {section.selected_variant.is_user_edited ? (
+                                                    <Badge variant="outline" className="text-xs text-green-700 dark:text-green-300">
+                                                        <Pencil className="mr-1 h-3 w-3" /> User Edited
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge variant="outline" className="text-xs text-blue-700 dark:text-blue-300">
+                                                        <Bot className="mr-1 h-3 w-3" /> AI Generated
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        )}
                                         {editingVariant === section.selected_variant.id ? (
                                             <div className="space-y-2">
                                                 <textarea

@@ -1,10 +1,12 @@
 import { Head, router } from '@inertiajs/react';
-import { CheckCircle, Loader2, Target, XCircle } from 'lucide-react';
-import { useEffect } from 'react';
+import axios from 'axios';
+import { CheckCircle, Loader2, MessageCircle, Send, Target, XCircle } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
@@ -34,9 +36,43 @@ const classificationColors: Record<string, string> = {
     genuine: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
 };
 
+type ChatMessage = { role: 'user' | 'assistant'; content: string };
+
 export default function ShowGapAnalysis({ gapAnalysis }: { gapAnalysis: GapAnalysis }) {
     const posting = gapAnalysis.ideal_candidate_profile.job_posting;
     const isAnalyzing = gapAnalysis.strengths.length === 0 && gapAnalysis.gaps.length === 0 && !gapAnalysis.ai_summary;
+
+    const [showChat, setShowChat] = useState(false);
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [input, setInput] = useState('');
+    const [sending, setSending] = useState(false);
+    const [conversationId, setConversationId] = useState<string | null>(null);
+    const chatEndRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
+    async function sendMessage() {
+        if (!input.trim() || sending) return;
+        const userMessage = input.trim();
+        setInput('');
+        setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
+        setSending(true);
+
+        try {
+            const response = await axios.post(`/gap-analyses/${gapAnalysis.id}/chat`, {
+                message: userMessage,
+                conversation_id: conversationId,
+            });
+            setMessages((prev) => [...prev, { role: 'assistant', content: response.data.message }]);
+            setConversationId(response.data.conversation_id);
+        } catch {
+            setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, there was an error. Please try again.' }]);
+        } finally {
+            setSending(false);
+        }
+    }
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Job Postings', href: '/job-postings' },
@@ -149,6 +185,59 @@ export default function ShowGapAnalysis({ gapAnalysis }: { gapAnalysis: GapAnaly
                                 </CardContent>
                             </Card>
                         ))}
+                    </>
+                )}
+
+                {gapAnalysis.gaps.length > 0 && !gapAnalysis.is_finalized && !isAnalyzing && (
+                    <>
+                        <Separator />
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-lg font-semibold">Gap Closure Coach</h2>
+                            <Button variant={showChat ? 'default' : 'outline'} size="sm" onClick={() => setShowChat(!showChat)}>
+                                <MessageCircle className="mr-1 h-4 w-4" /> {showChat ? 'Hide Chat' : 'Start Coaching'}
+                            </Button>
+                        </div>
+
+                        {showChat && (
+                            <Card>
+                                <CardContent className="pt-4">
+                                    <div className="mb-3 max-h-80 space-y-3 overflow-y-auto">
+                                        {messages.length === 0 && (
+                                            <p className="text-muted-foreground text-sm">
+                                                Start a conversation with the Gap Closure Coach to address your gaps. The coach will ask questions to uncover experience you may have overlooked.
+                                            </p>
+                                        )}
+                                        {messages.map((msg, i) => (
+                                            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                                <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                                                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {sending && (
+                                            <div className="flex justify-start">
+                                                <div className="bg-muted rounded-lg px-3 py-2">
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div ref={chatEndRef} />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            value={input}
+                                            onChange={(e) => setInput(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                                            placeholder="Tell me about your experience..."
+                                            disabled={sending}
+                                        />
+                                        <Button size="sm" onClick={sendMessage} disabled={sending || !input.trim()}>
+                                            <Send className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
                     </>
                 )}
 

@@ -9,10 +9,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Laravel\Scout\Searchable;
 
 class Experience extends Model
 {
-    use HasFactory;
+    use HasFactory, Searchable;
 
     protected $fillable = [
         'user_id',
@@ -37,6 +38,19 @@ class Experience extends Model
             'is_current' => 'boolean',
             'team_size' => 'integer',
             'sort_order' => 'integer',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'company' => $this->company,
+            'title' => $this->title,
+            'location' => $this->location,
+            'description' => $this->description,
         ];
     }
 

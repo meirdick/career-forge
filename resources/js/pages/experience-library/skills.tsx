@@ -1,5 +1,5 @@
 import { Form, Head, router } from '@inertiajs/react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Search, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -37,16 +37,43 @@ const proficiencyColors: Record<string, string> = {
     expert: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
 };
 
+type SkillExperience = { id: number; company: string; title: string };
+type SkillAccomplishment = { id: number; title: string };
+type SkillProject = { id: number; name: string };
+
 type Skill = {
     id: number;
     name: string;
     category: string;
     proficiency: string | null;
     notes: string | null;
+    experiences: SkillExperience[];
+    accomplishments: SkillAccomplishment[];
+    projects: SkillProject[];
 };
 
-export default function Skills({ skillsByCategory }: { skillsByCategory: Record<string, Skill[]> }) {
+type Filters = { search: string; category: string };
+
+export default function Skills({ skillsByCategory, filters = { search: '', category: '' } }: { skillsByCategory: Record<string, Skill[]>; filters?: Filters }) {
     const [showForm, setShowForm] = useState(false);
+    const [expandedSkill, setExpandedSkill] = useState<number | null>(null);
+    const [search, setSearch] = useState(filters.search);
+    const [category, setCategory] = useState(filters.category);
+
+    function applyFilters() {
+        router.get(skillsIndex(), {
+            search: search || undefined,
+            category: category || undefined,
+        }, { preserveState: true, replace: true });
+    }
+
+    function clearFilters() {
+        setSearch('');
+        setCategory('');
+        router.get(skillsIndex(), {}, { preserveState: true, replace: true });
+    }
+
+    const hasFilters = search || category;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -60,6 +87,41 @@ export default function Skills({ skillsByCategory }: { skillsByCategory: Record<
                         Add Skill
                     </Button>
                 </div>
+
+                <Card>
+                    <CardContent className="pt-4">
+                        <div className="flex flex-wrap items-end gap-3">
+                            <div className="flex-1 min-w-[200px]">
+                                <Input
+                                    placeholder="Search skills..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
+                                />
+                            </div>
+                            <div>
+                                <select
+                                    value={category}
+                                    onChange={(e) => setCategory(e.target.value)}
+                                    className="border-input bg-background flex h-9 w-full rounded-md border px-3 py-1 text-sm min-w-[150px]"
+                                >
+                                    <option value="">All Categories</option>
+                                    {categories.map((c) => (
+                                        <option key={c} value={c}>{categoryLabels[c]}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <Button size="sm" onClick={applyFilters}>
+                                <Search className="mr-1 h-4 w-4" /> Filter
+                            </Button>
+                            {hasFilters && (
+                                <Button size="sm" variant="ghost" onClick={clearFilters}>
+                                    <X className="mr-1 h-4 w-4" /> Clear
+                                </Button>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
 
                 {showForm && (
                     <Card>
@@ -115,29 +177,68 @@ export default function Skills({ skillsByCategory }: { skillsByCategory: Record<
                             <CardHeader>
                                 <CardTitle className="text-base">{categoryLabels[category] ?? category}</CardTitle>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="space-y-3">
                                 <div className="flex flex-wrap gap-2">
-                                    {skills.map((skill) => (
-                                        <div key={skill.id} className="group relative">
-                                            <Badge
-                                                variant="outline"
-                                                className={`pr-7 ${skill.proficiency ? proficiencyColors[skill.proficiency] : ''}`}
-                                            >
-                                                {skill.name}
-                                                {skill.proficiency && (
-                                                    <span className="ml-1 opacity-70">· {skill.proficiency}</span>
-                                                )}
-                                            </Badge>
-                                            <button
-                                                onClick={() => router.delete(SkillController.destroy(skill.id).url, { preserveScroll: true })}
-                                                className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100"
-                                                title="Delete skill"
-                                            >
-                                                <Trash2 className="h-3 w-3 text-destructive" />
-                                            </button>
-                                        </div>
-                                    ))}
+                                    {skills.map((skill) => {
+                                        const provenanceCount = skill.experiences.length + skill.accomplishments.length + skill.projects.length;
+                                        return (
+                                            <div key={skill.id} className="group relative">
+                                                <Badge
+                                                    variant="outline"
+                                                    className={`cursor-pointer pr-7 ${skill.proficiency ? proficiencyColors[skill.proficiency] : ''}`}
+                                                    onClick={() => setExpandedSkill(expandedSkill === skill.id ? null : skill.id)}
+                                                >
+                                                    {skill.name}
+                                                    {skill.proficiency && (
+                                                        <span className="ml-1 opacity-70">· {skill.proficiency}</span>
+                                                    )}
+                                                    {provenanceCount > 0 && (
+                                                        <span className="ml-1 rounded-full bg-muted px-1.5 text-xs">{provenanceCount}</span>
+                                                    )}
+                                                </Badge>
+                                                <button
+                                                    onClick={() => router.delete(SkillController.destroy(skill.id).url, { preserveScroll: true })}
+                                                    className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100"
+                                                    title="Delete skill"
+                                                >
+                                                    <Trash2 className="h-3 w-3 text-destructive" />
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
+                                {skills.filter(s => expandedSkill === s.id).map((skill) => (
+                                    <div key={skill.id} className="rounded-md border bg-muted/50 p-3 text-sm">
+                                        <p className="mb-1 font-medium">{skill.name} — linked to:</p>
+                                        {skill.experiences.length > 0 && (
+                                            <div className="mb-1">
+                                                <span className="text-muted-foreground">Experiences:</span>
+                                                {skill.experiences.map((e) => (
+                                                    <span key={e.id} className="ml-2">{e.title} at {e.company}</span>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {skill.accomplishments.length > 0 && (
+                                            <div className="mb-1">
+                                                <span className="text-muted-foreground">Accomplishments:</span>
+                                                {skill.accomplishments.map((a) => (
+                                                    <span key={a.id} className="ml-2">{a.title}</span>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {skill.projects.length > 0 && (
+                                            <div>
+                                                <span className="text-muted-foreground">Projects:</span>
+                                                {skill.projects.map((p) => (
+                                                    <span key={p.id} className="ml-2">{p.name}</span>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {skill.experiences.length === 0 && skill.accomplishments.length === 0 && skill.projects.length === 0 && (
+                                            <p className="text-muted-foreground italic">Not yet linked to any experiences</p>
+                                        )}
+                                    </div>
+                                ))}
                             </CardContent>
                         </Card>
                     ))

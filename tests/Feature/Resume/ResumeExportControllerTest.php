@@ -82,7 +82,36 @@ test('export returns 403 for other users resume', function () {
         ->assertForbidden();
 });
 
-test('finalize marks resume as finalized', function () {
+test('finalize marks resume as finalized and creates application', function () {
+    $jobPosting = \App\Models\JobPosting::factory()->create([
+        'user_id' => $this->user->id,
+        'title' => 'Senior Developer',
+        'company' => 'Acme Corp',
+    ]);
+    $resume = Resume::factory()->create([
+        'user_id' => $this->user->id,
+        'job_posting_id' => $jobPosting->id,
+    ]);
+
+    $this->actingAs($this->user)
+        ->post("/resumes/{$resume->id}/finalize")
+        ->assertRedirect();
+
+    expect($resume->fresh()->is_finalized)->toBeTrue();
+
+    $application = $this->user->applications()->latest()->first();
+    expect($application)
+        ->not->toBeNull()
+        ->company->toBe('Acme Corp')
+        ->role->toBe('Senior Developer')
+        ->resume_id->toBe($resume->id)
+        ->job_posting_id->toBe($jobPosting->id)
+        ->status->toBe(\App\Enums\ApplicationStatus::Draft);
+
+    expect($application->statusChanges)->toHaveCount(1);
+});
+
+test('finalize creates application without job posting', function () {
     $resume = Resume::factory()->create(['user_id' => $this->user->id]);
 
     $this->actingAs($this->user)
@@ -90,6 +119,12 @@ test('finalize marks resume as finalized', function () {
         ->assertRedirect();
 
     expect($resume->fresh()->is_finalized)->toBeTrue();
+
+    $application = $this->user->applications()->latest()->first();
+    expect($application)
+        ->not->toBeNull()
+        ->company->toBe('Unknown')
+        ->job_posting_id->toBeNull();
 });
 
 test('finalize returns 403 for other users resume', function () {

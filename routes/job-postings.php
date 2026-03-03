@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\GapAnalysisController;
+use App\Http\Controllers\GapClosureChatController;
 use App\Http\Controllers\JobPostingController;
 use App\Http\Controllers\ResumeController;
 use App\Http\Controllers\ResumeExportController;
@@ -9,11 +10,14 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('job-postings', JobPostingController::class);
     Route::post('job-postings/{jobPosting}/reanalyze', [JobPostingController::class, 'reanalyze'])->name('job-postings.reanalyze');
+    Route::put('job-postings/{jobPosting}/profile', [JobPostingController::class, 'updateProfile'])->name('job-postings.update-profile');
 
     // Gap Analysis
     Route::post('job-postings/{jobPosting}/gap-analysis', [GapAnalysisController::class, 'store'])->name('gap-analyses.store');
     Route::get('gap-analyses/{gapAnalysis}', [GapAnalysisController::class, 'show'])->name('gap-analyses.show');
     Route::post('gap-analyses/{gapAnalysis}/finalize', [GapAnalysisController::class, 'finalize'])->name('gap-analyses.finalize');
+    Route::post('gap-analyses/{gapAnalysis}/chat', [GapClosureChatController::class, 'chat'])->name('gap-analyses.chat');
+    Route::post('gap-analyses/{gapAnalysis}/save-entries', [GapClosureChatController::class, 'save'])->name('gap-analyses.save-entries');
 
     // Resumes
     Route::post('gap-analyses/{gapAnalysis}/resume', [ResumeController::class, 'generate'])->name('resumes.generate');

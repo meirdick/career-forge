@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Edit, Loader2, RefreshCw, Trash2 } from 'lucide-react';
-import { useEffect } from 'react';
+import { Check, Edit, Loader2, Pencil, RefreshCw, Trash2, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ type IdealCandidateProfile = {
     language_guidance: { key_terms?: string[]; tone?: string; phrases_to_mirror?: string[] };
     red_flags: string[];
     company_research: { industry?: string; size_indicators?: string; growth_stage?: string; notable_details?: string[] } | null;
+    is_user_edited: boolean;
 };
 
 type JobPosting = {
@@ -42,6 +43,28 @@ export default function ShowJobPosting({ posting }: { posting: JobPosting }) {
     ];
 
     const profile = posting.ideal_candidate_profile;
+    const [editingProfile, setEditingProfile] = useState(false);
+    const [editRedFlags, setEditRedFlags] = useState('');
+
+    function startEditProfile() {
+        setEditRedFlags(profile?.red_flags.join('\n') ?? '');
+        setEditingProfile(true);
+    }
+
+    function saveProfile() {
+        if (!profile) return;
+        router.put(`/job-postings/${posting.id}/profile`, {
+            required_skills: profile.required_skills,
+            preferred_skills: profile.preferred_skills,
+            experience_profile: profile.experience_profile,
+            cultural_fit: profile.cultural_fit,
+            language_guidance: profile.language_guidance,
+            red_flags: editRedFlags.split('\n').filter(Boolean),
+        }, {
+            preserveScroll: true,
+            onSuccess: () => setEditingProfile(false),
+        });
+    }
 
     useEffect(() => {
         if (!posting.analyzed_at) {
@@ -95,7 +118,23 @@ export default function ShowJobPosting({ posting }: { posting: JobPosting }) {
                 {profile && (
                     <>
                         <Separator />
-                        <Heading title="Ideal Candidate Profile" description="AI-generated profile based on the job posting analysis." />
+                        <div className="flex items-center justify-between">
+                            <Heading title="Ideal Candidate Profile" description={profile.is_user_edited ? "Edited by you." : "AI-generated profile based on the job posting analysis."} />
+                            {!editingProfile ? (
+                                <Button variant="outline" size="sm" onClick={startEditProfile}>
+                                    <Pencil className="mr-1 h-4 w-4" /> Edit Profile
+                                </Button>
+                            ) : (
+                                <div className="flex gap-2">
+                                    <Button size="sm" onClick={saveProfile}>
+                                        <Check className="mr-1 h-4 w-4" /> Save
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => setEditingProfile(false)}>
+                                        <X className="mr-1 h-4 w-4" /> Cancel
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
 
                         {profile.required_skills.length > 0 && (
                             <Card>
@@ -165,13 +204,23 @@ export default function ShowJobPosting({ posting }: { posting: JobPosting }) {
                             </Card>
                         )}
 
-                        {profile.red_flags.length > 0 && (
+                        {(profile.red_flags.length > 0 || editingProfile) && (
                             <Card>
                                 <CardHeader><CardTitle className="text-base">Red Flags</CardTitle></CardHeader>
                                 <CardContent>
-                                    <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
-                                        {profile.red_flags.map((flag, i) => <li key={i}>{flag}</li>)}
-                                    </ul>
+                                    {editingProfile ? (
+                                        <textarea
+                                            value={editRedFlags}
+                                            onChange={(e) => setEditRedFlags(e.target.value)}
+                                            rows={5}
+                                            className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
+                                            placeholder="One red flag per line..."
+                                        />
+                                    ) : (
+                                        <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
+                                            {profile.red_flags.map((flag, i) => <li key={i}>{flag}</li>)}
+                                        </ul>
+                                    )}
                                 </CardContent>
                             </Card>
                         )}

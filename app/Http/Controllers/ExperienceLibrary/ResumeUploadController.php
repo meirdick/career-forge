@@ -4,12 +4,7 @@ namespace App\Http\Controllers\ExperienceLibrary;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\ParseResumeJob;
-use App\Models\Accomplishment;
 use App\Models\Document;
-use App\Models\EducationEntry;
-use App\Models\Experience;
-use App\Models\Project;
-use App\Models\Skill;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -26,7 +21,7 @@ class ResumeUploadController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'file' => 'required|file|mimes:pdf,docx,doc,txt|max:10240',
+            'file' => 'required|file|mimes:pdf,docx,doc,txt,json|max:10240',
         ]);
 
         $file = $request->file('file');
