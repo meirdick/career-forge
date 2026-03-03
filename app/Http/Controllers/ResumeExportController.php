@@ -1,0 +1,55 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Resume;
+use App\Services\ResumeExportService;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+
+class ResumeExportController extends Controller
+{
+    public function preview(Request $request, Resume $resume): Response
+    {
+        abort_unless($resume->user_id === $request->user()->id, 403);
+
+        $resume->load(['sections.selectedVariant', 'jobPosting']);
+
+        return Inertia::render('resumes/preview', [
+            'resume' => $resume,
+        ]);
+    }
+
+    public function export(Request $request, Resume $resume, string $format, ResumeExportService $exporter): BinaryFileResponse
+    {
+        abort_unless($resume->user_id === $request->user()->id, 403);
+        abort_unless(in_array($format, ['pdf', 'docx']), 404);
+
+        $path = match ($format) {
+            'pdf' => $exporter->toPdf($resume),
+            'docx' => $exporter->toDocx($resume),
+        };
+
+        $resume->update([
+            'exported_path' => $path,
+            'exported_format' => $format,
+        ]);
+
+        $fullPath = storage_path('app/private/'.$path);
+        $filename = str($resume->title)->slug().".{$format}";
+
+        return response()->download($fullPath, $filename);
+    }
+
+    public function finalize(Request $request, Resume $resume): \Illuminate\Http\RedirectResponse
+    {
+        abort_unless($resume->user_id === $request->user()->id, 403);
+
+        $resume->update(['is_finalized' => true]);
+
+        return to_route('resumes.show', $resume)
+            ->with('success', 'Resume finalized.');
+    }
+}

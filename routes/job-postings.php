@@ -3,6 +3,7 @@
 use App\Http\Controllers\GapAnalysisController;
 use App\Http\Controllers\JobPostingController;
 use App\Http\Controllers\ResumeController;
+use App\Http\Controllers\ResumeExportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -22,4 +23,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('resumes/{resume}/sections/{resumeSection}', [ResumeController::class, 'selectVariant'])->name('resumes.select-variant');
     Route::put('resumes/{resume}/variants/{resumeSectionVariant}', [ResumeController::class, 'editVariant'])->name('resumes.edit-variant');
     Route::delete('resumes/{resume}', [ResumeController::class, 'destroy'])->name('resumes.destroy');
+
+    // Resume Export
+    Route::get('resumes/{resume}/preview', [ResumeExportController::class, 'preview'])->name('resumes.preview');
+    Route::get('resumes/{resume}/export/{format}', [ResumeExportController::class, 'export'])->name('resumes.export');
+    Route::post('resumes/{resume}/finalize', [ResumeExportController::class, 'finalize'])->name('resumes.finalize');
 });

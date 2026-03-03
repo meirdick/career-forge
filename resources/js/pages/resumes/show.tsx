@@ -1,5 +1,5 @@
-import { Head, router } from '@inertiajs/react';
-import { Check, Loader2, Trash2 } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Check, Download, Eye, Loader2, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -54,8 +54,22 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
                 <div className="flex items-start justify-between">
                     <Heading title={resume.title} description={resume.job_posting ? `For ${resume.job_posting.title ?? 'Untitled'} at ${resume.job_posting.company ?? 'Unknown'}` : undefined} />
                     <div className="flex gap-2">
+                        {!isGenerating && (
+                            <>
+                                <Link href={`/resumes/${resume.id}/preview`}>
+                                    <Button variant="outline" size="sm">
+                                        <Eye className="mr-1 h-4 w-4" /> Preview
+                                    </Button>
+                                </Link>
+                                <a href={`/resumes/${resume.id}/export/pdf`}>
+                                    <Button variant="outline" size="sm">
+                                        <Download className="mr-1 h-4 w-4" /> PDF
+                                    </Button>
+                                </a>
+                            </>
+                        )}
                         {!resume.is_finalized && !isGenerating && (
-                            <Button onClick={() => router.put(`/resumes/${resume.id}`, { is_finalized: true })}>
+                            <Button onClick={() => router.post(`/resumes/${resume.id}/finalize`)}>
                                 <Check className="mr-1 h-4 w-4" /> Finalize
                             </Button>
                         )}
