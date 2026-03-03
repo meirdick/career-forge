@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import {
     Briefcase,
+    FileText,
     GraduationCap,
     LayoutGrid,
     Library,
@@ -77,6 +78,11 @@ const applicationsItems: NavItem[] = [
         title: 'Job Postings',
         href: '/job-postings',
         icon: Target,
+    },
+    {
+        title: 'Resumes',
+        href: '/resumes',
+        icon: FileText,
     },
     {
         title: 'Applications',
