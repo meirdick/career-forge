@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import {
     Briefcase,
     FileText,
@@ -94,6 +94,8 @@ const applicationsItems: NavItem[] = [
 const footerNavItems: NavItem[] = [];
 
 export function AppSidebar() {
+    const { profileCompleteness } = usePage<{ profileCompleteness: number | null }>().props;
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -115,6 +117,20 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
+                {profileCompleteness !== null && (
+                    <div className="px-3 py-2">
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">Profile</span>
+                            <span className="font-medium">{profileCompleteness}%</span>
+                        </div>
+                        <div className="bg-muted mt-1 h-1.5 w-full rounded-full">
+                            <div
+                                className="bg-primary h-1.5 rounded-full transition-all"
+                                style={{ width: `${profileCompleteness}%` }}
+                            />
+                        </div>
+                    </div>
+                )}
                 <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>

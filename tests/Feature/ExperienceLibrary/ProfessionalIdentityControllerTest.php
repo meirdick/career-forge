@@ -37,7 +37,7 @@ test('update creates identity if none exists', function () {
         ])
         ->assertRedirect('/identity');
 
-    expect($this->user->professionalIdentity)
+    expect($this->user->fresh()->professionalIdentity)
         ->values->toBe('Growth mindset')
         ->philosophy->toBe('Ship early, iterate often');
 });

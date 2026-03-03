@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\ProfileCompletenessService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -42,6 +43,9 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'profileCompleteness' => $request->user()
+                ? app(ProfileCompletenessService::class)->calculate($request->user())['score']
+                : null,
         ];
     }
 }

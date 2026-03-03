@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { Briefcase, Plus } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,11 +26,25 @@ const statusColors: Record<string, string> = {
     withdrawn: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
 };
 
+const allStatuses = ['draft', 'applied', 'interviewing', 'offer', 'rejected', 'withdrawn'];
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Applications', href: '/applications' },
 ];
 
 export default function ApplicationsIndex({ applications }: { applications: ApplicationData[] }) {
+    const [filter, setFilter] = useState<string | null>(null);
+
+    const statusCounts = useMemo(() => {
+        const counts: Record<string, number> = {};
+        for (const status of allStatuses) {
+            counts[status] = applications.filter((a) => a.status === status).length;
+        }
+        return counts;
+    }, [applications]);
+
+    const filtered = filter ? applications.filter((a) => a.status === filter) : applications;
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Applications" />
@@ -44,6 +59,24 @@ export default function ApplicationsIndex({ applications }: { applications: Appl
                     </Link>
                 </div>
 
+                {/* Pipeline Summary */}
+                {applications.length > 0 && (
+                    <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+                        {allStatuses.map((status) => (
+                            <button
+                                key={status}
+                                onClick={() => setFilter(filter === status ? null : status)}
+                                className={`rounded-lg border p-2 text-center transition-colors ${
+                                    filter === status ? 'border-primary bg-primary/5' : 'hover:bg-muted'
+                                }`}
+                            >
+                                <p className="text-lg font-bold">{statusCounts[status]}</p>
+                                <p className="text-muted-foreground text-xs capitalize">{status}</p>
+                            </button>
+                        ))}
+                    </div>
+                )}
+
                 {applications.length === 0 ? (
                     <Card>
                         <CardContent className="py-8 text-center">
@@ -51,27 +84,39 @@ export default function ApplicationsIndex({ applications }: { applications: Appl
                         </CardContent>
                     </Card>
                 ) : (
-                    applications.map((app) => (
-                        <Link key={app.id} href={`/applications/${app.id}`} className="block">
-                            <Card className="transition-shadow hover:shadow-md">
-                                <CardHeader className="pb-2">
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <Briefcase className="text-muted-foreground h-5 w-5" />
-                                            <CardTitle className="text-base">{app.role}</CardTitle>
+                    <>
+                        {filter && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground text-sm">
+                                    Showing {filtered.length} {filter} application{filtered.length !== 1 ? 's' : ''}
+                                </span>
+                                <Button variant="ghost" size="sm" onClick={() => setFilter(null)}>
+                                    Clear filter
+                                </Button>
+                            </div>
+                        )}
+                        {filtered.map((app) => (
+                            <Link key={app.id} href={`/applications/${app.id}`} className="block">
+                                <Card className="transition-shadow hover:shadow-md">
+                                    <CardHeader className="pb-2">
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Briefcase className="text-muted-foreground h-5 w-5" />
+                                                <CardTitle className="text-base">{app.role}</CardTitle>
+                                            </div>
+                                            <Badge className={statusColors[app.status] ?? ''}>{app.status}</Badge>
                                         </div>
-                                        <Badge className={statusColors[app.status] ?? ''}>{app.status}</Badge>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="pt-0">
-                                    <p className="text-muted-foreground text-xs">
-                                        {app.company}
-                                        {app.applied_at && ` · Applied ${new Date(app.applied_at).toLocaleDateString()}`}
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        </Link>
-                    ))
+                                    </CardHeader>
+                                    <CardContent className="pt-0">
+                                        <p className="text-muted-foreground text-xs">
+                                            {app.company}
+                                            {app.applied_at && ` · Applied ${new Date(app.applied_at).toLocaleDateString()}`}
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                            </Link>
+                        ))}
+                    </>
                 )}
             </div>
         </AppLayout>
