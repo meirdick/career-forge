@@ -16,9 +16,12 @@ return new class extends Migration
             $table->string('title');
             $table->string('status')->default('active');
             $table->string('mode')->default('general');
+            $table->string('step')->nullable();
+            $table->string('pipeline_key')->nullable();
             $table->timestamps();
 
             $table->index(['user_id', 'updated_at']);
+            $table->index('pipeline_key');
         });
     }
 

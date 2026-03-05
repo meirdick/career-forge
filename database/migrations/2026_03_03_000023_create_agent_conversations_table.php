@@ -1,19 +1,16 @@
 <?php
 
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Laravel\Ai\Migrations\AiMigration;
 
-return new class extends AiMigration
+return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('agent_conversations', function (Blueprint $table) {
             $table->string('id', 36)->primary();
-            $table->foreignId('user_id')->nullable();
+            $table->foreignId('user_id')->nullable()->constrained();
             $table->string('title');
             $table->timestamps();
 
@@ -23,7 +20,7 @@ return new class extends AiMigration
         Schema::create('agent_conversation_messages', function (Blueprint $table) {
             $table->string('id', 36)->primary();
             $table->string('conversation_id', 36)->index();
-            $table->foreignId('user_id')->nullable();
+            $table->foreignId('user_id')->nullable()->constrained();
             $table->string('agent');
             $table->string('role', 25);
             $table->text('content');
@@ -35,16 +32,13 @@ return new class extends AiMigration
             $table->timestamps();
 
             $table->index(['conversation_id', 'user_id', 'updated_at'], 'conversation_index');
-            $table->index(['user_id']);
+            $table->index('user_id');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('agent_conversations');
         Schema::dropIfExists('agent_conversation_messages');
+        Schema::dropIfExists('agent_conversations');
     }
 };

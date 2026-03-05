@@ -6,23 +6,15 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('projects', function (Blueprint $table) {
+        Schema::create('accomplishments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('experience_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('name');
+            $table->string('title');
             $table->text('description');
-            $table->string('role')->nullable();
-            $table->string('url')->nullable();
-            $table->string('scale')->nullable();
-            $table->text('outcome')->nullable();
-            $table->date('started_at')->nullable();
-            $table->date('ended_at')->nullable();
+            $table->text('impact')->nullable();
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
 
@@ -30,11 +22,8 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('projects');
+        Schema::dropIfExists('accomplishments');
     }
 };

@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('resumes', function (Blueprint $table) {
@@ -19,6 +16,7 @@ return new class extends Migration
             $table->string('title');
             $table->json('section_order')->nullable();
             $table->boolean('is_finalized')->default(false);
+            $table->string('template')->default('classic');
             $table->string('exported_path')->nullable();
             $table->string('exported_format')->nullable();
             $table->timestamps();
@@ -27,9 +25,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('resumes');

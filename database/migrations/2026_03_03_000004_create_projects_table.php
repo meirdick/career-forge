@@ -6,34 +6,29 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('education_entries', function (Blueprint $table) {
+        Schema::create('projects', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->string('type');
-            $table->string('institution');
-            $table->string('title');
-            $table->string('field')->nullable();
+            $table->foreignId('experience_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('name');
+            $table->text('description');
+            $table->string('role')->nullable();
             $table->string('url')->nullable();
-            $table->text('description')->nullable();
+            $table->string('scale')->nullable();
+            $table->text('outcome')->nullable();
             $table->date('started_at')->nullable();
-            $table->date('completed_at')->nullable();
+            $table->date('ended_at')->nullable();
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
 
-            $table->index('user_id');
+            $table->index(['user_id', 'experience_id']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('education_entries');
+        Schema::dropIfExists('projects');
     }
 };

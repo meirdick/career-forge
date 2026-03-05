@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('transparency_pages', function (Blueprint $table) {
@@ -28,13 +25,20 @@ return new class extends Migration
 
             $table->index('user_id');
         });
+
+        Schema::create('transparency_page_views', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('transparency_page_id')->constrained()->cascadeOnDelete();
+            $table->string('ip_address', 45)->nullable();
+            $table->text('user_agent')->nullable();
+            $table->string('referer', 2048)->nullable();
+            $table->timestamp('viewed_at');
+        });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
+        Schema::dropIfExists('transparency_page_views');
         Schema::dropIfExists('transparency_pages');
     }
 };

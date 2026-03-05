@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('ideal_candidate_profiles', function (Blueprint $table) {
@@ -23,13 +20,11 @@ return new class extends Migration
             $table->json('company_research')->nullable();
             $table->json('industry_standards')->nullable();
             $table->boolean('is_user_edited')->default(false);
+            $table->text('candidate_summary')->nullable();
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('ideal_candidate_profiles');
