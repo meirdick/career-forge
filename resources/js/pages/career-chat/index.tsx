@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import EmptyState from '@/components/empty-state';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -56,7 +57,7 @@ export default function CareerChatIndex({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Career Chat" />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-4">
+            <div className="mx-auto max-w-4xl space-y-6 p-4">
                 <div className="flex items-start justify-between">
                     <Heading title="Career Chat" description="AI-powered career coaching to discover, articulate, and capture your professional experience" />
                     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -123,15 +124,11 @@ export default function CareerChatIndex({
                 </div>
 
                 {sessions.length === 0 ? (
-                    <Card>
-                        <CardContent className="flex flex-col items-center gap-4 py-12">
-                            <MessageCircle className="text-muted-foreground h-12 w-12" />
-                            <p className="text-muted-foreground max-w-md text-center">
-                                Start a career coaching session to uncover your skills, accomplishments, and projects through natural conversation.
-                                The AI coach will help you articulate your experience compellingly.
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <EmptyState
+                        icon={MessageCircle}
+                        title="No chat sessions yet"
+                        description="Start a career coaching session to uncover your skills, accomplishments, and projects through natural conversation."
+                    />
                 ) : (
                     <div className="space-y-3">
                         {sessions.map((session) => (

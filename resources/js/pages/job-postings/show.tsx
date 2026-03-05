@@ -9,7 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import JobPostingController from '@/actions/App/Http/Controllers/JobPostingController';
 import type { BreadcrumbItem } from '@/types';
@@ -268,15 +270,16 @@ export default function ShowJobPosting({ posting }: { posting: JobPosting }) {
                             placeholder="Skill name"
                             className="flex-1"
                         />
-                        <select
-                            value={skill.importance}
-                            onChange={(e) => setSkills(updateSkill(skills, i, 'importance', e.target.value))}
-                            className="border-input bg-background flex h-9 rounded-md border px-3 py-1 text-sm"
-                        >
-                            <option value="required">Required</option>
-                            <option value="preferred">Preferred</option>
-                            <option value="nice_to_have">Nice to have</option>
-                        </select>
+                        <Select value={skill.importance} onValueChange={(v) => setSkills(updateSkill(skills, i, 'importance', v))}>
+                            <SelectTrigger className="w-[130px]">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="required">Required</SelectItem>
+                                <SelectItem value="preferred">Preferred</SelectItem>
+                                <SelectItem value="nice_to_have">Nice to have</SelectItem>
+                            </SelectContent>
+                        </Select>
                         <Input
                             value={skill.category}
                             onChange={(e) => setSkills(updateSkill(skills, i, 'category', e.target.value))}
@@ -299,7 +302,7 @@ export default function ShowJobPosting({ posting }: { posting: JobPosting }) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={posting.title ?? 'Job Posting'} />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-4">
+            <div className="mx-auto max-w-4xl space-y-6 p-4">
                 {posting.analyzed_at && (
                     <PipelineSteps
                         steps={[
@@ -572,11 +575,10 @@ export default function ShowJobPosting({ posting }: { posting: JobPosting }) {
                             <SectionHeader {...sectionHeaderProps('Red Flags', 'red_flags')} />
                             <CardContent>
                                 {editingSection === 'red_flags' ? (
-                                    <textarea
+                                    <Textarea
                                         value={draftRedFlags}
                                         onChange={(e) => setDraftRedFlags(e.target.value)}
                                         rows={5}
-                                        className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
                                         placeholder="One red flag per line..."
                                     />
                                 ) : profile.red_flags.length > 0 ? (

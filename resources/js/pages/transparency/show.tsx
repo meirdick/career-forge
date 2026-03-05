@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 
@@ -57,7 +58,7 @@ export default function ShowTransparency({ application, page, viewCount = 0, rec
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="AI Transparency" />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-4">
+            <div className="mx-auto max-w-4xl space-y-6 p-4">
                 <div className="flex items-start justify-between">
                     <Heading
                         title="AI Transparency Companion"
@@ -87,11 +88,10 @@ export default function ShowTransparency({ application, page, viewCount = 0, rec
                 <Card>
                     <CardHeader><CardTitle className="text-base">Authorship Statement</CardTitle></CardHeader>
                     <CardContent>
-                        <textarea
+                        <Textarea
                             value={form.authorship_statement}
                             onChange={(e) => setForm({ ...form, authorship_statement: e.target.value })}
                             rows={4}
-                            className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
                             placeholder="Describe how AI was used in creating your application materials..."
                         />
                     </CardContent>
@@ -100,11 +100,10 @@ export default function ShowTransparency({ application, page, viewCount = 0, rec
                 <Card>
                     <CardHeader><CardTitle className="text-base">Research Summary</CardTitle></CardHeader>
                     <CardContent>
-                        <textarea
+                        <Textarea
                             value={form.research_summary}
                             onChange={(e) => setForm({ ...form, research_summary: e.target.value })}
                             rows={4}
-                            className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
                             placeholder="Summarize the research AI performed on the role and company..."
                         />
                     </CardContent>
@@ -113,11 +112,10 @@ export default function ShowTransparency({ application, page, viewCount = 0, rec
                 <Card>
                     <CardHeader><CardTitle className="text-base">Ideal Candidate Profile Summary</CardTitle></CardHeader>
                     <CardContent>
-                        <textarea
+                        <Textarea
                             value={form.ideal_profile_summary}
                             onChange={(e) => setForm({ ...form, ideal_profile_summary: e.target.value })}
                             rows={4}
-                            className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
                             placeholder="Describe the ideal candidate profile that was generated..."
                         />
                     </CardContent>
@@ -128,12 +126,12 @@ export default function ShowTransparency({ application, page, viewCount = 0, rec
                     <CardContent className="space-y-4">
                         <div>
                             <Label htmlFor="tool_description">Tool Description</Label>
-                            <textarea
+                            <Textarea
                                 id="tool_description"
                                 value={form.tool_description}
                                 onChange={(e) => setForm({ ...form, tool_description: e.target.value })}
                                 rows={3}
-                                className="border-input bg-background mt-1 flex w-full rounded-md border px-3 py-2 text-sm"
+                                className="mt-1"
                                 placeholder="Describe the AI tools used..."
                             />
                         </div>

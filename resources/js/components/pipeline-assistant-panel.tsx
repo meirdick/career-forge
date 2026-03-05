@@ -95,7 +95,7 @@ export default function PipelineAssistantPanel({ context }: { context: PipelineC
         <>
             <Button
                 onClick={handleOpen}
-                className="fixed right-6 bottom-6 z-50 h-12 gap-2 rounded-full px-4 shadow-lg"
+                className="fixed right-6 bottom-6 z-50 h-12 gap-2 rounded-full px-4 shadow-elevated animate-fade-in-up"
                 size="lg"
             >
                 <MessageCircle className="h-5 w-5" />

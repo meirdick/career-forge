@@ -8,9 +8,9 @@ CareerForge
 AI-Powered Experience Library & Job Application Platform
 
 
-Version 1.1  |  March 2026  |  Open Source
+Version 2.0  |  March 2026  |  Open Source
 
-Status: Draft for Technical Team Review
+Status: Active Development — Phase 1 Implementation In Progress
 
 # **Table of Contents**
 
@@ -422,7 +422,7 @@ The AI Transparency Companion is a first-class feature. For each job application
 
 The companion page communicates: this resume was crafted by a human using AI as a collaborative tool. It documents the human decisions, editorial choices, and domain expertise that shaped the final product, while openly showing the AI-assisted workflow.
 
-For the user, who works in product management and AI, the companion page functions as a live portfolio piece demonstrating the ability to design AI-assisted workflows and maintain intellectual honesty about AI’s role in professional work.
+The companion page also functions as a portfolio piece demonstrating the ability to design AI-assisted workflows and maintain intellectual honesty about AI’s role in professional work.
 
 ## **8.2 Content**
 
@@ -610,6 +610,125 @@ Phase 1 delivers the complete end-to-end workflow:
 | Minimum Viable Profile | The minimum user input (one resume + one job posting) required to generate a first useful output. |
 | Gap Closure | The collaborative process of addressing gaps through reframing, prompting, or acknowledging genuine gaps. |
 | Progressive Depth | The design principle that the system delivers value immediately and grows more powerful over time. |
+
+
+---
+
+# **Appendix A: Implementation Status**
+
+The following summarizes the current state of Phase 1 implementation as of March 2026.
+
+## **A.1 Completed Features**
+
+### Experience Library
+- Professional timeline with CRUD (roles, accomplishments, projects, transitions)
+- Skills inventory with proficiency levels and AI-inferred categorization
+- Professional identity (values, leadership style, passions)
+- Education & credentials management
+- Evidence/links library with URL indexing
+- Tagging system with cross-referencing between entries
+- Profile completeness indicator
+- Document upload with AI-powered extraction (resume parsing)
+- Context-aware extraction with intelligent merge (deduplication of existing entries)
+- Career Chat — conversational AI interface for building the experience library through natural dialogue
+
+### Job Analysis Engine
+- URL-based job posting fetch and analysis (via Firecrawl)
+- Pasted text analysis
+- Ideal Candidate Profile generation with must-have / nice-to-have / culture signals
+- LinkedIn URL auto-detection from job posting text
+
+### Gap Analysis & Resume Engine
+- Structured gap analysis with skill/experience/culture dimensions
+- Gap classification (reframable, promptable, genuine)
+- Collaborative gap closure with targeted questions and action cards
+- Modular resume generation with multiple variants per section
+- Variant selection, editing, and section reordering
+- PDF export via RenderCV integration (with DomPDF fallback)
+- DOCX export
+- Resume template system with multiple professional templates (Classic, sb2nov, ModernCV, Engineering Resumes)
+
+### AI Transparency Companion
+- Per-application transparency page showing AI decisions, research, and editorial choices
+- Shareable public URL for each transparency page
+- Styled consistently with resume output
+
+### Application Tracker
+- Automatic application creation on resume finalization
+- Status tracking with timestamped status change log (draft → applied → interviewing → offer → rejected → withdrawn)
+- Dashboard with pipeline summary and application statistics
+- All artifacts accessible per application
+
+### Pipeline Assistants
+- Context-aware AI assistant panels at each pipeline step (job analysis, gap analysis, resume builder)
+- Tool-use capability allowing assistants to directly modify data (update gap actions, adjust resume sections)
+- Conversational interface with step-specific guidance
+
+### Platform & Branding
+- Production branding with custom CareerForge icon and favicons
+- Premium landing page with animated sections, feature showcase, and responsive design
+- Dark mode support throughout all pages
+- Two-factor authentication (TOTP)
+- Accessibility: reduced-motion media queries, semantic HTML, keyboard navigation
+
+## **A.2 In Progress / Partially Implemented**
+
+| Feature | Status | Notes |
+| - | - | - |
+| Voice interview mode (UR-EL-011) | Not started | Requires speech-to-text integration |
+| Cover letter generation (UR-GA-012) | Not started | Planned for fast-follow |
+| Draft submission email (UR-GA-013) | Not started | Planned for fast-follow |
+| Company research depth (UR-JA-004) | Partial | Basic analysis done; deeper crawling and tone analysis planned |
+| Resume live preview (UR-GA-010) | Partial | Preview via export; inline WYSIWYG preview planned |
+
+## **A.3 Phase 2 (Not Started)**
+
+- Career Development Advisor (UR-CD-001 through UR-CD-005)
+- Application outcome analytics
+- Recurring gap pattern detection
+
+
+# **Appendix B: New Requirements (Post-URD v1)**
+
+The following requirements emerged during implementation and were not in the original URD. They are documented here for traceability.
+
+## **B.1 Resume Templates**
+
+| **Req ID** | **Requirement** | **Priority** | **Phase** | **Status** |
+| - | - | - | - | - |
+| UR-GA-014 | The system shall support multiple professional resume templates that control the visual layout and styling of exported resumes. | Should Have | 1 | Implemented |
+| UR-GA-015 | The system shall integrate with RenderCV for high-fidelity PDF generation using LaTeX-quality templates. | Should Have | 1 | Implemented |
+| UR-GA-016 | The system shall fall back to DomPDF for PDF generation when RenderCV is not available. | Must Have | 1 | Implemented |
+
+## **B.2 Pipeline Assistants**
+
+| **Req ID** | **Requirement** | **Priority** | **Phase** | **Status** |
+| - | - | - | - | - |
+| UR-PA-001 | The system shall provide a context-aware AI assistant panel at each pipeline step (job analysis, gap analysis, resume building). | Should Have | 1 | Implemented |
+| UR-PA-002 | Pipeline assistants shall have tool-use capability to directly modify pipeline data (e.g., update gap actions, adjust resume sections) with user confirmation. | Should Have | 1 | Implemented |
+| UR-PA-003 | Pipeline assistants shall maintain conversational context within a pipeline step. | Should Have | 1 | Implemented |
+
+## **B.3 Career Chat**
+
+| **Req ID** | **Requirement** | **Priority** | **Phase** | **Status** |
+| - | - | - | - | - |
+| UR-EL-016 | The system shall provide a conversational AI chat interface for building the experience library through natural dialogue. | Should Have | 1 | Implemented |
+| UR-EL-017 | The career chat shall support markdown rendering for structured AI responses. | Should Have | 1 | Implemented |
+
+## **B.4 Context-Aware Extraction**
+
+| **Req ID** | **Requirement** | **Priority** | **Phase** | **Status** |
+| - | - | - | - | - |
+| UR-EL-018 | The system shall perform intelligent merge during document extraction, detecting and deduplicating entries that overlap with existing library content. | Must Have | 1 | Implemented |
+| UR-EL-019 | The system shall present extraction results in a review interface allowing the user to accept, modify, or reject each extracted entry before committing to the library. | Must Have | 1 | Implemented |
+
+## **B.5 Landing Page & Public Presence**
+
+| **Req ID** | **Requirement** | **Priority** | **Phase** | **Status** |
+| - | - | - | - | - |
+| UR-NF-014 | The system shall present a production-quality landing page with feature overview, trust signals, and calls-to-action for unauthenticated visitors. | Should Have | 1 | Implemented |
+| UR-NF-015 | The landing page shall support dark mode, responsive layouts (mobile/tablet/desktop), and respect prefers-reduced-motion. | Should Have | 1 | Implemented |
+| UR-NF-016 | All template/starter-kit branding remnants shall be replaced with CareerForge branding (favicon, app icon, name fallbacks, email placeholders). | Must Have | 1 | Implemented |
 
 
 *End of Document*

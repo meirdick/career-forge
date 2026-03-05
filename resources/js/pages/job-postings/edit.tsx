@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import JobPostingController from '@/actions/App/Http/Controllers/JobPostingController';
 import type { BreadcrumbItem } from '@/types';
@@ -28,7 +29,7 @@ export default function EditJobPosting({ posting }: { posting: JobPosting }) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Edit Job Posting" />
 
-            <div className="mx-auto max-w-2xl space-y-6 p-4">
+            <div className="mx-auto max-w-4xl space-y-6 p-4">
                 <Heading title="Edit Job Posting" />
 
                 <Card>
@@ -57,13 +58,12 @@ export default function EditJobPosting({ posting }: { posting: JobPosting }) {
 
                                     <div>
                                         <Label htmlFor="raw_text">Job Posting Text</Label>
-                                        <textarea
+                                        <Textarea
                                             id="raw_text"
                                             name="raw_text"
                                             required
                                             rows={12}
                                             defaultValue={posting.raw_text}
-                                            className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
                                         />
                                         <InputError message={errors.raw_text} />
                                     </div>

@@ -1,5 +1,5 @@
 import { Form, Head, router } from '@inertiajs/react';
-import { Plus, Search, Trash2, X } from 'lucide-react';
+import { Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import EmptyState from '@/components/empty-state';
 import AppLayout from '@/layouts/app-layout';
 import SkillController from '@/actions/App/Http/Controllers/ExperienceLibrary/SkillController';
 import { index as skillsIndex } from '@/routes/skills';
@@ -100,16 +101,17 @@ export default function Skills({ skillsByCategory, filters = { search: '', categ
                                 />
                             </div>
                             <div>
-                                <select
-                                    value={category}
-                                    onChange={(e) => setCategory(e.target.value)}
-                                    className="border-input bg-background flex h-9 w-full rounded-md border px-3 py-1 text-sm min-w-[150px]"
-                                >
-                                    <option value="">All Categories</option>
-                                    {categories.map((c) => (
-                                        <option key={c} value={c}>{categoryLabels[c]}</option>
-                                    ))}
-                                </select>
+                                <Select value={category || '_all'} onValueChange={(v) => setCategory(v === '_all' ? '' : v)}>
+                                    <SelectTrigger className="min-w-[150px]">
+                                        <SelectValue placeholder="All Categories" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="_all">All Categories</SelectItem>
+                                        {categories.map((c) => (
+                                            <SelectItem key={c} value={c}>{categoryLabels[c]}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                             <Button size="sm" onClick={applyFilters}>
                                 <Search className="mr-1 h-4 w-4" /> Filter
@@ -136,22 +138,30 @@ export default function Skills({ skillsByCategory, filters = { search: '', categ
                                         </div>
                                         <div>
                                             <Label htmlFor="category">Category</Label>
-                                            <select name="category" id="category" required className="border-input bg-background flex h-9 w-full rounded-md border px-3 py-1 text-sm">
-                                                <option value="">Select...</option>
-                                                {categories.map((c) => (
-                                                    <option key={c} value={c}>{categoryLabels[c]}</option>
-                                                ))}
-                                            </select>
+                                            <Select name="category" required>
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {categories.map((c) => (
+                                                        <SelectItem key={c} value={c}>{categoryLabels[c]}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                             <InputError message={errors.category} />
                                         </div>
                                         <div>
                                             <Label htmlFor="proficiency">Proficiency</Label>
-                                            <select name="proficiency" id="proficiency" className="border-input bg-background flex h-9 w-full rounded-md border px-3 py-1 text-sm">
-                                                <option value="">Select...</option>
-                                                {proficiencies.map((p) => (
-                                                    <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
-                                                ))}
-                                            </select>
+                                            <Select name="proficiency">
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {proficiencies.map((p) => (
+                                                        <SelectItem key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                             <InputError message={errors.proficiency} />
                                         </div>
                                         <div className="sm:col-span-4 flex justify-end gap-2">
@@ -166,11 +176,12 @@ export default function Skills({ skillsByCategory, filters = { search: '', categ
                 )}
 
                 {Object.keys(skillsByCategory).length === 0 ? (
-                    <Card>
-                        <CardContent className="py-12 text-center">
-                            <p className="text-muted-foreground">No skills yet. Add your first skill above.</p>
-                        </CardContent>
-                    </Card>
+                    <EmptyState
+                        icon={Sparkles}
+                        title="No skills yet"
+                        description="Add your first skill to start building your skills inventory."
+                        action={<Button onClick={() => setShowForm(true)}><Plus className="mr-2 h-4 w-4" />Add Skill</Button>}
+                    />
                 ) : (
                     Object.entries(skillsByCategory).map(([category, skills]) => (
                         <Card key={category}>

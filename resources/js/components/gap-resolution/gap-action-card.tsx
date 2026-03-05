@@ -27,9 +27,15 @@ type Resolution = {
 };
 
 const classificationColors: Record<string, string> = {
-    reframable: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-    promptable: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    genuine: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+    reframable: 'bg-info/15 text-info border-info/25',
+    promptable: 'bg-warning/15 text-warning border-warning/25',
+    genuine: 'bg-destructive/15 text-destructive border-destructive/25',
+};
+
+const classificationBorders: Record<string, string> = {
+    reframable: 'border-l-info',
+    promptable: 'border-l-warning',
+    genuine: 'border-l-destructive',
 };
 
 const statusIcons: Record<string, React.ReactNode> = {
@@ -127,7 +133,7 @@ export default function GapActionCard({
     }
 
     return (
-        <Card className={isResolved ? 'border-green-200 dark:border-green-900' : ''}>
+        <Card className={isResolved ? 'border-l-4 border-l-success' : `border-l-4 ${classificationBorders[gap.classification] ?? ''}`}>
             <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">

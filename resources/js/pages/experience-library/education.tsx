@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import EmptyState from '@/components/empty-state';
 import AppLayout from '@/layouts/app-layout';
 import EducationEntryController from '@/actions/App/Http/Controllers/ExperienceLibrary/EducationEntryController';
 import { index as educationIndex } from '@/routes/education';
@@ -70,12 +72,16 @@ export default function Education({ entries }: { entries: EducationEntry[] }) {
                                     <>
                                         <div>
                                             <Label htmlFor="type">Type</Label>
-                                            <select name="type" id="type" required className="border-input bg-background flex h-9 w-full rounded-md border px-3 py-1 text-sm">
-                                                <option value="">Select...</option>
-                                                {educationTypes.map((t) => (
-                                                    <option key={t} value={t}>{typeLabels[t]}</option>
-                                                ))}
-                                            </select>
+                                            <Select name="type" required>
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {educationTypes.map((t) => (
+                                                        <SelectItem key={t} value={t}>{typeLabels[t]}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                             <InputError message={errors.type} />
                                         </div>
                                         <div>
@@ -113,12 +119,12 @@ export default function Education({ entries }: { entries: EducationEntry[] }) {
                 )}
 
                 {entries.length === 0 ? (
-                    <Card>
-                        <CardContent className="py-12 text-center">
-                            <GraduationCap className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-                            <p className="text-muted-foreground">No education entries yet.</p>
-                        </CardContent>
-                    </Card>
+                    <EmptyState
+                        icon={GraduationCap}
+                        title="No education entries yet"
+                        description="Add your degrees, certifications, and other credentials."
+                        action={<Button onClick={() => setShowForm(true)}><Plus className="mr-2 h-4 w-4" />Add Entry</Button>}
+                    />
                 ) : (
                     <div className="space-y-3">
                         {entries.map((entry) =>
@@ -134,18 +140,16 @@ export default function Education({ entries }: { entries: EducationEntry[] }) {
                                                 <>
                                                     <div>
                                                         <Label htmlFor={`type-${entry.id}`}>Type</Label>
-                                                        <select
-                                                            name="type"
-                                                            id={`type-${entry.id}`}
-                                                            required
-                                                            defaultValue={entry.type}
-                                                            className="border-input bg-background flex h-9 w-full rounded-md border px-3 py-1 text-sm"
-                                                        >
-                                                            <option value="">Select...</option>
-                                                            {educationTypes.map((t) => (
-                                                                <option key={t} value={t}>{typeLabels[t]}</option>
-                                                            ))}
-                                                        </select>
+                                                        <Select name="type" defaultValue={entry.type} required>
+                                                            <SelectTrigger className="w-full">
+                                                                <SelectValue placeholder="Select..." />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {educationTypes.map((t) => (
+                                                                    <SelectItem key={t} value={t}>{typeLabels[t]}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
                                                         <InputError message={errors.type} />
                                                     </div>
                                                     <div>

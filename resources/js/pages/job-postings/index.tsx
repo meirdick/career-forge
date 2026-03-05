@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, Target } from 'lucide-react';
 import { useEffect } from 'react';
 import BulkAddDialog from '@/components/bulk-add-dialog';
 import Heading from '@/components/heading';
@@ -7,6 +7,7 @@ import QuickAddDialog from '@/components/quick-add-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import EmptyState from '@/components/empty-state';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 
@@ -41,7 +42,7 @@ export default function JobPostingsIndex({ postings }: { postings: JobPosting[] 
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Job Postings" />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-4">
+            <div className="mx-auto max-w-4xl space-y-6 p-4">
                 <div className="flex items-center justify-between">
                     <Heading title="Job Postings" description="Analyze job postings to build ideal candidate profiles." />
                     <div className="flex gap-2">
@@ -54,11 +55,16 @@ export default function JobPostingsIndex({ postings }: { postings: JobPosting[] 
                 </div>
 
                 {postings.length === 0 ? (
-                    <Card>
-                        <CardContent className="py-8 text-center">
-                            <p className="text-muted-foreground">No job postings yet. Add one to get started.</p>
-                        </CardContent>
-                    </Card>
+                    <EmptyState
+                        icon={Target}
+                        title="No job postings yet"
+                        description="Paste a job posting to analyze it and build an ideal candidate profile."
+                        action={
+                            <Button asChild>
+                                <Link href="/job-postings/create"><Plus className="mr-1 h-4 w-4" /> New Posting</Link>
+                            </Button>
+                        }
+                    />
                 ) : (
                     postings.map((posting) => (
                         <Link key={posting.id} href={`/job-postings/${posting.id}`} className="block">

@@ -9,6 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import EmptyState from '@/components/empty-state';
 import AppLayout from '@/layouts/app-layout';
 import EvidenceEntryController from '@/actions/App/Http/Controllers/ExperienceLibrary/EvidenceEntryController';
 import { index as evidenceIndex } from '@/routes/evidence';
@@ -83,12 +86,16 @@ export default function Evidence({ entries }: { entries: EvidenceEntry[] }) {
                                     <>
                                         <div>
                                             <Label htmlFor="type">Type</Label>
-                                            <select name="type" id="type" required className="border-input bg-background flex h-9 w-full rounded-md border px-3 py-1 text-sm">
-                                                <option value="">Select...</option>
-                                                {evidenceTypes.map((t) => (
-                                                    <option key={t} value={t}>{typeLabels[t]}</option>
-                                                ))}
-                                            </select>
+                                            <Select name="type" required>
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {evidenceTypes.map((t) => (
+                                                        <SelectItem key={t} value={t}>{typeLabels[t]}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                             <InputError message={errors.type} />
                                         </div>
                                         <div>
@@ -103,12 +110,11 @@ export default function Evidence({ entries }: { entries: EvidenceEntry[] }) {
                                         </div>
                                         <div className="sm:col-span-2">
                                             <Label htmlFor="description">Description</Label>
-                                            <textarea
+                                            <Textarea
                                                 id="description"
                                                 name="description"
                                                 rows={2}
                                                 placeholder="Brief description..."
-                                                className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
                                             />
                                             <InputError message={errors.description} />
                                         </div>
@@ -124,12 +130,12 @@ export default function Evidence({ entries }: { entries: EvidenceEntry[] }) {
                 )}
 
                 {entries.length === 0 ? (
-                    <Card>
-                        <CardContent className="py-12 text-center">
-                            <LinkIcon className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-                            <p className="text-muted-foreground">No evidence entries yet.</p>
-                        </CardContent>
-                    </Card>
+                    <EmptyState
+                        icon={LinkIcon}
+                        title="No evidence entries yet"
+                        description="Add links, portfolios, and other supporting evidence to strengthen your profile."
+                        action={<Button onClick={() => setShowForm(true)}><Plus className="mr-2 h-4 w-4" />Add Evidence</Button>}
+                    />
                 ) : (
                     <div className="space-y-3">
                         {entries.map((entry) => (

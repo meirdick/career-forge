@@ -5,6 +5,7 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 
@@ -28,7 +29,7 @@ export default function EditApplication({ application }: { application: Applicat
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Edit Application" />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-4">
+            <div className="mx-auto max-w-4xl space-y-6 p-4">
                 <Heading title="Edit Application" />
 
                 <Form action={`/applications/${application.id}`} method="put">
@@ -54,23 +55,23 @@ export default function EditApplication({ application }: { application: Applicat
 
                             <div>
                                 <Label htmlFor="notes">Notes</Label>
-                                <textarea
+                                <Textarea
                                     id="notes"
                                     name="notes"
                                     defaultValue={application.notes ?? ''}
                                     rows={3}
-                                    className="border-input bg-background mt-1 flex w-full rounded-md border px-3 py-2 text-sm"
+                                    className="mt-1"
                                 />
                             </div>
 
                             <div>
                                 <Label htmlFor="cover_letter">Cover Letter</Label>
-                                <textarea
+                                <Textarea
                                     id="cover_letter"
                                     name="cover_letter"
                                     defaultValue={application.cover_letter ?? ''}
                                     rows={6}
-                                    className="border-input bg-background mt-1 flex w-full rounded-md border px-3 py-2 text-sm"
+                                    className="mt-1"
                                 />
                             </div>
 

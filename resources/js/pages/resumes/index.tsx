@@ -3,6 +3,7 @@ import { FileText } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import EmptyState from '@/components/empty-state';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 
@@ -23,15 +24,15 @@ export default function ResumesIndex({ resumes }: { resumes: Resume[] }) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Resumes" />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-4">
+            <div className="mx-auto max-w-4xl space-y-6 p-4">
                 <Heading title="Resumes" description="AI-generated resumes tailored to job postings." />
 
                 {resumes.length === 0 ? (
-                    <Card>
-                        <CardContent className="py-8 text-center">
-                            <p className="text-muted-foreground">No resumes yet. Generate one from a gap analysis.</p>
-                        </CardContent>
-                    </Card>
+                    <EmptyState
+                        icon={FileText}
+                        title="No resumes yet"
+                        description="Generate a tailored resume from a gap analysis to get started."
+                    />
                 ) : (
                     resumes.map((resume) => (
                         <Link key={resume.id} href={`/resumes/${resume.id}`} className="block">

@@ -5,6 +5,8 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 
@@ -24,7 +26,7 @@ export default function CreateApplication({ resumes }: { resumes: ResumeOption[]
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="New Application" />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-4">
+            <div className="mx-auto max-w-4xl space-y-6 p-4">
                 <Heading title="New Application" description="Create a new job application." />
 
                 <Form action="/applications" method="post">
@@ -45,12 +47,17 @@ export default function CreateApplication({ resumes }: { resumes: ResumeOption[]
                             {resumes.length > 0 && (
                                 <div>
                                     <Label htmlFor="resume_id">Resume (optional)</Label>
-                                    <select id="resume_id" name="resume_id" className="border-input bg-background mt-1 flex w-full rounded-md border px-3 py-2 text-sm">
-                                        <option value="">None</option>
-                                        {resumes.map((r) => (
-                                            <option key={r.id} value={r.id}>{r.title}</option>
-                                        ))}
-                                    </select>
+                                    <Select name="resume_id" defaultValue="">
+                                        <SelectTrigger className="mt-1 w-full">
+                                            <SelectValue placeholder="None" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="">None</SelectItem>
+                                            {resumes.map((r) => (
+                                                <SelectItem key={r.id} value={String(r.id)}>{r.title}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             )}
 
@@ -62,21 +69,21 @@ export default function CreateApplication({ resumes }: { resumes: ResumeOption[]
 
                             <div>
                                 <Label htmlFor="notes">Notes (optional)</Label>
-                                <textarea
+                                <Textarea
                                     id="notes"
                                     name="notes"
                                     rows={3}
-                                    className="border-input bg-background mt-1 flex w-full rounded-md border px-3 py-2 text-sm"
+                                    className="mt-1"
                                 />
                             </div>
 
                             <div>
                                 <Label htmlFor="cover_letter">Cover Letter (optional)</Label>
-                                <textarea
+                                <Textarea
                                     id="cover_letter"
                                     name="cover_letter"
                                     rows={6}
-                                    className="border-input bg-background mt-1 flex w-full rounded-md border px-3 py-2 text-sm"
+                                    className="mt-1"
                                 />
                             </div>
 

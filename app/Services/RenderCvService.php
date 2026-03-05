@@ -14,25 +14,11 @@ class RenderCvService
 
     public function __construct()
     {
-        $this->rendercvPath = config(
-            'services.rendercv.path',
-            base_path('vendor/bin/rendercv')
-        );
-
-        if (! file_exists($this->rendercvPath)) {
-            $this->rendercvPath = env(
-                'RENDERCV_PATH',
-                '/home/mdick85/.local/share/rendercv-venv/bin/rendercv'
-            );
-        }
+        $this->rendercvPath = config('services.rendercv.path') ?? 'rendercv';
     }
 
     public function isAvailable(): bool
     {
-        if (! file_exists($this->rendercvPath)) {
-            return false;
-        }
-
         $process = new Process([$this->rendercvPath, '--version']);
         $process->run();
 

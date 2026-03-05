@@ -28,16 +28,6 @@ class ResumeExportService
             }
         }
 
-        // Try Browsershot (spatie/laravel-pdf) fallback
-        if (class_exists(\Spatie\LaravelPdf\Facades\Pdf::class)) {
-            try {
-                return $this->toBrowsershotPdf($resume);
-            } catch (\Throwable $e) {
-                Log::warning('Browsershot failed, falling back to DomPDF', ['error' => $e->getMessage()]);
-            }
-        }
-
-        // DomPDF fallback
         return $this->toDomPdf($resume);
     }
 
@@ -125,32 +115,6 @@ class ResumeExportService
         }
 
         file_put_contents($fullPath, $pdf->output());
-
-        return $path;
-    }
-
-    private function toBrowsershotPdf(Resume $resume): string
-    {
-        $template = $resume->template?->value ?? 'classic';
-        $bladeTemplate = in_array($template, ['moderncv', 'engineeringresumes', 'engineeringclassic'])
-            ? 'resumes.templates.modern'
-            : 'resumes.templates.classic';
-
-        $html = view($bladeTemplate, [
-            'resume' => $resume,
-            'user' => $resume->user,
-        ])->render();
-
-        $path = 'resumes/'.$resume->id.'.pdf';
-        $fullPath = storage_path('app/private/'.$path);
-
-        if (! is_dir(dirname($fullPath))) {
-            mkdir(dirname($fullPath), 0755, true);
-        }
-
-        \Spatie\LaravelPdf\Facades\Pdf::html($html)
-            ->format('a4')
-            ->save($fullPath);
 
         return $path;
     }

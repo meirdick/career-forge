@@ -40,4 +40,8 @@ return [
         'base_url' => env('FIRECRAWL_BASE_URL', 'https://api.firecrawl.dev'),
     ],
 
+    'rendercv' => [
+        'path' => env('RENDERCV_PATH'),
+    ],
+
 ];

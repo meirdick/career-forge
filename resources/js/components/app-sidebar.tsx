@@ -136,14 +136,14 @@ export function AppSidebar() {
 
             <SidebarFooter>
                 {profileCompleteness !== null && (
-                    <div className="px-3 py-2">
+                    <div className="group-data-[collapsible=icon]:hidden px-3 py-2">
                         <div className="flex items-center justify-between text-xs">
                             <span className="text-muted-foreground">Profile</span>
                             <span className="font-medium">{profileCompleteness}%</span>
                         </div>
-                        <div className="bg-muted mt-1 h-1.5 w-full rounded-full">
+                        <div className="bg-primary/10 mt-1 h-1.5 w-full rounded-full">
                             <div
-                                className="bg-primary h-1.5 rounded-full transition-all"
+                                className="bg-primary h-1.5 rounded-full transition-all duration-500"
                                 style={{ width: `${profileCompleteness}%` }}
                             />
                         </div>

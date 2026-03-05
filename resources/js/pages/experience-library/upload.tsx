@@ -93,6 +93,7 @@ export default function UploadResume({ documents = [] }: { documents?: UploadedD
         setProcessing(true);
         router.post(ResumeUploadController.store().url, formData, {
             forceFormData: true,
+            onSuccess: () => setFiles([]),
             onError: (errs) => {
                 setErrors(errs);
                 setProcessing(false);
@@ -111,7 +112,7 @@ export default function UploadResume({ documents = [] }: { documents?: UploadedD
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Upload Resume" />
 
-            <div className="mx-auto max-w-2xl space-y-6 p-4">
+            <div className="mx-auto max-w-4xl space-y-6 p-4">
                 <Heading title="Upload Resume" description="Upload PDF, DOCX, TXT, or JSON (LinkedIn export) files to auto-populate your experience library." />
 
                 <Card>

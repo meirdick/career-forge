@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 
@@ -64,7 +65,7 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={resume.title} />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-4">
+            <div className="mx-auto max-w-4xl space-y-6 p-4">
                 {resume.job_posting && (
                     <PipelineSteps
                         steps={[
@@ -155,16 +156,16 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
                             </div>
 
                             {section.selected_variant && (
-                                <Card className={section.selected_variant.is_ai_generated && !section.selected_variant.is_user_edited ? 'border-l-4 border-l-blue-400' : section.selected_variant.is_user_edited ? 'border-l-4 border-l-green-400' : ''}>
+                                <Card className={section.selected_variant.is_ai_generated && !section.selected_variant.is_user_edited ? 'border-l-4 border-l-info' : section.selected_variant.is_user_edited ? 'border-l-4 border-l-success' : ''}>
                                     <CardContent className="pt-4">
                                         {section.selected_variant.is_ai_generated && (
                                             <div className="mb-2 flex items-center gap-1.5">
                                                 {section.selected_variant.is_user_edited ? (
-                                                    <Badge variant="outline" className="text-xs text-green-700 dark:text-green-300">
+                                                    <Badge variant="success" className="text-xs">
                                                         <Pencil className="mr-1 h-3 w-3" /> User Edited
                                                     </Badge>
                                                 ) : (
-                                                    <Badge variant="outline" className="text-xs text-blue-700 dark:text-blue-300">
+                                                    <Badge variant="info" className="text-xs">
                                                         <Bot className="mr-1 h-3 w-3" /> AI Generated
                                                     </Badge>
                                                 )}
@@ -172,11 +173,10 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
                                         )}
                                         {editingVariant === section.selected_variant.id ? (
                                             <div className="space-y-2">
-                                                <textarea
+                                                <Textarea
                                                     value={editContent}
                                                     onChange={(e) => setEditContent(e.target.value)}
                                                     rows={8}
-                                                    className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
                                                 />
                                                 <div className="flex justify-end gap-2">
                                                     <Button variant="ghost" size="sm" onClick={() => setEditingVariant(null)}>Cancel</Button>

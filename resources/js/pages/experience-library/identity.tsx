@@ -4,6 +4,7 @@ import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import ProfessionalIdentityController from '@/actions/App/Http/Controllers/ExperienceLibrary/ProfessionalIdentityController';
 import { edit as identityEdit } from '@/routes/identity';
@@ -40,7 +41,7 @@ export default function Identity({ identity }: { identity: Identity }) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Professional Identity" />
 
-            <div className="mx-auto max-w-2xl space-y-6 p-4">
+            <div className="mx-auto max-w-4xl space-y-6 p-4">
                 <Heading
                     title="Professional Identity"
                     description="Define who you are as a professional. This helps AI generate authentic, personalized content."
@@ -56,13 +57,12 @@ export default function Identity({ identity }: { identity: Identity }) {
                             {fields.map((field) => (
                                 <div key={field.key} className="grid gap-2">
                                     <Label htmlFor={field.key}>{field.label}</Label>
-                                    <textarea
+                                    <Textarea
                                         id={field.key}
                                         name={field.key}
                                         defaultValue={identity?.[field.key] ?? ''}
                                         placeholder={field.placeholder}
                                         rows={3}
-                                        className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
                                     />
                                     <InputError message={errors[field.key as keyof typeof errors]} />
                                 </div>

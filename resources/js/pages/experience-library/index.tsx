@@ -1,11 +1,13 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Plus, Search, X } from 'lucide-react';
+import { Library, Plus, Search, X } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import EmptyState from '@/components/empty-state';
 import AppLayout from '@/layouts/app-layout';
 import { index as experienceLibraryIndex } from '@/routes/experience-library';
 import { create as experienceCreate, show as experienceShow } from '@/routes/experiences';
@@ -113,28 +115,30 @@ export default function ExperienceLibraryIndex({ experiences, skills = [], tags 
                                 />
                             </div>
                             <div>
-                                <select
-                                    value={skillId}
-                                    onChange={(e) => setSkillId(e.target.value)}
-                                    className="border-input bg-background flex h-9 w-full rounded-md border px-3 py-1 text-sm min-w-[150px]"
-                                >
-                                    <option value="">All Skills</option>
-                                    {skills.map((s) => (
-                                        <option key={s.id} value={s.id}>{s.name}</option>
-                                    ))}
-                                </select>
+                                <Select value={skillId || '_all'} onValueChange={(v) => setSkillId(v === '_all' ? '' : v)}>
+                                    <SelectTrigger className="min-w-[150px]">
+                                        <SelectValue placeholder="All Skills" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="_all">All Skills</SelectItem>
+                                        {skills.map((s) => (
+                                            <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                             <div>
-                                <select
-                                    value={tagId}
-                                    onChange={(e) => setTagId(e.target.value)}
-                                    className="border-input bg-background flex h-9 w-full rounded-md border px-3 py-1 text-sm min-w-[150px]"
-                                >
-                                    <option value="">All Tags</option>
-                                    {tags.map((t) => (
-                                        <option key={t.id} value={t.id}>#{t.name}</option>
-                                    ))}
-                                </select>
+                                <Select value={tagId || '_all'} onValueChange={(v) => setTagId(v === '_all' ? '' : v)}>
+                                    <SelectTrigger className="min-w-[150px]">
+                                        <SelectValue placeholder="All Tags" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="_all">All Tags</SelectItem>
+                                        {tags.map((t) => (
+                                            <SelectItem key={t.id} value={String(t.id)}>#{t.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                             <div>
                                 <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} placeholder="From" className="w-[140px]" />
@@ -155,11 +159,18 @@ export default function ExperienceLibraryIndex({ experiences, skills = [], tags 
                 </Card>
 
                 {experiences.length === 0 ? (
-                    <Card>
-                        <CardContent className="py-12 text-center">
-                            <p className="text-muted-foreground">No experiences yet. Add your first role to get started.</p>
-                        </CardContent>
-                    </Card>
+                    <EmptyState
+                        icon={Library}
+                        title="No experiences yet"
+                        description="Add your first role to start building your professional timeline."
+                        action={
+                            <Button asChild>
+                                <Link href={experienceCreate()}>
+                                    <Plus className="mr-2 h-4 w-4" />Add Experience
+                                </Link>
+                            </Button>
+                        }
+                    />
                 ) : (
                     <div className="relative space-y-6 border-l-2 border-muted pl-6">
                         {experiences.map((experience) => (

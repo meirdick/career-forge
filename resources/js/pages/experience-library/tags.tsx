@@ -46,7 +46,7 @@ export default function Tags({ tags }: { tags: TagItem[] }) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Tags" />
 
-            <div className="mx-auto max-w-2xl space-y-6 p-4">
+            <div className="mx-auto max-w-4xl space-y-6 p-4">
                 <div className="flex items-center justify-between">
                     <Heading title="Tags" description="Organize your experiences, accomplishments, and projects with tags" />
                     <Button size="sm" onClick={() => setShowForm(!showForm)}>

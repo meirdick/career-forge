@@ -3,6 +3,7 @@ import { CheckCircle, Loader2, RefreshCw, Target, TrendingUp } from 'lucide-reac
 import { useEffect } from 'react';
 import GapActionCard from '@/components/gap-resolution/gap-action-card';
 import Heading from '@/components/heading';
+import MatchScoreRing from '@/components/match-score-ring';
 import PipelineAssistantPanel from '@/components/pipeline-assistant-panel';
 import PipelineSteps from '@/components/pipeline-steps';
 import { Badge } from '@/components/ui/badge';
@@ -84,7 +85,7 @@ export default function ShowGapAnalysis({ gapAnalysis, experiences }: { gapAnaly
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Gap Analysis" />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-4">
+            <div className="mx-auto max-w-4xl space-y-6 p-4">
                 <PipelineSteps
                     steps={[
                         { label: 'Job Posting', href: `/job-postings/${posting.id}`, status: 'completed' },
@@ -124,22 +125,19 @@ export default function ShowGapAnalysis({ gapAnalysis, experiences }: { gapAnaly
 
                 {gapAnalysis.overall_match_score != null && (
                     <Card>
-                        <CardContent className="flex items-center gap-4 py-6">
-                            <div className="bg-primary/10 flex h-16 w-16 items-center justify-center rounded-full">
-                                <Target className="text-primary h-8 w-8" />
-                            </div>
+                        <CardContent className="flex items-center gap-6 py-6">
+                            <MatchScoreRing
+                                score={gapAnalysis.overall_match_score}
+                                delta={scoreDelta ?? undefined}
+                            />
                             <div>
-                                <div className="flex items-center gap-3">
-                                    <p className="text-3xl font-bold">{gapAnalysis.overall_match_score}%</p>
-                                    {scoreDelta != null && scoreDelta !== 0 && (
-                                        <Badge variant={scoreDelta > 0 ? 'default' : 'destructive'} className="flex items-center gap-1">
-                                            <TrendingUp className={`h-3 w-3 ${scoreDelta < 0 ? 'rotate-180' : ''}`} />
-                                            {scoreDelta > 0 ? '+' : ''}
-                                            {scoreDelta} pts
-                                        </Badge>
-                                    )}
-                                </div>
-                                <p className="text-muted-foreground text-sm">Overall match score</p>
+                                <p className="text-lg font-semibold">Overall Match Score</p>
+                                <p className="text-muted-foreground text-sm">
+                                    {gapAnalysis.overall_match_score >= 80 ? 'Strong match — you\'re well positioned for this role.' :
+                                     gapAnalysis.overall_match_score >= 60 ? 'Good match — a few areas to strengthen.' :
+                                     gapAnalysis.overall_match_score >= 40 ? 'Moderate match — consider addressing the gaps below.' :
+                                     'Low match — significant gaps to address.'}
+                                </p>
                             </div>
                         </CardContent>
                     </Card>
@@ -161,10 +159,10 @@ export default function ShowGapAnalysis({ gapAnalysis, experiences }: { gapAnaly
                         <Separator />
                         <h2 className="text-lg font-semibold">Strengths ({gapAnalysis.strengths.length})</h2>
                         {gapAnalysis.strengths.map((s, i) => (
-                            <Card key={i}>
+                            <Card key={i} className="border-l-4 border-l-success">
                                 <CardHeader className="pb-2">
                                     <div className="flex items-center gap-2">
-                                        <CheckCircle className="h-4 w-4 text-green-500" />
+                                        <CheckCircle className="h-4 w-4 text-success" />
                                         <CardTitle className="text-base">{s.area}</CardTitle>
                                     </div>
                                 </CardHeader>
@@ -186,7 +184,7 @@ export default function ShowGapAnalysis({ gapAnalysis, experiences }: { gapAnaly
                                 <div className="flex items-center gap-2">
                                     <div className="bg-muted h-2 w-24 overflow-hidden rounded-full">
                                         <div
-                                            className="h-full rounded-full bg-green-500 transition-all"
+                                            className="h-full rounded-full bg-success transition-all"
                                             style={{ width: `${(resolvedCount / totalGaps) * 100}%` }}
                                         />
                                     </div>
