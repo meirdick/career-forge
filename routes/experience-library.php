@@ -4,7 +4,6 @@ use App\Http\Controllers\ExperienceLibrary\AccomplishmentController;
 use App\Http\Controllers\ExperienceLibrary\EducationEntryController;
 use App\Http\Controllers\ExperienceLibrary\EvidenceEntryController;
 use App\Http\Controllers\ExperienceLibrary\ExperienceController;
-use App\Http\Controllers\ExperienceLibrary\InterviewController;
 use App\Http\Controllers\ExperienceLibrary\ProfessionalIdentityController;
 use App\Http\Controllers\ExperienceLibrary\ProjectController;
 use App\Http\Controllers\ExperienceLibrary\ResumeUploadController;
@@ -59,9 +58,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('tags/{tag}', [TagController::class, 'destroy'])->name('tags.destroy');
     Route::post('tags/toggle', [TagController::class, 'toggle'])->name('tags.toggle');
 
-    // Interview
-    Route::get('interview', [InterviewController::class, 'index'])->name('interview.index');
-    Route::post('interview', [InterviewController::class, 'chat'])->name('interview.chat');
+    // Interview (redirects to Career Chat)
+    Route::redirect('interview', '/career-chat')->name('interview.index');
 
     // Resume Upload & Import
     Route::get('resume-upload', [ResumeUploadController::class, 'create'])->name('resume-upload.create');

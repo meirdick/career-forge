@@ -32,7 +32,7 @@ import { index as educationIndex } from '@/routes/education';
 import { index as evidenceIndex } from '@/routes/evidence';
 import { index as experienceLibraryIndex } from '@/routes/experience-library';
 import { edit as identityEdit } from '@/routes/identity';
-import { index as interviewIndex } from '@/routes/interview';
+import { index as careerChatIndex } from '@/routes/career-chat';
 import { index as jobPostingsIndex } from '@/routes/job-postings';
 import { index as resumesIndex } from '@/routes/resumes';
 import { create as resumeUploadCreate } from '@/routes/resume-upload';
@@ -80,8 +80,8 @@ const experienceLibraryItems: NavItem[] = [
         icon: LinkIcon,
     },
     {
-        title: 'Interview',
-        href: interviewIndex(),
+        title: 'Career Chat',
+        href: careerChatIndex(),
         icon: MessageCircle,
     },
     {

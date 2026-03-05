@@ -17,6 +17,7 @@ require __DIR__.'/settings.php';
 require __DIR__.'/experience-library.php';
 require __DIR__.'/job-postings.php';
 require __DIR__.'/applications.php';
+require __DIR__.'/career-chat.php';
 
 // Transparency - authenticated routes
 Route::middleware(['auth', 'verified'])->group(function () {

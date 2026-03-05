@@ -5,6 +5,7 @@ namespace App\Http\Controllers\ExperienceLibrary;
 use App\Http\Controllers\Controller;
 use App\Jobs\ParseResumeJob;
 use App\Models\Document;
+use App\Services\ExperienceImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -37,8 +38,6 @@ class ResumeUploadController extends Controller
             'files.*' => 'required|file|mimes:pdf,docx,doc,txt,json|max:10240',
         ]);
 
-        $firstDocument = null;
-
         foreach ($request->file('files') as $file) {
             $path = $file->store('resume-uploads', 'local');
 
@@ -54,11 +53,9 @@ class ResumeUploadController extends Controller
             Cache::put("resume-parse:{$document->id}", ['status' => 'processing'], now()->addHour());
 
             ParseResumeJob::dispatch($request->user(), $document);
-
-            $firstDocument ??= $document;
         }
 
-        return to_route('resume-upload.review', $firstDocument)
+        return to_route('resume-upload.create')
             ->with('success', count($request->file('files')) > 1
                 ? 'Resumes uploaded. Parsing in progress...'
                 : 'Resume uploaded. Parsing in progress...');
@@ -89,7 +86,7 @@ class ResumeUploadController extends Controller
             ->with('success', 'Re-parsing in progress...');
     }
 
-    public function commit(Request $request, Document $document): RedirectResponse
+    public function commit(Request $request, Document $document, ExperienceImportService $importService): RedirectResponse
     {
         abort_unless($document->user_id === $request->user()->id, 403);
 
@@ -113,70 +110,9 @@ class ResumeUploadController extends Controller
             'projects.*.description' => 'required|string',
         ]);
 
-        $user = $request->user();
-        $experienceMap = [];
-        $nullish = static fn ($value) => in_array($value, [null, 'null', ''], true) ? null : $value;
-
-        foreach ($request->input('experiences', []) as $index => $expData) {
-            $experience = $user->experiences()->create([
-                'company' => $expData['company'],
-                'title' => $expData['title'],
-                'location' => $nullish($expData['location'] ?? null),
-                'started_at' => $expData['started_at'],
-                'ended_at' => $nullish($expData['ended_at'] ?? null),
-                'is_current' => $expData['is_current'] ?? false,
-                'description' => $nullish($expData['description'] ?? null),
-                'sort_order' => $index,
-            ]);
-            $experienceMap[$index] = $experience;
-        }
-
-        foreach ($request->input('skills', []) as $skillData) {
-            $user->skills()->firstOrCreate(
-                ['name' => $skillData['name']],
-                ['category' => $skillData['category']],
-            );
-        }
-
-        foreach ($request->input('accomplishments', []) as $accData) {
-            $experienceId = isset($accData['experience_index'], $experienceMap[$accData['experience_index']])
-                ? $experienceMap[$accData['experience_index']]->id
-                : null;
-
-            $user->accomplishments()->create([
-                'experience_id' => $experienceId,
-                'title' => $accData['title'],
-                'description' => $accData['description'],
-                'impact' => $nullish($accData['impact'] ?? null),
-                'sort_order' => 0,
-            ]);
-        }
-
-        foreach ($request->input('education', []) as $eduData) {
-            $user->educationEntries()->create([
-                'type' => $eduData['type'],
-                'institution' => $eduData['institution'],
-                'title' => $eduData['title'],
-                'field' => $nullish($eduData['field'] ?? null),
-                'completed_at' => $nullish($eduData['completed_at'] ?? null),
-                'sort_order' => 0,
-            ]);
-        }
-
-        foreach ($request->input('projects', []) as $projData) {
-            $experienceId = isset($projData['experience_index'], $experienceMap[$projData['experience_index']])
-                ? $experienceMap[$projData['experience_index']]->id
-                : null;
-
-            $user->projects()->create([
-                'experience_id' => $experienceId,
-                'name' => $projData['name'],
-                'description' => $projData['description'],
-                'role' => $nullish($projData['role'] ?? null),
-                'outcome' => $nullish($projData['outcome'] ?? null),
-                'sort_order' => 0,
-            ]);
-        }
+        $importService->import($request->user(), $request->only([
+            'experiences', 'accomplishments', 'skills', 'education', 'projects',
+        ]));
 
         Cache::forget("resume-parse:{$document->id}");
 

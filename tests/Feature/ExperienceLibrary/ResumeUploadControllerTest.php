@@ -28,7 +28,7 @@ test('store uploads file and dispatches parse job', function () {
 
     $this->actingAs($this->user)
         ->post('/resume-upload', ['files' => [$file]])
-        ->assertRedirect();
+        ->assertRedirect('/resume-upload');
 
     $document = Document::first();
     expect($document)
@@ -48,7 +48,7 @@ test('store uploads multiple files and dispatches parse jobs for each', function
 
     $this->actingAs($this->user)
         ->post('/resume-upload', ['files' => [$pdf, $docx]])
-        ->assertRedirect();
+        ->assertRedirect('/resume-upload');
 
     expect(Document::count())->toBe(2);
     Queue::assertPushed(ParseResumeJob::class, 2);

@@ -11,6 +11,9 @@ use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Promptable;
 use Stringable;
 
+/**
+ * @deprecated Use CareerCoach instead.
+ */
 #[MaxTokens(4096)]
 #[Temperature(0.6)]
 #[Timeout(120)]

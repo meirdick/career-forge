@@ -118,12 +118,14 @@ export default function UploadResume({ documents = [] }: { documents?: UploadedD
                     <CardContent className="pt-6">
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div
-                                className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
-                                    isDragging
-                                        ? 'border-primary bg-primary/5'
-                                        : 'border-muted-foreground/25 hover:border-primary/50'
+                                className={`rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
+                                    processing
+                                        ? 'pointer-events-none opacity-50'
+                                        : isDragging
+                                          ? 'cursor-pointer border-primary bg-primary/5'
+                                          : 'cursor-pointer border-muted-foreground/25 hover:border-primary/50'
                                 }`}
-                                onClick={() => fileInputRef.current?.click()}
+                                onClick={() => !processing && fileInputRef.current?.click()}
                                 onDragOver={handleDragOver}
                                 onDragLeave={handleDragLeave}
                                 onDrop={handleDrop}
@@ -157,17 +159,32 @@ export default function UploadResume({ documents = [] }: { documents?: UploadedD
                             {files.length > 0 && (
                                 <ul className="divide-y rounded-lg border">
                                     {files.map((file, i) => (
-                                        <li key={file.name + file.size} className="flex items-center gap-3 px-3 py-2">
+                                        <li key={file.name + file.size} className="flex items-center gap-3 px-3 py-2.5">
                                             <FileText className="text-muted-foreground h-4 w-4 shrink-0" />
-                                            <span className="min-w-0 flex-1 truncate text-sm">{file.name}</span>
-                                            <span className="text-muted-foreground shrink-0 text-xs">{formatFileSize(file.size)}</span>
-                                            <button
-                                                type="button"
-                                                onClick={() => removeFile(i)}
-                                                className="text-muted-foreground hover:text-foreground shrink-0"
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </button>
+                                            {processing ? (
+                                                <>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="truncate text-sm font-medium">{file.name}</p>
+                                                        <p className="text-muted-foreground text-xs">{formatFileSize(file.size)}</p>
+                                                    </div>
+                                                    <Badge variant="secondary" className="shrink-0 gap-1 text-xs">
+                                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                                        Uploading
+                                                    </Badge>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span className="min-w-0 flex-1 truncate text-sm">{file.name}</span>
+                                                    <span className="text-muted-foreground shrink-0 text-xs">{formatFileSize(file.size)}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeFile(i)}
+                                                        className="text-muted-foreground hover:text-foreground shrink-0"
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </button>
+                                                </>
+                                            )}
                                         </li>
                                     ))}
                                 </ul>

@@ -130,4 +130,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(AiInteraction::class);
     }
+
+    public function chatSessions(): HasMany
+    {
+        return $this->hasMany(ChatSession::class);
+    }
 }

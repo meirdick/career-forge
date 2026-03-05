@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
 import { CheckCircle, Loader2, MessageCircle, Send, Target, XCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -209,9 +210,15 @@ export default function ShowGapAnalysis({ gapAnalysis }: { gapAnalysis: GapAnaly
                                         )}
                                         {messages.map((msg, i) => (
                                             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                                <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                                                    <p className="whitespace-pre-wrap">{msg.content}</p>
-                                                </div>
+                                                {msg.role === 'user' ? (
+                                                    <div className="bg-primary text-primary-foreground max-w-[80%] rounded-lg px-3 py-2 text-sm">
+                                                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="prose prose-sm dark:prose-invert bg-muted max-w-[80%] rounded-lg px-3 py-2">
+                                                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                         {sending && (
