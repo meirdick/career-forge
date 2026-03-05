@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Briefcase, MessageCircle, Plus } from 'lucide-react';
+import { Briefcase, MessageCircle, Package, Plus } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ type ChatSessionSummary = {
     title: string;
     mode: string;
     status: string;
+    has_conversation: boolean;
     job_posting: { id: number; title: string; company: string } | null;
     updated_at: string;
 };
@@ -134,8 +135,8 @@ export default function CareerChatIndex({
                 ) : (
                     <div className="space-y-3">
                         {sessions.map((session) => (
-                            <Link key={session.id} href={show(session.id).url} className="block">
-                                <Card className="transition-colors hover:bg-accent/50">
+                            <Card key={session.id} className="transition-colors hover:bg-accent/50">
+                                <Link href={show(session.id).url} className="block">
                                     <CardHeader className="pb-2">
                                         <div className="flex items-start justify-between">
                                             <CardTitle className="text-base">{session.title}</CardTitle>
@@ -159,8 +160,17 @@ export default function CareerChatIndex({
                                             {session.updated_at}
                                         </p>
                                     </CardContent>
-                                </Card>
-                            </Link>
+                                </Link>
+                                {session.has_conversation && (
+                                    <div className="border-t px-6 py-2">
+                                        <Link href={`${show(session.id).url}?extract=1`}>
+                                            <Button variant="ghost" size="sm" className="h-7 text-xs">
+                                                <Package className="mr-1 h-3 w-3" /> Extract Experiences
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                )}
+                            </Card>
                         ))}
                     </div>
                 )}

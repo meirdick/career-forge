@@ -31,6 +31,7 @@ class ChatSessionController extends Controller
                 'title' => $session->title,
                 'mode' => $session->mode->value,
                 'status' => $session->status->value,
+                'has_conversation' => $session->conversation_id !== null,
                 'job_posting' => $session->jobPosting ? [
                     'id' => $session->jobPosting->id,
                     'title' => $session->jobPosting->title,
@@ -102,6 +103,7 @@ class ChatSessionController extends Controller
                 'title' => $s->title,
                 'mode' => $s->mode->value,
                 'status' => $s->status->value,
+                'has_conversation' => $s->conversation_id !== null,
                 'job_posting' => $s->jobPosting ? [
                     'id' => $s->jobPosting->id,
                     'title' => $s->jobPosting->title,
@@ -200,9 +202,14 @@ class ChatSessionController extends Controller
 
         $transcript = $messages->map(fn ($msg) => ucfirst($msg->role).": {$msg->content}")->implode("\n\n");
 
+        $existingContext = ExperienceLibraryContextService::buildContext($request->user());
+
         $extractor = new ExperienceExtractor;
         $response = $extractor->prompt(
-            view('prompts.experience-extractor', ['transcript' => $transcript])->render()
+            view('prompts.experience-extractor', [
+                'transcript' => $transcript,
+                'existingContext' => $existingContext,
+            ])->render()
         );
 
         return response()->json($response->toArray());
@@ -212,12 +219,12 @@ class ChatSessionController extends Controller
     {
         abort_unless($chatSession->user_id === $request->user()->id, 403);
 
-        $importService->import($request->user(), $request->only([
+        $stats = $importService->import($request->user(), $request->only([
             'experiences', 'accomplishments', 'skills', 'education', 'projects',
         ]));
 
         return to_route('career-chat.show', $chatSession)
-            ->with('success', 'Experience data imported to your library.');
+            ->with('success', ExperienceImportService::buildImportMessage($stats));
     }
 
     public function update(Request $request, ChatSession $chatSession): RedirectResponse

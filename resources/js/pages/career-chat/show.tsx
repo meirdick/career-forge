@@ -63,6 +63,15 @@ export default function CareerChatShow({
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, loading]);
 
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('extract') === '1' && initialMessages.length >= 2 && !extractionData) {
+            handleExtract();
+            // Clean up the URL
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+    }, []);
+
     async function sendMessage(text?: string) {
         const message = text || input.trim();
         if (!message || loading) return;

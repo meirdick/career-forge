@@ -110,13 +110,13 @@ class ResumeUploadController extends Controller
             'projects.*.description' => 'required|string',
         ]);
 
-        $importService->import($request->user(), $request->only([
+        $stats = $importService->import($request->user(), $request->only([
             'experiences', 'accomplishments', 'skills', 'education', 'projects',
         ]));
 
         Cache::forget("resume-parse:{$document->id}");
 
         return to_route('experience-library.index')
-            ->with('success', 'Resume data imported to your experience library.');
+            ->with('success', ExperienceImportService::buildImportMessage($stats));
     }
 }

@@ -26,6 +26,14 @@ Rules:
 - Use reasonable date approximations when exact dates aren't provided (e.g., "2020" becomes "2020-01-01").
 - Categorize skills based on context: programming languages → technical, industry knowledge → domain, communication → soft, specific tools → tool, agile/scrum → methodology.
 
+@if(!empty($existingContext))
+## EXISTING USER DATA — DO NOT RE-EXTRACT
+
+The user already has the following data stored. Only extract items that are NEW or contain meaningfully ENHANCED content compared to what already exists. Do not re-extract experiences, skills, accomplishments, education, or projects that already appear below unless the conversation contains substantially richer detail (e.g., new metrics, refined descriptions, additional context).
+
+{!! $existingContext !!}
+@endif
+
 Here is the conversation transcript:
 
 ---

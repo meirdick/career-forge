@@ -4,6 +4,7 @@ use App\Http\Controllers\ExperienceLibrary\AccomplishmentController;
 use App\Http\Controllers\ExperienceLibrary\EducationEntryController;
 use App\Http\Controllers\ExperienceLibrary\EvidenceEntryController;
 use App\Http\Controllers\ExperienceLibrary\ExperienceController;
+use App\Http\Controllers\ExperienceLibrary\ExperienceEnhanceController;
 use App\Http\Controllers\ExperienceLibrary\ProfessionalIdentityController;
 use App\Http\Controllers\ExperienceLibrary\ProjectController;
 use App\Http\Controllers\ExperienceLibrary\ResumeUploadController;
@@ -60,6 +61,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Interview (redirects to Career Chat)
     Route::redirect('interview', '/career-chat')->name('interview.index');
+
+    // AI Enhancement
+    Route::post('experience-library/enhance', ExperienceEnhanceController::class)->name('experience-library.enhance');
 
     // Resume Upload & Import
     Route::get('resume-upload', [ResumeUploadController::class, 'create'])->name('resume-upload.create');

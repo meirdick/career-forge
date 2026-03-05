@@ -276,6 +276,60 @@ test('extract returns structured data from conversation', function () {
         ->assertJsonStructure(['experiences', 'skills', 'accomplishments', 'education', 'projects']);
 });
 
+test('extract passes existing context to extractor', function () {
+    Experience::factory()->create([
+        'user_id' => $this->user->id,
+        'company' => 'ExistingCorp',
+        'title' => 'Senior Dev',
+    ]);
+
+    $session = ChatSession::factory()->withConversation()->create([
+        'user_id' => $this->user->id,
+    ]);
+
+    DB::table('agent_conversation_messages')->insert([
+        'id' => (string) \Illuminate\Support\Str::uuid(),
+        'conversation_id' => $session->conversation_id,
+        'user_id' => $this->user->id,
+        'agent' => \App\Ai\Agents\CareerCoach::class,
+        'role' => 'user',
+        'content' => 'I worked at NewCo.',
+        'attachments' => '[]',
+        'tool_calls' => '[]',
+        'tool_results' => '[]',
+        'usage' => '{}',
+        'meta' => '{}',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    ExperienceExtractor::fake();
+
+    $this->actingAs($this->user)
+        ->postJson("/career-chat/{$session->id}/extract")
+        ->assertSuccessful();
+
+    ExperienceExtractor::assertPrompted(function ($prompt) {
+        return str_contains($prompt->prompt, 'ExistingCorp')
+            && str_contains($prompt->prompt, 'Senior Dev');
+    });
+});
+
+test('index includes has_conversation flag', function () {
+    ChatSession::factory()->create(['user_id' => $this->user->id, 'conversation_id' => null]);
+    ChatSession::factory()->withConversation()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->get('/career-chat')
+        ->assertSuccessful()
+        ->assertInertia(fn ($page) => $page
+            ->component('career-chat/index')
+            ->has('sessions', 2)
+            ->where('sessions.0.has_conversation', true)
+            ->where('sessions.1.has_conversation', false)
+        );
+});
+
 test('extract returns 422 when no conversation exists', function () {
     $session = ChatSession::factory()->create([
         'user_id' => $this->user->id,
