@@ -39,8 +39,8 @@ class GapAnalyzer implements Agent, HasStructuredOutput
         ])->required();
 
         return [
-            'strengths' => $schema->array($strengthItem)->required(),
-            'gaps' => $schema->array($gapItem)->required(),
+            'strengths' => $schema->array()->items($strengthItem)->required(),
+            'gaps' => $schema->array()->items($gapItem)->required(),
             'overall_match_score' => $schema->integer()->min(0)->max(100)->required(),
             'summary' => $schema->string()->required(),
         ];

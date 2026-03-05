@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('job-postings', JobPostingController::class);
+    Route::post('job-postings/quick', [JobPostingController::class, 'quickStore'])->name('job-postings.quick-store');
+    Route::post('job-postings/bulk', [JobPostingController::class, 'bulkStore'])->name('job-postings.bulk-store');
     Route::post('job-postings/{jobPosting}/reanalyze', [JobPostingController::class, 'reanalyze'])->name('job-postings.reanalyze');
     Route::put('job-postings/{jobPosting}/profile', [JobPostingController::class, 'updateProfile'])->name('job-postings.update-profile');
 

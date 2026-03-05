@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\BulkStoreJobPostingRequest;
 use App\Http\Requests\StoreJobPostingRequest;
 use App\Http\Requests\UpdateJobPostingRequest;
 use App\Jobs\AnalyzeJobPostingJob;
 use App\Jobs\FetchJobPostingUrlJob;
 use App\Models\JobPosting;
+use App\Rules\SupportedScrapingUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -46,6 +48,35 @@ class JobPostingController extends Controller
 
         return to_route('job-postings.show', $posting)
             ->with('success', 'Job posting created. Analysis in progress...');
+    }
+
+    public function quickStore(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'url' => ['required', 'url', 'max:2048', new SupportedScrapingUrl],
+        ]);
+
+        $posting = $request->user()->jobPostings()->create($validated);
+
+        FetchJobPostingUrlJob::dispatch($posting);
+
+        return to_route('job-postings.index')
+            ->with('success', 'Job posting created. Fetching content from URL...');
+    }
+
+    public function bulkStore(BulkStoreJobPostingRequest $request): RedirectResponse
+    {
+        $urls = $request->validated('urls');
+
+        foreach ($urls as $url) {
+            $posting = $request->user()->jobPostings()->create(['url' => $url]);
+            FetchJobPostingUrlJob::dispatch($posting);
+        }
+
+        $count = count($urls);
+
+        return to_route('job-postings.index')
+            ->with('success', "{$count} job posting(s) created. Fetching content from URLs...");
     }
 
     public function show(Request $request, JobPosting $jobPosting): Response

@@ -6,6 +6,7 @@ use App\Models\JobPosting;
 use App\Services\WebScraperService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
 
 class FetchJobPostingUrlJob implements ShouldQueue
 {
@@ -16,6 +17,15 @@ class FetchJobPostingUrlJob implements ShouldQueue
     public function handle(WebScraperService $scraper): void
     {
         if (! $this->jobPosting->url || $this->jobPosting->raw_text) {
+            return;
+        }
+
+        if (WebScraperService::isUnsupportedUrl($this->jobPosting->url)) {
+            Log::warning('Skipping fetch for unsupported URL', [
+                'job_posting_id' => $this->jobPosting->id,
+                'url' => $this->jobPosting->url,
+            ]);
+
             return;
         }
 

@@ -67,6 +67,54 @@ test('user can delete their account', function () {
     expect($user->fresh())->toBeNull();
 });
 
+test('profile contact information can be updated', function () {
+    $user = User::factory()->create();
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'name' => 'Test User',
+            'email' => $user->email,
+            'phone' => '555-123-4567',
+            'location' => 'Portland, OR',
+            'linkedin_url' => 'https://linkedin.com/in/testuser',
+            'portfolio_url' => 'https://testuser.dev',
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('profile.edit'));
+
+    $user->refresh();
+
+    expect($user->phone)->toBe('555-123-4567');
+    expect($user->location)->toBe('Portland, OR');
+    expect($user->linkedin_url)->toBe('https://linkedin.com/in/testuser');
+    expect($user->portfolio_url)->toBe('https://testuser.dev');
+});
+
+test('contact fields are optional when updating profile', function () {
+    $user = User::factory()->create();
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'name' => 'Test User',
+            'email' => $user->email,
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('profile.edit'));
+
+    $user->refresh();
+
+    expect($user->phone)->toBeNull();
+    expect($user->location)->toBeNull();
+    expect($user->linkedin_url)->toBeNull();
+    expect($user->portfolio_url)->toBeNull();
+});
+
 test('correct password must be provided to delete account', function () {
     $user = User::factory()->create();
 

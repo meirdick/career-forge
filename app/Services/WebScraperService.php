@@ -8,6 +8,30 @@ use Illuminate\Support\Facades\Log;
 
 class WebScraperService
 {
+    /** @var list<string> */
+    private const array UNSUPPORTED_DOMAINS = [
+        'linkedin.com',
+    ];
+
+    public static function isUnsupportedUrl(string $url): bool
+    {
+        $host = parse_url($url, PHP_URL_HOST);
+
+        if (! $host) {
+            return false;
+        }
+
+        $host = strtolower($host);
+
+        foreach (self::UNSUPPORTED_DOMAINS as $domain) {
+            if ($host === $domain || str_ends_with($host, ".{$domain}")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function scrape(string $url): ?string
     {
         $apiKey = config('services.firecrawl.api_key');

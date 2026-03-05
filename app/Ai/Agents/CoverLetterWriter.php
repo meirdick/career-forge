@@ -36,6 +36,8 @@ class CoverLetterWriter implements Agent
         Context about the candidate and position:
         {$this->context}
 
+        Use the candidate's real contact details provided in the context. NEVER use placeholder brackets like [Your Name], [Phone Number], [Email Address], etc. If a contact detail is not provided, simply omit it.
+
         Output ONLY the cover letter text — no subject lines, no "Dear Hiring Manager" unless appropriate, no meta-commentary.
         INSTRUCTIONS;
     }

@@ -1,9 +1,12 @@
 <?php
 
 use App\Ai\Agents\GapClosureCoach;
+use App\Enums\SkillCategory;
+use App\Models\Experience;
 use App\Models\GapAnalysis;
 use App\Models\IdealCandidateProfile;
 use App\Models\JobPosting;
+use App\Models\Skill;
 use App\Models\User;
 
 beforeEach(function () {
@@ -87,4 +90,34 @@ test('save returns 403 for other users gap analysis', function () {
             'entries' => [['type' => 'skill', 'data' => ['name' => 'Test']]],
         ])
         ->assertForbidden();
+});
+
+test('chat injects experience context into gap closure coach', function () {
+    Experience::factory()->create([
+        'user_id' => $this->user->id,
+        'company' => 'ExperienceCorp',
+        'title' => 'Backend Developer',
+    ]);
+
+    Skill::factory()->create([
+        'user_id' => $this->user->id,
+        'name' => 'Docker',
+        'category' => SkillCategory::Technical,
+    ]);
+
+    GapClosureCoach::fake(['I see you have Docker experience, which relates to K8s.']);
+
+    $this->actingAs($this->user)
+        ->postJson("/gap-analyses/{$this->gapAnalysis->id}/chat", [
+            'message' => 'Can you see my experience?',
+        ])
+        ->assertSuccessful();
+
+    GapClosureCoach::assertPrompted(function ($prompt) {
+        $instructions = $prompt->agent->instructions();
+
+        return str_contains($instructions, 'ExperienceCorp')
+            && str_contains($instructions, 'Backend Developer')
+            && str_contains($instructions, 'Docker');
+    });
 });

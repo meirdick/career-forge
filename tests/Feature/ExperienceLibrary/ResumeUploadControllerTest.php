@@ -1,6 +1,5 @@
 <?php
 
-use App\Ai\Agents\ResumeParser;
 use App\Jobs\ParseResumeJob;
 use App\Models\Document;
 use App\Models\Experience;
@@ -28,7 +27,7 @@ test('store uploads file and dispatches parse job', function () {
     $file = UploadedFile::fake()->create('resume.pdf', 1024, 'application/pdf');
 
     $this->actingAs($this->user)
-        ->post('/resume-upload', ['file' => $file])
+        ->post('/resume-upload', ['files' => [$file]])
         ->assertRedirect();
 
     $document = Document::first();
@@ -43,18 +42,45 @@ test('store uploads file and dispatches parse job', function () {
     });
 });
 
-test('store validates file is required', function () {
+test('store uploads multiple files and dispatches parse jobs for each', function () {
+    $pdf = UploadedFile::fake()->create('resume.pdf', 1024, 'application/pdf');
+    $docx = UploadedFile::fake()->create('cv.docx', 512, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+
+    $this->actingAs($this->user)
+        ->post('/resume-upload', ['files' => [$pdf, $docx]])
+        ->assertRedirect();
+
+    expect(Document::count())->toBe(2);
+    Queue::assertPushed(ParseResumeJob::class, 2);
+});
+
+test('store validates files are required', function () {
     $this->actingAs($this->user)
         ->post('/resume-upload', [])
-        ->assertSessionHasErrors('file');
+        ->assertSessionHasErrors('files');
 });
 
 test('store validates file type', function () {
     $file = UploadedFile::fake()->create('resume.exe', 1024, 'application/x-executable');
 
     $this->actingAs($this->user)
-        ->post('/resume-upload', ['file' => $file])
-        ->assertSessionHasErrors('file');
+        ->post('/resume-upload', ['files' => [$file]])
+        ->assertSessionHasErrors('files.0');
+});
+
+test('upload page shows previously uploaded documents', function () {
+    Document::factory()->create([
+        'user_id' => $this->user->id,
+        'metadata' => ['purpose' => 'resume_import'],
+    ]);
+
+    $this->actingAs($this->user)
+        ->get('/resume-upload')
+        ->assertSuccessful()
+        ->assertInertia(fn ($page) => $page
+            ->component('experience-library/upload')
+            ->has('documents', 1)
+        );
 });
 
 test('review page shows processing state', function () {

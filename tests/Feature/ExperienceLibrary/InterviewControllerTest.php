@@ -1,6 +1,9 @@
 <?php
 
 use App\Ai\Agents\InterviewCoach;
+use App\Enums\SkillCategory;
+use App\Models\Experience;
+use App\Models\Skill;
 use App\Models\User;
 
 beforeEach(function () {
@@ -37,4 +40,34 @@ test('chat validates message is required', function () {
 test('chat requires authentication', function () {
     $this->postJson('/interview', ['message' => 'test'])
         ->assertUnauthorized();
+});
+
+test('chat injects experience context into interview coach', function () {
+    Experience::factory()->create([
+        'user_id' => $this->user->id,
+        'company' => 'ContextCorp',
+        'title' => 'Staff Engineer',
+    ]);
+
+    Skill::factory()->create([
+        'user_id' => $this->user->id,
+        'name' => 'Rust',
+        'category' => SkillCategory::Technical,
+    ]);
+
+    InterviewCoach::fake(['Great, I can see you worked at ContextCorp!']);
+
+    $this->actingAs($this->user)
+        ->postJson('/interview', [
+            'message' => 'Can you see my experience?',
+        ])
+        ->assertSuccessful();
+
+    InterviewCoach::assertPrompted(function ($prompt) {
+        $instructions = $prompt->agent->instructions();
+
+        return str_contains($instructions, 'ContextCorp')
+            && str_contains($instructions, 'Staff Engineer')
+            && str_contains($instructions, 'Rust');
+    });
 });

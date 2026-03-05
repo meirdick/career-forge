@@ -1,7 +1,7 @@
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { Loader2, MessageCircle, Send } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,6 +29,10 @@ export default function Interview() {
     const [started, setStarted] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages, loading]);
+
     async function sendMessage(text?: string) {
         const message = text || input.trim();
         if (!message || loading) return;
@@ -45,7 +49,6 @@ export default function Interview() {
 
             setMessages((prev) => [...prev, { role: 'assistant', content: data.message }]);
             setConversationId(data.conversation_id);
-            setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
         } finally {
             setLoading(false);
         }

@@ -190,3 +190,140 @@ test('update profile returns 403 for other users posting', function () {
         ->put("/job-postings/{$posting->id}/profile", ['red_flags' => []])
         ->assertForbidden();
 });
+
+// Quick Store
+
+test('quick store creates posting and dispatches fetch job', function () {
+    $this->actingAs($this->user)
+        ->post('/job-postings/quick', ['url' => 'https://example.com/jobs/123'])
+        ->assertRedirect('/job-postings');
+
+    $posting = JobPosting::first();
+    expect($posting)
+        ->url->toBe('https://example.com/jobs/123')
+        ->user_id->toBe($this->user->id);
+
+    Queue::assertPushed(FetchJobPostingUrlJob::class, function ($job) use ($posting) {
+        return $job->jobPosting->id === $posting->id;
+    });
+});
+
+test('quick store validates url is required', function () {
+    $this->actingAs($this->user)
+        ->post('/job-postings/quick', [])
+        ->assertSessionHasErrors('url');
+});
+
+test('quick store validates url format', function () {
+    $this->actingAs($this->user)
+        ->post('/job-postings/quick', ['url' => 'not-a-url'])
+        ->assertSessionHasErrors('url');
+});
+
+test('guest cannot quick store', function () {
+    $this->post('/job-postings/quick', ['url' => 'https://example.com'])
+        ->assertRedirect('/login');
+});
+
+// Bulk Store
+
+test('bulk store creates multiple postings and dispatches fetch jobs', function () {
+    $urls = [
+        'https://example.com/jobs/1',
+        'https://example.com/jobs/2',
+        'https://example.com/jobs/3',
+    ];
+
+    $this->actingAs($this->user)
+        ->post('/job-postings/bulk', ['urls' => $urls])
+        ->assertRedirect('/job-postings');
+
+    expect(JobPosting::count())->toBe(3);
+    Queue::assertPushed(FetchJobPostingUrlJob::class, 3);
+});
+
+test('bulk store validates urls are required', function () {
+    $this->actingAs($this->user)
+        ->post('/job-postings/bulk', [])
+        ->assertSessionHasErrors('urls');
+});
+
+test('bulk store validates max 20 urls', function () {
+    $urls = array_map(fn ($i) => "https://example.com/jobs/{$i}", range(1, 21));
+
+    $this->actingAs($this->user)
+        ->post('/job-postings/bulk', ['urls' => $urls])
+        ->assertSessionHasErrors('urls');
+
+    expect(JobPosting::count())->toBe(0);
+});
+
+test('bulk store validates each url format', function () {
+    $this->actingAs($this->user)
+        ->post('/job-postings/bulk', ['urls' => ['not-a-url', 'https://example.com/jobs/1']])
+        ->assertSessionHasErrors('urls.0');
+
+    expect(JobPosting::count())->toBe(0);
+});
+
+test('bulk store rejects duplicate urls', function () {
+    $this->actingAs($this->user)
+        ->post('/job-postings/bulk', ['urls' => ['https://example.com/jobs/1', 'https://example.com/jobs/1']])
+        ->assertSessionHasErrors('urls.0');
+
+    expect(JobPosting::count())->toBe(0);
+});
+
+test('guest cannot bulk store', function () {
+    $this->post('/job-postings/bulk', ['urls' => ['https://example.com']])
+        ->assertRedirect('/login');
+});
+
+// Unsupported URL (LinkedIn) validation
+
+test('quick store rejects linkedin urls', function () {
+    $this->actingAs($this->user)
+        ->post('/job-postings/quick', ['url' => 'https://www.linkedin.com/jobs/view/123'])
+        ->assertSessionHasErrors('url');
+
+    expect(JobPosting::count())->toBe(0);
+});
+
+test('bulk store rejects linkedin urls', function () {
+    $this->actingAs($this->user)
+        ->post('/job-postings/bulk', ['urls' => [
+            'https://www.linkedin.com/jobs/view/123',
+            'https://example.com/jobs/1',
+        ]])
+        ->assertSessionHasErrors('urls.0');
+
+    expect(JobPosting::count())->toBe(0);
+});
+
+test('store rejects linkedin url when no raw_text provided', function () {
+    $this->actingAs($this->user)
+        ->post('/job-postings', [
+            'url' => 'https://www.linkedin.com/jobs/view/123',
+        ])
+        ->assertSessionHasErrors('url');
+
+    expect(JobPosting::count())->toBe(0);
+});
+
+test('store allows linkedin url when raw_text is provided', function () {
+    $this->actingAs($this->user)
+        ->post('/job-postings', [
+            'url' => 'https://www.linkedin.com/jobs/view/123',
+            'raw_text' => 'We are looking for a Senior Engineer...',
+            'title' => 'Senior Engineer',
+        ])
+        ->assertRedirect();
+
+    $posting = JobPosting::first();
+    expect($posting)
+        ->url->toBe('https://www.linkedin.com/jobs/view/123')
+        ->raw_text->toContain('Senior Engineer');
+
+    Queue::assertPushed(AnalyzeJobPostingJob::class);
+    Queue::assertNotPushed(FetchJobPostingUrlJob::class);
+});

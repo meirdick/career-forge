@@ -40,7 +40,7 @@ export default function Profile({
                     <Heading
                         variant="small"
                         title="Profile information"
-                        description="Update your name and email address"
+                        description="Update your name, email address, and contact details"
                     />
 
                     <Form
@@ -88,6 +88,77 @@ export default function Profile({
                                     <InputError
                                         className="mt-2"
                                         message={errors.email}
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="phone">Phone</Label>
+
+                                    <Input
+                                        id="phone"
+                                        className="mt-1 block w-full"
+                                        defaultValue={auth.user.phone ?? ''}
+                                        name="phone"
+                                        autoComplete="tel"
+                                        placeholder="Phone number"
+                                    />
+
+                                    <InputError
+                                        className="mt-2"
+                                        message={errors.phone}
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="location">Location</Label>
+
+                                    <Input
+                                        id="location"
+                                        className="mt-1 block w-full"
+                                        defaultValue={auth.user.location ?? ''}
+                                        name="location"
+                                        placeholder="City, State"
+                                    />
+
+                                    <InputError
+                                        className="mt-2"
+                                        message={errors.location}
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="linkedin_url">LinkedIn URL</Label>
+
+                                    <Input
+                                        id="linkedin_url"
+                                        type="url"
+                                        className="mt-1 block w-full"
+                                        defaultValue={auth.user.linkedin_url ?? ''}
+                                        name="linkedin_url"
+                                        placeholder="https://linkedin.com/in/yourprofile"
+                                    />
+
+                                    <InputError
+                                        className="mt-2"
+                                        message={errors.linkedin_url}
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="portfolio_url">Portfolio URL</Label>
+
+                                    <Input
+                                        id="portfolio_url"
+                                        type="url"
+                                        className="mt-1 block w-full"
+                                        defaultValue={auth.user.portfolio_url ?? ''}
+                                        name="portfolio_url"
+                                        placeholder="https://yourportfolio.com"
+                                    />
+
+                                    <InputError
+                                        className="mt-2"
+                                        message={errors.portfolio_url}
                                     />
                                 </div>
 

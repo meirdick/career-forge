@@ -37,13 +37,29 @@ class DocumentExtractorService
 
         foreach ($phpWord->getSections() as $section) {
             foreach ($section->getElements() as $element) {
-                if (method_exists($element, 'getText')) {
-                    $text .= $element->getText()."\n";
-                }
+                $text .= $this->extractElementText($element)."\n";
             }
         }
 
         return trim($text);
+    }
+
+    protected function extractElementText(mixed $element): string
+    {
+        if (method_exists($element, 'getText') && is_string($element->getText())) {
+            return $element->getText();
+        }
+
+        if (method_exists($element, 'getElements')) {
+            $parts = [];
+            foreach ($element->getElements() as $child) {
+                $parts[] = $this->extractElementText($child);
+            }
+
+            return implode('', $parts);
+        }
+
+        return '';
     }
 
     protected function extractJson(string $path): string

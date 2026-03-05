@@ -13,35 +13,55 @@ use Inertia\Response;
 
 class ResumeUploadController extends Controller
 {
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return Inertia::render('experience-library/upload');
+        return Inertia::render('experience-library/upload', [
+            'documents' => $request->user()->documents()
+                ->where('metadata->purpose', 'resume_import')
+                ->latest()
+                ->get()
+                ->map(fn (Document $doc) => [
+                    'id' => $doc->id,
+                    'filename' => $doc->filename,
+                    'size' => $doc->size,
+                    'created_at' => $doc->created_at->diffForHumans(),
+                    'status' => Cache::get("resume-parse:{$doc->id}", ['status' => 'completed'])['status'],
+                ]),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'file' => 'required|file|mimes:pdf,docx,doc,txt,json|max:10240',
+            'files' => 'required|array|min:1',
+            'files.*' => 'required|file|mimes:pdf,docx,doc,txt,json|max:10240',
         ]);
 
-        $file = $request->file('file');
-        $path = $file->store('resume-uploads', 'local');
+        $firstDocument = null;
 
-        $document = $request->user()->documents()->create([
-            'filename' => $file->getClientOriginalName(),
-            'disk' => 'local',
-            'path' => $path,
-            'mime_type' => $file->getMimeType(),
-            'size' => $file->getSize(),
-            'metadata' => ['purpose' => 'resume_import'],
-        ]);
+        foreach ($request->file('files') as $file) {
+            $path = $file->store('resume-uploads', 'local');
 
-        Cache::put("resume-parse:{$document->id}", ['status' => 'processing'], now()->addHour());
+            $document = $request->user()->documents()->create([
+                'filename' => $file->getClientOriginalName(),
+                'disk' => 'local',
+                'path' => $path,
+                'mime_type' => $file->getMimeType(),
+                'size' => $file->getSize(),
+                'metadata' => ['purpose' => 'resume_import'],
+            ]);
 
-        ParseResumeJob::dispatch($request->user(), $document);
+            Cache::put("resume-parse:{$document->id}", ['status' => 'processing'], now()->addHour());
 
-        return to_route('resume-upload.review', $document)
-            ->with('success', 'Resume uploaded. Parsing in progress...');
+            ParseResumeJob::dispatch($request->user(), $document);
+
+            $firstDocument ??= $document;
+        }
+
+        return to_route('resume-upload.review', $firstDocument)
+            ->with('success', count($request->file('files')) > 1
+                ? 'Resumes uploaded. Parsing in progress...'
+                : 'Resume uploaded. Parsing in progress...');
     }
 
     public function review(Request $request, Document $document): Response
@@ -55,6 +75,18 @@ class ResumeUploadController extends Controller
             'document' => $document,
             'parseResult' => $parseResult,
         ]);
+    }
+
+    public function retry(Request $request, Document $document): RedirectResponse
+    {
+        abort_unless($document->user_id === $request->user()->id, 403);
+
+        Cache::put("resume-parse:{$document->id}", ['status' => 'processing'], now()->addHour());
+
+        ParseResumeJob::dispatch($request->user(), $document);
+
+        return to_route('resume-upload.review', $document)
+            ->with('success', 'Re-parsing in progress...');
     }
 
     public function commit(Request $request, Document $document): RedirectResponse
@@ -83,16 +115,17 @@ class ResumeUploadController extends Controller
 
         $user = $request->user();
         $experienceMap = [];
+        $nullish = static fn ($value) => in_array($value, [null, 'null', ''], true) ? null : $value;
 
         foreach ($request->input('experiences', []) as $index => $expData) {
             $experience = $user->experiences()->create([
                 'company' => $expData['company'],
                 'title' => $expData['title'],
-                'location' => $expData['location'] ?? null,
+                'location' => $nullish($expData['location'] ?? null),
                 'started_at' => $expData['started_at'],
-                'ended_at' => $expData['ended_at'] ?? null,
+                'ended_at' => $nullish($expData['ended_at'] ?? null),
                 'is_current' => $expData['is_current'] ?? false,
-                'description' => $expData['description'] ?? null,
+                'description' => $nullish($expData['description'] ?? null),
                 'sort_order' => $index,
             ]);
             $experienceMap[$index] = $experience;
@@ -114,7 +147,7 @@ class ResumeUploadController extends Controller
                 'experience_id' => $experienceId,
                 'title' => $accData['title'],
                 'description' => $accData['description'],
-                'impact' => $accData['impact'] ?? null,
+                'impact' => $nullish($accData['impact'] ?? null),
                 'sort_order' => 0,
             ]);
         }
@@ -124,8 +157,8 @@ class ResumeUploadController extends Controller
                 'type' => $eduData['type'],
                 'institution' => $eduData['institution'],
                 'title' => $eduData['title'],
-                'field' => $eduData['field'] ?? null,
-                'completed_at' => $eduData['completed_at'] ?? null,
+                'field' => $nullish($eduData['field'] ?? null),
+                'completed_at' => $nullish($eduData['completed_at'] ?? null),
                 'sort_order' => 0,
             ]);
         }
@@ -139,8 +172,8 @@ class ResumeUploadController extends Controller
                 'experience_id' => $experienceId,
                 'name' => $projData['name'],
                 'description' => $projData['description'],
-                'role' => $projData['role'] ?? null,
-                'outcome' => $projData['outcome'] ?? null,
+                'role' => $nullish($projData['role'] ?? null),
+                'outcome' => $nullish($projData['outcome'] ?? null),
                 'sort_order' => 0,
             ]);
         }

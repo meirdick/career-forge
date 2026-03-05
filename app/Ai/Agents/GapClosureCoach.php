@@ -20,10 +20,22 @@ class GapClosureCoach implements Agent, Conversational
 
     public function __construct(
         public string $gapContext = '',
+        public string $experienceContext = '',
     ) {}
 
     public function instructions(): Stringable|string
     {
+        $experienceSection = '';
+
+        if ($this->experienceContext !== '') {
+            $experienceSection = <<<CONTEXT
+
+            The user's full experience library is below. Use it to identify existing experience that addresses gaps, suggest reframing of existing entries, and avoid asking about things you already know.
+
+            {$this->experienceContext}
+            CONTEXT;
+        }
+
         return <<<INSTRUCTIONS
         You are a career gap closure coach. Your role is to help candidates address gaps identified in their job application analysis.
 
@@ -39,6 +51,7 @@ class GapClosureCoach implements Agent, Conversational
 
         Keep your responses concise and focused. Ask one or two questions at a time.
         When the candidate provides useful information, acknowledge it and explain how it can be used.
+        {$experienceSection}
         INSTRUCTIONS;
     }
 }

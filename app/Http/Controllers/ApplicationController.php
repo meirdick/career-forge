@@ -166,8 +166,21 @@ class ApplicationController extends Controller
     private function buildWritingContext(Request $request, Application $application): string
     {
         $application->load(['jobPosting', 'resume.sections.variants']);
+        $user = $request->user();
 
-        $parts = ["Company: {$application->company}", "Role: {$application->role}"];
+        $contactInfo = collect([
+            'Name' => $user->name,
+            'Email' => $user->email,
+            'Phone' => $user->phone,
+            'Location' => $user->location,
+            'LinkedIn' => $user->linkedin_url,
+            'Portfolio' => $user->portfolio_url,
+        ])->filter()->map(fn ($value, $label) => "{$label}: {$value}")->join("\n");
+
+        $parts = ["Candidate Contact Information:\n{$contactInfo}"];
+
+        $parts[] = "Company: {$application->company}";
+        $parts[] = "Role: {$application->role}";
 
         if ($application->jobPosting) {
             $parts[] = "Job Posting:\n{$application->jobPosting->raw_text}";
@@ -183,9 +196,19 @@ class ApplicationController extends Controller
             $parts[] = "Resume:\n{$sections}";
         }
 
-        $identity = $request->user()->professionalIdentity;
+        $identity = $user->professionalIdentity;
         if ($identity) {
-            $parts[] = "Professional Identity: {$identity->title} — {$identity->summary}";
+            $identityParts = collect([
+                'Values' => $identity->values,
+                'Philosophy' => $identity->philosophy,
+                'Passions' => $identity->passions,
+                'Leadership Style' => $identity->leadership_style,
+                'Collaboration Approach' => $identity->collaboration_approach,
+                'Communication Style' => $identity->communication_style,
+                'Cultural Preferences' => $identity->cultural_preferences,
+            ])->filter()->map(fn ($value, $label) => "{$label}: {$value}")->join("\n");
+
+            $parts[] = "Professional Identity:\n{$identityParts}";
         }
 
         return implode("\n\n", $parts);

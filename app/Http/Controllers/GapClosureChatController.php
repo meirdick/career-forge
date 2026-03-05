@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Ai\Agents\GapClosureCoach;
 use App\Models\GapAnalysis;
+use App\Services\ExperienceLibraryContextService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,7 +20,8 @@ class GapClosureChatController extends Controller
         ]);
 
         $gapContext = $this->buildGapContext($gapAnalysis);
-        $coach = new GapClosureCoach(gapContext: $gapContext);
+        $experienceContext = ExperienceLibraryContextService::buildContext($request->user());
+        $coach = new GapClosureCoach(gapContext: $gapContext, experienceContext: $experienceContext);
 
         $conversationId = $request->input('conversation_id');
         $user = $request->user();

@@ -32,7 +32,7 @@ class ResumeGenerator implements Agent, HasStructuredOutput
         ])->required();
 
         return [
-            'variants' => $schema->array($variantItem)->required(),
+            'variants' => $schema->array()->items($variantItem)->required(),
         ];
     }
 }

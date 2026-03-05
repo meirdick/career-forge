@@ -4,6 +4,7 @@ namespace App\Http\Controllers\ExperienceLibrary;
 
 use App\Ai\Agents\InterviewCoach;
 use App\Http\Controllers\Controller;
+use App\Services\ExperienceLibraryContextService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -25,13 +26,15 @@ class InterviewController extends Controller
 
         $user = $request->user();
         $conversationId = $request->input('conversation_id');
+        $experienceContext = ExperienceLibraryContextService::buildContext($user);
+        $coach = new InterviewCoach(experienceContext: $experienceContext);
 
         if ($conversationId) {
-            $response = (new InterviewCoach)
+            $response = $coach
                 ->continue($conversationId, as: $user)
                 ->prompt($request->input('message'));
         } else {
-            $response = (new InterviewCoach)
+            $response = $coach
                 ->forUser($user)
                 ->prompt($request->input('message'));
         }

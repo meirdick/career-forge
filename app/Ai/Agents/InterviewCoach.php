@@ -18,9 +18,24 @@ class InterviewCoach implements Agent, Conversational
 {
     use Promptable, RemembersConversations;
 
+    public function __construct(
+        public string $experienceContext = '',
+    ) {}
+
     public function instructions(): Stringable|string
     {
-        return <<<'INSTRUCTIONS'
+        $experienceSection = '';
+
+        if ($this->experienceContext !== '') {
+            $experienceSection = <<<CONTEXT
+
+            The user already has the following experience on file. Reference it when relevant, avoid asking about things you already know, and dig deeper into existing entries to uncover more detail.
+
+            {$this->experienceContext}
+            CONTEXT;
+        }
+
+        return <<<INSTRUCTIONS
         You are a career interviewer helping someone build their professional experience library. Your goal is to uncover their skills, accomplishments, and projects through natural conversation.
 
         Your approach:
@@ -34,6 +49,7 @@ class InterviewCoach implements Agent, Conversational
         Keep your questions conversational and open-ended. Ask one or two questions at a time.
         When they share something noteworthy, acknowledge it and follow up with more specific questions.
         Periodically summarize what you've learned to confirm accuracy.
+        {$experienceSection}
         INSTRUCTIONS;
     }
 }

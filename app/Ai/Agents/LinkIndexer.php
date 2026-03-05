@@ -54,9 +54,9 @@ class LinkIndexer implements Agent, HasStructuredOutput
         ]);
 
         return [
-            'skills' => $schema->array($skillItem)->required(),
-            'accomplishments' => $schema->array($accomplishmentItem)->required(),
-            'projects' => $schema->array($projectItem)->required(),
+            'skills' => $schema->array()->items($skillItem)->required(),
+            'accomplishments' => $schema->array()->items($accomplishmentItem)->required(),
+            'projects' => $schema->array()->items($projectItem)->required(),
         ];
     }
 }

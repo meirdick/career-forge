@@ -67,5 +67,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('resume-upload', [ResumeUploadController::class, 'create'])->name('resume-upload.create');
     Route::post('resume-upload', [ResumeUploadController::class, 'store'])->name('resume-upload.store');
     Route::get('resume-upload/{document}/review', [ResumeUploadController::class, 'review'])->name('resume-upload.review');
+    Route::post('resume-upload/{document}/retry', [ResumeUploadController::class, 'retry'])->name('resume-upload.retry');
     Route::post('resume-upload/{document}/commit', [ResumeUploadController::class, 'commit'])->name('resume-upload.commit');
 });
