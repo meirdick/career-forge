@@ -130,6 +130,19 @@ class ApplicationController extends Controller
             ->with('success', 'Status updated.');
     }
 
+    public function updateCoverLetter(Request $request, Application $application): JsonResponse
+    {
+        abort_unless($application->user_id === $request->user()->id, 403);
+
+        $validated = $request->validate([
+            'cover_letter' => 'required|string|max:50000',
+        ]);
+
+        $application->update(['cover_letter' => $validated['cover_letter']]);
+
+        return response()->json(['success' => true]);
+    }
+
     public function generateCoverLetter(Request $request, Application $application): JsonResponse
     {
         abort_unless($application->user_id === $request->user()->id, 403);

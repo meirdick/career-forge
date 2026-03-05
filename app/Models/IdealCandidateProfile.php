@@ -20,6 +20,7 @@ class IdealCandidateProfile extends Model
         'language_guidance',
         'red_flags',
         'company_research',
+        'candidate_summary',
         'industry_standards',
         'is_user_edited',
     ];

@@ -19,6 +19,7 @@ class ResumeFactory extends Factory
             'title' => fake()->sentence(3),
             'section_order' => null,
             'is_finalized' => false,
+            'template' => 'classic',
             'exported_path' => null,
             'exported_format' => null,
         ];

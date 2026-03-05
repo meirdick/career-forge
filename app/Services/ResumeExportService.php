@@ -4,55 +4,91 @@ namespace App\Services;
 
 use App\Models\Resume;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Log;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\SimpleType\Jc;
 
 class ResumeExportService
 {
+    public function __construct(
+        private RenderCvService $renderCvService,
+    ) {}
+
     public function toPdf(Resume $resume): string
     {
-        $resume->load(['sections.selectedVariant', 'jobPosting']);
+        $resume->load(['sections.selectedVariant', 'user', 'jobPosting']);
 
-        $pdf = Pdf::loadView('resumes.pdf', [
-            'resume' => $resume,
-        ]);
-
-        $path = 'resumes/'.$resume->id.'.pdf';
-        $fullPath = storage_path('app/private/'.$path);
-
-        if (! is_dir(dirname($fullPath))) {
-            mkdir(dirname($fullPath), 0755, true);
+        // Try RenderCV first
+        if ($this->renderCvService->isAvailable()) {
+            try {
+                return $this->renderCvService->generatePdf($resume);
+            } catch (\Throwable $e) {
+                Log::warning('RenderCV failed, falling back to DomPDF', ['error' => $e->getMessage()]);
+            }
         }
 
-        file_put_contents($fullPath, $pdf->output());
+        // Try Browsershot (spatie/laravel-pdf) fallback
+        if (class_exists(\Spatie\LaravelPdf\Facades\Pdf::class)) {
+            try {
+                return $this->toBrowsershotPdf($resume);
+            } catch (\Throwable $e) {
+                Log::warning('Browsershot failed, falling back to DomPDF', ['error' => $e->getMessage()]);
+            }
+        }
 
-        return $path;
+        // DomPDF fallback
+        return $this->toDomPdf($resume);
     }
 
     public function toDocx(Resume $resume): string
     {
-        $resume->load(['sections.selectedVariant', 'jobPosting']);
+        $resume->load(['sections.selectedVariant', 'user', 'jobPosting']);
+
+        $user = $resume->user;
+        $template = $resume->template?->value ?? 'classic';
+
+        $styles = $this->getDocxStyles($template);
 
         $phpWord = new PhpWord;
+        $phpWord->setDefaultFontName($styles['font']);
+        $phpWord->setDefaultFontSize($styles['bodySize']);
 
-        $phpWord->addTitleStyle(1, ['bold' => true, 'size' => 20]);
-        $phpWord->addTitleStyle(2, ['bold' => true, 'size' => 14]);
+        $phpWord->addTitleStyle(1, ['bold' => true, 'size' => $styles['titleSize'], 'color' => $styles['headingColor']]);
+        $phpWord->addTitleStyle(2, ['bold' => true, 'size' => $styles['sectionSize'], 'color' => $styles['headingColor']]);
 
         $section = $phpWord->addSection();
 
-        $section->addTitle($resume->title, 1);
+        // Contact header
+        $section->addText(
+            $user->name ?? 'Candidate',
+            ['bold' => true, 'size' => $styles['nameSize'], 'color' => $styles['headingColor']],
+            ['alignment' => Jc::CENTER]
+        );
+
+        $contactParts = array_filter([
+            $user->email,
+            $user->phone,
+            $user->location,
+            $user->linkedin_url,
+            $user->portfolio_url,
+        ]);
+
+        if (! empty($contactParts)) {
+            $section->addText(
+                implode(' | ', $contactParts),
+                ['size' => $styles['contactSize'], 'color' => '666666'],
+                ['alignment' => Jc::CENTER]
+            );
+        }
+
+        $section->addTextBreak();
 
         foreach ($resume->sections->sortBy('sort_order') as $resumeSection) {
             $section->addTitle($resumeSection->title, 2);
 
             if ($resumeSection->selectedVariant) {
-                $content = $resumeSection->selectedVariant->content;
-                foreach (explode("\n", $content) as $line) {
-                    $trimmed = trim($line);
-                    if ($trimmed !== '') {
-                        $section->addText($trimmed);
-                    }
-                }
+                $this->addMarkdownContent($section, $resumeSection->selectedVariant->content, $styles);
             }
 
             $section->addTextBreak();
@@ -69,5 +105,143 @@ class ResumeExportService
         $writer->save($fullPath);
 
         return $path;
+    }
+
+    private function toDomPdf(Resume $resume): string
+    {
+        $template = $resume->template?->value ?? 'classic';
+
+        $pdf = Pdf::loadView('resumes.pdf', [
+            'resume' => $resume,
+            'user' => $resume->user,
+            'template' => $template,
+        ]);
+
+        $path = 'resumes/'.$resume->id.'.pdf';
+        $fullPath = storage_path('app/private/'.$path);
+
+        if (! is_dir(dirname($fullPath))) {
+            mkdir(dirname($fullPath), 0755, true);
+        }
+
+        file_put_contents($fullPath, $pdf->output());
+
+        return $path;
+    }
+
+    private function toBrowsershotPdf(Resume $resume): string
+    {
+        $template = $resume->template?->value ?? 'classic';
+        $bladeTemplate = in_array($template, ['moderncv', 'engineeringresumes', 'engineeringclassic'])
+            ? 'resumes.templates.modern'
+            : 'resumes.templates.classic';
+
+        $html = view($bladeTemplate, [
+            'resume' => $resume,
+            'user' => $resume->user,
+        ])->render();
+
+        $path = 'resumes/'.$resume->id.'.pdf';
+        $fullPath = storage_path('app/private/'.$path);
+
+        if (! is_dir(dirname($fullPath))) {
+            mkdir(dirname($fullPath), 0755, true);
+        }
+
+        \Spatie\LaravelPdf\Facades\Pdf::html($html)
+            ->format('a4')
+            ->save($fullPath);
+
+        return $path;
+    }
+
+    private function addMarkdownContent(\PhpOffice\PhpWord\Element\Section $section, string $content, array $styles): void
+    {
+        $lines = explode("\n", $content);
+
+        foreach ($lines as $line) {
+            $trimmed = trim($line);
+
+            if ($trimmed === '') {
+                continue;
+            }
+
+            // Bullet point
+            if (preg_match('/^[-*]\s+(.+)$/', $trimmed, $matches)) {
+                $this->addFormattedListItem($section, $matches[1], $styles);
+
+                continue;
+            }
+
+            // Regular text with inline formatting
+            $this->addFormattedText($section, $trimmed, $styles);
+        }
+    }
+
+    private function addFormattedText(\PhpOffice\PhpWord\Element\Section $section, string $text, array $styles): void
+    {
+        $textRun = $section->addTextRun();
+        $this->parseInlineFormatting($textRun, $text, $styles);
+    }
+
+    private function addFormattedListItem(\PhpOffice\PhpWord\Element\Section $section, string $text, array $styles): void
+    {
+        $listItemRun = $section->addListItemRun(0);
+        $this->parseInlineFormatting($listItemRun, $text, $styles);
+    }
+
+    /**
+     * @param  \PhpOffice\PhpWord\Element\TextRun|\PhpOffice\PhpWord\Element\ListItemRun  $container
+     */
+    private function parseInlineFormatting($container, string $text, array $styles): void
+    {
+        // Split by markdown bold and italic markers
+        $parts = preg_split('/(\*\*[^*]+\*\*|\*[^*]+\*)/', $text, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+
+        foreach ($parts as $part) {
+            if (preg_match('/^\*\*(.+)\*\*$/', $part, $matches)) {
+                $container->addText($matches[1], ['bold' => true]);
+            } elseif (preg_match('/^\*(.+)\*$/', $part, $matches)) {
+                $container->addText($matches[1], ['italic' => true]);
+            } else {
+                $container->addText($part);
+            }
+        }
+    }
+
+    /**
+     * @return array{font: string, bodySize: int, titleSize: int, nameSize: int, sectionSize: int, contactSize: int, headingColor: string}
+     */
+    private function getDocxStyles(string $template): array
+    {
+        return match ($template) {
+            'moderncv' => [
+                'font' => 'Calibri',
+                'bodySize' => 10,
+                'titleSize' => 20,
+                'nameSize' => 24,
+                'sectionSize' => 13,
+                'contactSize' => 9,
+                'headingColor' => '2E74B5',
+            ],
+            'engineeringresumes', 'engineeringclassic' => [
+                'font' => 'Times New Roman',
+                'bodySize' => 10,
+                'titleSize' => 18,
+                'nameSize' => 22,
+                'sectionSize' => 12,
+                'contactSize' => 9,
+                'headingColor' => '000000',
+            ],
+            default => [
+                'font' => 'Calibri',
+                'bodySize' => 11,
+                'titleSize' => 20,
+                'nameSize' => 24,
+                'sectionSize' => 14,
+                'contactSize' => 9,
+                'headingColor' => '333333',
+            ],
+        };
     }
 }

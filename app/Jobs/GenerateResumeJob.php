@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Ai\Agents\ResumeGenerator;
+use App\Enums\EducationType;
 use App\Enums\ResumeSectionType;
 use App\Models\Resume;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -40,6 +41,23 @@ class GenerateResumeJob implements ShouldQueue
             ResumeSectionType::Skills,
             ResumeSectionType::Education,
         ];
+
+        if ($user->projects()->exists()) {
+            $sectionTypes[] = ResumeSectionType::Projects;
+            $library['projects'] = $user->projects()->with('skills')->get()->toArray();
+        }
+
+        $certTypes = [EducationType::Certification, EducationType::License];
+        if ($user->educationEntries()->whereIn('type', $certTypes)->exists()) {
+            $sectionTypes[] = ResumeSectionType::Certifications;
+            $library['certifications'] = $user->educationEntries()->whereIn('type', $certTypes)->get()->toArray();
+        }
+
+        $pubTypes = [EducationType::Publication, EducationType::Patent, EducationType::SpeakingEngagement];
+        if ($user->educationEntries()->whereIn('type', $pubTypes)->exists()) {
+            $sectionTypes[] = ResumeSectionType::Publications;
+            $library['publications'] = $user->educationEntries()->whereIn('type', $pubTypes)->get()->toArray();
+        }
 
         $sectionOrder = [];
 

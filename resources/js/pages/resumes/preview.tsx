@@ -1,33 +1,47 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, Download } from 'lucide-react';
 import Heading from '@/components/heading';
+import ResumeDocument from '@/components/resume-templates/resume-document';
+import TemplatePicker from '@/components/resume-templates/template-picker';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 
-type Variant = { id: number; content: string };
+type Variant = { id: number; content: string; formatted_content: string };
 type Section = { id: number; title: string; sort_order: number; selected_variant: Variant | null };
+type Contact = {
+    name?: string;
+    email?: string;
+    phone?: string;
+    location?: string;
+    linkedin_url?: string;
+    portfolio_url?: string;
+};
 type ResumeData = {
     id: number;
     title: string;
+    template: string;
     is_finalized: boolean;
     sections: Section[];
     job_posting: { title: string | null; company: string | null } | null;
 };
 
-export default function PreviewResume({ resume }: { resume: ResumeData }) {
+export default function PreviewResume({ resume, contact }: { resume: ResumeData; contact: Contact }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Resumes', href: '/resumes' },
         { title: resume.title, href: `/resumes/${resume.id}` },
         { title: 'Preview', href: `/resumes/${resume.id}/preview` },
     ];
 
+    function changeTemplate(key: string) {
+        router.put(`/resumes/${resume.id}`, { template: key }, { preserveScroll: true });
+    }
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Preview - ${resume.title}`} />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-4">
+            <div className="mx-auto max-w-4xl space-y-6 p-4">
                 <div className="flex items-start justify-between">
                     <Heading
                         title="Resume Preview"
@@ -52,32 +66,14 @@ export default function PreviewResume({ resume }: { resume: ResumeData }) {
                     </div>
                 </div>
 
-                <div className="rounded-lg border bg-white p-8 shadow-sm dark:bg-gray-950">
-                    <h1 className="border-b-2 border-gray-800 pb-2 text-2xl font-bold dark:border-gray-200">
-                        {resume.title}
-                    </h1>
-                    {resume.job_posting && (
-                        <p className="mt-1 text-sm text-gray-500">
-                            {resume.job_posting.title ?? 'Untitled'} at {resume.job_posting.company ?? 'Unknown'}
-                        </p>
-                    )}
-
-                    {resume.sections
-                        .sort((a, b) => a.sort_order - b.sort_order)
-                        .map((section) => (
-                            <div key={section.id} className="mt-6">
-                                <Separator className="mb-3" />
-                                <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-300">
-                                    {section.title}
-                                </h2>
-                                {section.selected_variant && (
-                                    <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                                        {section.selected_variant.content}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                {/* Template Picker */}
+                <div>
+                    <h3 className="mb-2 text-sm font-medium">Template</h3>
+                    <TemplatePicker selected={resume.template ?? 'classic'} onChange={changeTemplate} disabled={resume.is_finalized} />
                 </div>
+
+                {/* Resume Document Preview */}
+                <ResumeDocument template={resume.template ?? 'classic'} contact={contact} sections={resume.sections} />
             </div>
         </AppLayout>
     );

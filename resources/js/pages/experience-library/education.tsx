@@ -1,5 +1,5 @@
 import { Form, Head, router } from '@inertiajs/react';
-import { GraduationCap, Plus, Trash2 } from 'lucide-react';
+import { GraduationCap, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -47,6 +47,7 @@ type EducationEntry = {
 
 export default function Education({ entries }: { entries: EducationEntry[] }) {
     const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -120,37 +121,110 @@ export default function Education({ entries }: { entries: EducationEntry[] }) {
                     </Card>
                 ) : (
                     <div className="space-y-3">
-                        {entries.map((entry) => (
-                            <Card key={entry.id}>
-                                <CardHeader className="flex-row items-center justify-between pb-2">
-                                    <div>
-                                        <CardTitle className="text-base">{entry.title}</CardTitle>
-                                        <p className="text-muted-foreground text-sm">{entry.institution}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Badge variant="outline">{typeLabels[entry.type] ?? entry.type}</Badge>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8"
-                                            onClick={() => router.delete(EducationEntryController.destroy(entry.id).url, { preserveScroll: true })}
+                        {entries.map((entry) =>
+                            editingId === entry.id ? (
+                                <Card key={entry.id}>
+                                    <CardContent className="pt-6">
+                                        <Form
+                                            {...EducationEntryController.update.form(entry.id)}
+                                            options={{ preserveScroll: true, onSuccess: () => setEditingId(null) }}
+                                            className="grid gap-4 sm:grid-cols-2"
                                         >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </CardHeader>
-                                {(entry.field || entry.completed_at) && (
-                                    <CardContent className="pt-0">
-                                        <div className="flex gap-3 text-sm text-muted-foreground">
-                                            {entry.field && <span>{entry.field}</span>}
-                                            {entry.completed_at && (
-                                                <span>Completed {new Date(entry.completed_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+                                            {({ processing, errors }) => (
+                                                <>
+                                                    <div>
+                                                        <Label htmlFor={`type-${entry.id}`}>Type</Label>
+                                                        <select
+                                                            name="type"
+                                                            id={`type-${entry.id}`}
+                                                            required
+                                                            defaultValue={entry.type}
+                                                            className="border-input bg-background flex h-9 w-full rounded-md border px-3 py-1 text-sm"
+                                                        >
+                                                            <option value="">Select...</option>
+                                                            {educationTypes.map((t) => (
+                                                                <option key={t} value={t}>{typeLabels[t]}</option>
+                                                            ))}
+                                                        </select>
+                                                        <InputError message={errors.type} />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor={`institution-${entry.id}`}>Institution</Label>
+                                                        <Input id={`institution-${entry.id}`} name="institution" required defaultValue={entry.institution} />
+                                                        <InputError message={errors.institution} />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor={`title-${entry.id}`}>Title</Label>
+                                                        <Input id={`title-${entry.id}`} name="title" required defaultValue={entry.title} />
+                                                        <InputError message={errors.title} />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor={`field-${entry.id}`}>Field</Label>
+                                                        <Input id={`field-${entry.id}`} name="field" defaultValue={entry.field ?? ''} />
+                                                        <InputError message={errors.field} />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor={`started_at-${entry.id}`}>Start Date</Label>
+                                                        <Input id={`started_at-${entry.id}`} name="started_at" type="date" defaultValue={entry.started_at ?? ''} />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor={`completed_at-${entry.id}`}>Completion Date</Label>
+                                                        <Input id={`completed_at-${entry.id}`} name="completed_at" type="date" defaultValue={entry.completed_at ?? ''} />
+                                                    </div>
+                                                    <div className="flex justify-between sm:col-span-2">
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            className="text-destructive hover:text-destructive"
+                                                            onClick={() => router.delete(EducationEntryController.destroy(entry.id).url, { preserveScroll: true })}
+                                                        >
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            Delete
+                                                        </Button>
+                                                        <div className="flex gap-2">
+                                                            <Button type="button" variant="ghost" onClick={() => setEditingId(null)}>
+                                                                Cancel
+                                                            </Button>
+                                                            <Button type="submit" disabled={processing}>Save</Button>
+                                                        </div>
+                                                    </div>
+                                                </>
                                             )}
-                                        </div>
+                                        </Form>
                                     </CardContent>
-                                )}
-                            </Card>
-                        ))}
+                                </Card>
+                            ) : (
+                                <Card key={entry.id}>
+                                    <CardHeader className="flex-row items-center justify-between pb-2">
+                                        <div>
+                                            <CardTitle className="text-base">{entry.title}</CardTitle>
+                                            <p className="text-muted-foreground text-sm">{entry.institution}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="outline">{typeLabels[entry.type] ?? entry.type}</Badge>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8"
+                                                onClick={() => setEditingId(entry.id)}
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </CardHeader>
+                                    {(entry.field || entry.completed_at) && (
+                                        <CardContent className="pt-0">
+                                            <div className="flex gap-3 text-sm text-muted-foreground">
+                                                {entry.field && <span>{entry.field}</span>}
+                                                {entry.completed_at && (
+                                                    <span>Completed {new Date(entry.completed_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                    )}
+                                </Card>
+                            ),
+                        )}
                     </div>
                 )}
             </div>

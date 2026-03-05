@@ -2,18 +2,22 @@ import { Head, Link, router } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, Bot, Check, Download, Eye, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Heading from '@/components/heading';
+import PipelineAssistantPanel from '@/components/pipeline-assistant-panel';
+import PipelineSteps from '@/components/pipeline-steps';
+import TemplatePicker from '@/components/resume-templates/template-picker';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 
-type Variant = { id: number; label: string; content: string; emphasis: string | null; is_ai_generated: boolean; is_user_edited: boolean };
+type Variant = { id: number; label: string; content: string; formatted_content: string; emphasis: string | null; is_ai_generated: boolean; is_user_edited: boolean };
 type Section = { id: number; type: string; title: string; sort_order: number; selected_variant_id: number | null; variants: Variant[]; selected_variant: Variant | null };
 type ResumeData = {
     id: number;
     title: string;
+    template: string;
     is_finalized: boolean;
     sections: Section[];
     job_posting: { id: number; title: string | null; company: string | null } | null;
@@ -61,6 +65,17 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
             <Head title={resume.title} />
 
             <div className="mx-auto max-w-3xl space-y-6 p-4">
+                {resume.job_posting && (
+                    <PipelineSteps
+                        steps={[
+                            { label: 'Job Posting', href: `/job-postings/${resume.job_posting.id}`, status: 'completed' },
+                            { label: 'Ideal Candidate', status: 'completed' },
+                            { label: 'Gap Analysis', status: 'completed' },
+                            { label: 'Resume', href: `/resumes/${resume.id}`, status: 'active' },
+                            { label: 'Application', status: 'upcoming' },
+                        ]}
+                    />
+                )}
                 <div className="flex items-start justify-between">
                     <Heading title={resume.title} description={resume.job_posting ? `For ${resume.job_posting.title ?? 'Untitled'} at ${resume.job_posting.company ?? 'Unknown'}` : undefined} />
                     <div className="flex gap-2">
@@ -90,6 +105,16 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
                 </div>
 
                 {resume.is_finalized && <Badge variant="secondary">Finalized</Badge>}
+
+                {!isGenerating && !resume.is_finalized && (
+                    <div>
+                        <h3 className="mb-2 text-sm font-medium">Template</h3>
+                        <TemplatePicker
+                            selected={resume.template ?? 'classic'}
+                            onChange={(key) => router.put(`/resumes/${resume.id}`, { template: key }, { preserveScroll: true })}
+                        />
+                    </div>
+                )}
 
                 {isGenerating && (
                     <Card>
@@ -160,16 +185,15 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
                                             </div>
                                         ) : (
                                             <div
-                                                className="prose prose-sm dark:prose-invert max-w-none cursor-pointer whitespace-pre-wrap"
+                                                className="prose prose-sm dark:prose-invert max-w-none cursor-pointer"
                                                 onClick={() => {
                                                     if (!resume.is_finalized) {
                                                         setEditingVariant(section.selected_variant!.id);
                                                         setEditContent(section.selected_variant!.content);
                                                     }
                                                 }}
-                                            >
-                                                {section.selected_variant.content}
-                                            </div>
+                                                dangerouslySetInnerHTML={{ __html: section.selected_variant.formatted_content }}
+                                            />
                                         )}
                                     </CardContent>
                                 </Card>
@@ -194,6 +218,10 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
                         </div>
                     ))}
             </div>
+
+            {resume.job_posting && !isGenerating && (
+                <PipelineAssistantPanel context={{ step: 'resume_builder', pipelineKey: `job_posting:${resume.job_posting.id}` }} />
+            )}
         </AppLayout>
     );
 }

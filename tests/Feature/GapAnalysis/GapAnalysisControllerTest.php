@@ -28,8 +28,7 @@ test('store creates gap analysis and dispatches job', function () {
     $analysis = GapAnalysis::first();
     expect($analysis)
         ->user_id->toBe($this->user->id)
-        ->ideal_candidate_profile_id->toBe($posting->idealCandidateProfile->id)
-        ->is_finalized->toBeFalse();
+        ->ideal_candidate_profile_id->toBe($posting->idealCandidateProfile->id);
 
     Queue::assertPushed(PerformGapAnalysisJob::class, function ($job) use ($analysis) {
         return $job->gapAnalysis->id === $analysis->id;
@@ -84,34 +83,5 @@ test('show returns 403 for other users analysis', function () {
 
     $this->actingAs($this->user)
         ->get("/gap-analyses/{$analysis->id}")
-        ->assertForbidden();
-});
-
-test('finalize marks gap analysis as finalized', function () {
-    $posting = JobPosting::factory()->analyzed()->create(['user_id' => $this->user->id]);
-    $profile = IdealCandidateProfile::factory()->create(['job_posting_id' => $posting->id]);
-    $analysis = GapAnalysis::factory()->create([
-        'user_id' => $this->user->id,
-        'ideal_candidate_profile_id' => $profile->id,
-    ]);
-
-    $this->actingAs($this->user)
-        ->post("/gap-analyses/{$analysis->id}/finalize")
-        ->assertRedirect();
-
-    expect($analysis->fresh()->is_finalized)->toBeTrue();
-});
-
-test('finalize returns 403 for other users analysis', function () {
-    $other = User::factory()->create();
-    $posting = JobPosting::factory()->analyzed()->create(['user_id' => $other->id]);
-    $profile = IdealCandidateProfile::factory()->create(['job_posting_id' => $posting->id]);
-    $analysis = GapAnalysis::factory()->create([
-        'user_id' => $other->id,
-        'ideal_candidate_profile_id' => $profile->id,
-    ]);
-
-    $this->actingAs($this->user)
-        ->post("/gap-analyses/{$analysis->id}/finalize")
         ->assertForbidden();
 });

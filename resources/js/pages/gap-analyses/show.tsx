@@ -1,27 +1,45 @@
 import { Head, router } from '@inertiajs/react';
-import axios from 'axios';
-import { CheckCircle, Loader2, MessageCircle, Send, Target, XCircle } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { CheckCircle, Loader2, RefreshCw, Target, TrendingUp } from 'lucide-react';
+import { useEffect } from 'react';
+import GapActionCard from '@/components/gap-resolution/gap-action-card';
 import Heading from '@/components/heading';
+import PipelineAssistantPanel from '@/components/pipeline-assistant-panel';
+import PipelineSteps from '@/components/pipeline-steps';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 
 type Strength = { area: string; evidence: string; relevance: string };
 type Gap = { area: string; description: string; classification: string; suggestion: string };
+type Experience = {
+    id: number;
+    title: string;
+    company: string;
+    description: string | null;
+    accomplishments: { id: number; title: string }[];
+    skills: { id: number; name: string }[];
+};
+type GapResolution = {
+    status: string;
+    experience_id?: number;
+    reframe_original?: string;
+    reframe_suggestion?: string;
+    rationale?: string;
+    answer?: string;
+    note?: string;
+};
 
 type GapAnalysis = {
     id: number;
     strengths: Strength[];
     gaps: Gap[];
+    gap_resolutions: Record<string, GapResolution> | null;
     overall_match_score: number | null;
+    previous_match_score: number | null;
     ai_summary: string | null;
-    is_finalized: boolean;
     ideal_candidate_profile: {
         job_posting: {
             id: number;
@@ -31,49 +49,17 @@ type GapAnalysis = {
     };
 };
 
-const classificationColors: Record<string, string> = {
-    reframable: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-    promptable: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    genuine: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-};
-
-type ChatMessage = { role: 'user' | 'assistant'; content: string };
-
-export default function ShowGapAnalysis({ gapAnalysis }: { gapAnalysis: GapAnalysis }) {
+export default function ShowGapAnalysis({ gapAnalysis, experiences }: { gapAnalysis: GapAnalysis; experiences: Experience[] }) {
     const posting = gapAnalysis.ideal_candidate_profile.job_posting;
     const isAnalyzing = gapAnalysis.strengths.length === 0 && gapAnalysis.gaps.length === 0 && !gapAnalysis.ai_summary;
+    const resolutions = gapAnalysis.gap_resolutions ?? {};
 
-    const [showChat, setShowChat] = useState(false);
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
-    const [input, setInput] = useState('');
-    const [sending, setSending] = useState(false);
-    const [conversationId, setConversationId] = useState<string | null>(null);
-    const chatEndRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
-
-    async function sendMessage() {
-        if (!input.trim() || sending) return;
-        const userMessage = input.trim();
-        setInput('');
-        setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
-        setSending(true);
-
-        try {
-            const response = await axios.post(`/gap-analyses/${gapAnalysis.id}/chat`, {
-                message: userMessage,
-                conversation_id: conversationId,
-            });
-            setMessages((prev) => [...prev, { role: 'assistant', content: response.data.message }]);
-            setConversationId(response.data.conversation_id);
-        } catch {
-            setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, there was an error. Please try again.' }]);
-        } finally {
-            setSending(false);
-        }
-    }
+    const resolvedCount = Object.values(resolutions).filter((r) => r.status === 'resolved' || r.status === 'acknowledged').length;
+    const totalGaps = gapAnalysis.gaps.length;
+    const scoreDelta =
+        gapAnalysis.previous_match_score != null && gapAnalysis.overall_match_score != null
+            ? gapAnalysis.overall_match_score - gapAnalysis.previous_match_score
+            : null;
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Job Postings', href: '/job-postings' },
@@ -90,22 +76,37 @@ export default function ShowGapAnalysis({ gapAnalysis }: { gapAnalysis: GapAnaly
         }
     }, [isAnalyzing]);
 
+    function handleResolutionChange() {
+        router.reload({ only: ['gapAnalysis'] });
+    }
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Gap Analysis" />
 
             <div className="mx-auto max-w-3xl space-y-6 p-4">
+                <PipelineSteps
+                    steps={[
+                        { label: 'Job Posting', href: `/job-postings/${posting.id}`, status: 'completed' },
+                        { label: 'Ideal Candidate', href: `/job-postings/${posting.id}`, status: 'completed' },
+                        { label: 'Gap Analysis', href: `/gap-analyses/${gapAnalysis.id}`, status: 'active' },
+                        { label: 'Resume', status: 'upcoming' },
+                        { label: 'Application', status: 'upcoming' },
+                    ]}
+                />
                 <div className="flex items-start justify-between">
-                    <Heading
-                        title="Gap Analysis"
-                        description={`${posting.title ?? 'Untitled'} at ${posting.company ?? 'Unknown Company'}`}
-                    />
-                    {!gapAnalysis.is_finalized && !isAnalyzing && (
+                    <Heading title="Gap Analysis" description={`${posting.title ?? 'Untitled'} at ${posting.company ?? 'Unknown Company'}`} />
+                    {!isAnalyzing && (
                         <div className="flex gap-2">
-                            <Button onClick={() => router.post(`/gap-analyses/${gapAnalysis.id}/finalize`)}>
-                                Finalize
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => router.post(`/gap-analyses/${gapAnalysis.id}/reanalyze`)}
+                            >
+                                <RefreshCw className="mr-1 h-4 w-4" />
+                                Re-analyze
                             </Button>
-                            <Button variant="outline" onClick={() => router.post(`/gap-analyses/${gapAnalysis.id}/resume`)}>
+                            <Button variant="outline" size="sm" onClick={() => router.post(`/gap-analyses/${gapAnalysis.id}/resume`)}>
                                 Generate Resume
                             </Button>
                         </div>
@@ -124,11 +125,20 @@ export default function ShowGapAnalysis({ gapAnalysis }: { gapAnalysis: GapAnaly
                 {gapAnalysis.overall_match_score != null && (
                     <Card>
                         <CardContent className="flex items-center gap-4 py-6">
-                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                            <div className="bg-primary/10 flex h-16 w-16 items-center justify-center rounded-full">
                                 <Target className="text-primary h-8 w-8" />
                             </div>
                             <div>
-                                <p className="text-3xl font-bold">{gapAnalysis.overall_match_score}%</p>
+                                <div className="flex items-center gap-3">
+                                    <p className="text-3xl font-bold">{gapAnalysis.overall_match_score}%</p>
+                                    {scoreDelta != null && scoreDelta !== 0 && (
+                                        <Badge variant={scoreDelta > 0 ? 'default' : 'destructive'} className="flex items-center gap-1">
+                                            <TrendingUp className={`h-3 w-3 ${scoreDelta < 0 ? 'rotate-180' : ''}`} />
+                                            {scoreDelta > 0 ? '+' : ''}
+                                            {scoreDelta} pts
+                                        </Badge>
+                                    )}
+                                </div>
                                 <p className="text-muted-foreground text-sm">Overall match score</p>
                             </div>
                         </CardContent>
@@ -137,7 +147,9 @@ export default function ShowGapAnalysis({ gapAnalysis }: { gapAnalysis: GapAnaly
 
                 {gapAnalysis.ai_summary && (
                     <Card>
-                        <CardHeader><CardTitle className="text-base">Summary</CardTitle></CardHeader>
+                        <CardHeader>
+                            <CardTitle className="text-base">Summary</CardTitle>
+                        </CardHeader>
                         <CardContent>
                             <p className="text-muted-foreground text-sm">{gapAnalysis.ai_summary}</p>
                         </CardContent>
@@ -158,7 +170,7 @@ export default function ShowGapAnalysis({ gapAnalysis }: { gapAnalysis: GapAnaly
                                 </CardHeader>
                                 <CardContent className="space-y-1 pt-0">
                                     <p className="text-muted-foreground text-sm">{s.evidence}</p>
-                                    <p className="text-xs text-muted-foreground italic">{s.relevance}</p>
+                                    <p className="text-muted-foreground text-xs italic">{s.relevance}</p>
                                 </CardContent>
                             </Card>
                         ))}
@@ -168,90 +180,40 @@ export default function ShowGapAnalysis({ gapAnalysis }: { gapAnalysis: GapAnaly
                 {gapAnalysis.gaps.length > 0 && (
                     <>
                         <Separator />
-                        <h2 className="text-lg font-semibold">Gaps ({gapAnalysis.gaps.length})</h2>
-                        {gapAnalysis.gaps.map((g, i) => (
-                            <Card key={i}>
-                                <CardHeader className="pb-2">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <XCircle className="h-4 w-4 text-red-400" />
-                                            <CardTitle className="text-base">{g.area}</CardTitle>
-                                        </div>
-                                        <Badge className={classificationColors[g.classification] ?? ''}>{g.classification}</Badge>
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-lg font-semibold">Gaps ({totalGaps})</h2>
+                            {totalGaps > 0 && (
+                                <div className="flex items-center gap-2">
+                                    <div className="bg-muted h-2 w-24 overflow-hidden rounded-full">
+                                        <div
+                                            className="h-full rounded-full bg-green-500 transition-all"
+                                            style={{ width: `${(resolvedCount / totalGaps) * 100}%` }}
+                                        />
                                     </div>
-                                </CardHeader>
-                                <CardContent className="space-y-1 pt-0">
-                                    <p className="text-muted-foreground text-sm">{g.description}</p>
-                                    <p className="text-sm font-medium">{g.suggestion}</p>
-                                </CardContent>
-                            </Card>
+                                    <span className="text-muted-foreground text-xs">
+                                        {resolvedCount} of {totalGaps} addressed
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                        {gapAnalysis.gaps.map((g, i) => (
+                            <GapActionCard
+                                key={i}
+                                gap={g}
+                                gapAnalysisId={gapAnalysis.id}
+                                experiences={experiences}
+                                resolution={resolutions[g.area]}
+                                onResolutionChange={handleResolutionChange}
+                            />
                         ))}
                     </>
                 )}
 
-                {gapAnalysis.gaps.length > 0 && !gapAnalysis.is_finalized && !isAnalyzing && (
-                    <>
-                        <Separator />
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold">Gap Closure Coach</h2>
-                            <Button variant={showChat ? 'default' : 'outline'} size="sm" onClick={() => setShowChat(!showChat)}>
-                                <MessageCircle className="mr-1 h-4 w-4" /> {showChat ? 'Hide Chat' : 'Start Coaching'}
-                            </Button>
-                        </div>
-
-                        {showChat && (
-                            <Card>
-                                <CardContent className="pt-4">
-                                    <div className="mb-3 max-h-80 space-y-3 overflow-y-auto">
-                                        {messages.length === 0 && (
-                                            <p className="text-muted-foreground text-sm">
-                                                Start a conversation with the Gap Closure Coach to address your gaps. The coach will ask questions to uncover experience you may have overlooked.
-                                            </p>
-                                        )}
-                                        {messages.map((msg, i) => (
-                                            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                                {msg.role === 'user' ? (
-                                                    <div className="bg-primary text-primary-foreground max-w-[80%] rounded-lg px-3 py-2 text-sm">
-                                                        <p className="whitespace-pre-wrap">{msg.content}</p>
-                                                    </div>
-                                                ) : (
-                                                    <div className="prose prose-sm dark:prose-invert bg-muted max-w-[80%] rounded-lg px-3 py-2">
-                                                        <ReactMarkdown>{msg.content}</ReactMarkdown>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                        {sending && (
-                                            <div className="flex justify-start">
-                                                <div className="bg-muted rounded-lg px-3 py-2">
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                </div>
-                                            </div>
-                                        )}
-                                        <div ref={chatEndRef} />
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <Input
-                                            value={input}
-                                            onChange={(e) => setInput(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                                            placeholder="Tell me about your experience..."
-                                            disabled={sending}
-                                        />
-                                        <Button size="sm" onClick={sendMessage} disabled={sending || !input.trim()}>
-                                            <Send className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </>
-                )}
-
-                {gapAnalysis.is_finalized && (
-                    <Badge variant="secondary" className="mt-4">Finalized</Badge>
-                )}
             </div>
+
+            {!isAnalyzing && (
+                <PipelineAssistantPanel context={{ step: 'gap_analysis', pipelineKey: `gap_analysis:${gapAnalysis.id}` }} />
+            )}
         </AppLayout>
     );
 }

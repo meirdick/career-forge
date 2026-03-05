@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\GapAnalysisController;
 use App\Http\Controllers\GapClosureChatController;
+use App\Http\Controllers\GapResolutionController;
 use App\Http\Controllers\JobPostingController;
+use App\Http\Controllers\PipelineChatController;
 use App\Http\Controllers\ResumeController;
 use App\Http\Controllers\ResumeExportController;
 use Illuminate\Support\Facades\Route;
@@ -17,9 +19,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Gap Analysis
     Route::post('job-postings/{jobPosting}/gap-analysis', [GapAnalysisController::class, 'store'])->name('gap-analyses.store');
     Route::get('gap-analyses/{gapAnalysis}', [GapAnalysisController::class, 'show'])->name('gap-analyses.show');
-    Route::post('gap-analyses/{gapAnalysis}/finalize', [GapAnalysisController::class, 'finalize'])->name('gap-analyses.finalize');
+    Route::post('gap-analyses/{gapAnalysis}/reanalyze', [GapAnalysisController::class, 'reanalyze'])->name('gap-analyses.reanalyze');
     Route::post('gap-analyses/{gapAnalysis}/chat', [GapClosureChatController::class, 'chat'])->name('gap-analyses.chat');
     Route::post('gap-analyses/{gapAnalysis}/save-entries', [GapClosureChatController::class, 'save'])->name('gap-analyses.save-entries');
+
+    // Gap Resolution
+    Route::post('gap-analyses/{gapAnalysis}/resolve/{gapArea}/reframe', [GapResolutionController::class, 'reframe'])->name('gap-resolutions.reframe');
+    Route::post('gap-analyses/{gapAnalysis}/resolve/{gapArea}/accept-reframe', [GapResolutionController::class, 'acceptReframe'])->name('gap-resolutions.accept-reframe');
+    Route::post('gap-analyses/{gapAnalysis}/resolve/{gapArea}/reject-reframe', [GapResolutionController::class, 'rejectReframe'])->name('gap-resolutions.rejectReframe');
+    Route::post('gap-analyses/{gapAnalysis}/resolve/{gapArea}/answer', [GapResolutionController::class, 'answer'])->name('gap-resolutions.answer');
+    Route::post('gap-analyses/{gapAnalysis}/resolve/{gapArea}/acknowledge', [GapResolutionController::class, 'acknowledge'])->name('gap-resolutions.acknowledge');
+
+    // Pipeline Chat
+    Route::post('pipeline-chat/resolve', [PipelineChatController::class, 'resolve'])->name('pipeline-chat.resolve');
+    Route::post('pipeline-chat/{chatSession}/chat', [PipelineChatController::class, 'chat'])->name('pipeline-chat.chat');
 
     // Resumes
     Route::post('gap-analyses/{gapAnalysis}/resume', [ResumeController::class, 'generate'])->name('resumes.generate');

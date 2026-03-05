@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ResumeTemplate;
 use App\Jobs\GenerateResumeJob;
 use App\Models\GapAnalysis;
 use App\Models\Resume;
@@ -9,6 +10,7 @@ use App\Models\ResumeSection;
 use App\Models\ResumeSectionVariant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -52,7 +54,7 @@ class ResumeController extends Controller
     {
         abort_unless($resume->user_id === $request->user()->id, 403);
 
-        $resume->load(['sections.variants', 'sections.selectedVariant', 'jobPosting', 'gapAnalysis']);
+        $resume->load(['sections.variants', 'sections.selectedVariant', 'jobPosting', 'gapAnalysis', 'user']);
 
         return Inertia::render('resumes/show', [
             'resume' => $resume,
@@ -68,9 +70,10 @@ class ResumeController extends Controller
             'section_order' => 'sometimes|array',
             'section_order.*' => 'integer|exists:resume_sections,id',
             'is_finalized' => 'sometimes|boolean',
+            'template' => ['sometimes', Rule::enum(ResumeTemplate::class)],
         ]);
 
-        $resume->update($request->only(['title', 'section_order', 'is_finalized']));
+        $resume->update($request->only(['title', 'section_order', 'is_finalized', 'template']));
 
         if ($request->has('section_order')) {
             foreach ($request->input('section_order') as $index => $sectionId) {

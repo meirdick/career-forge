@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ChatSessionMode;
 use App\Enums\ChatSessionStatus;
+use App\Enums\PipelineStep;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,6 +20,8 @@ class ChatSession extends Model
         'title',
         'status',
         'mode',
+        'step',
+        'pipeline_key',
     ];
 
     protected function casts(): array
@@ -26,6 +29,7 @@ class ChatSession extends Model
         return [
             'status' => ChatSessionStatus::class,
             'mode' => ChatSessionMode::class,
+            'step' => PipelineStep::class,
         ];
     }
 

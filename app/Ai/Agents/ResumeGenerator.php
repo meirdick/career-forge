@@ -20,7 +20,9 @@ class ResumeGenerator implements Agent, HasStructuredOutput
 
     public function instructions(): Stringable|string
     {
-        return 'You are an expert resume writer that generates tailored resume sections with multiple variants.';
+        return 'You are an expert resume writer that generates tailored resume sections with multiple variants. '
+            .'Format all content using markdown: **bold** for company/degree names, *italic* for titles/dates, '
+            .'and - for bullet points. Follow the exact formatting patterns specified in the prompt.';
     }
 
     public function schema(JsonSchema $schema): array

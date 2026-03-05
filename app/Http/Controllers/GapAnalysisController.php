@@ -21,7 +21,6 @@ class GapAnalysisController extends Controller
             'ideal_candidate_profile_id' => $jobPosting->idealCandidateProfile->id,
             'strengths' => [],
             'gaps' => [],
-            'is_finalized' => false,
         ]);
 
         PerformGapAnalysisJob::dispatch($gapAnalysis);
@@ -36,18 +35,33 @@ class GapAnalysisController extends Controller
 
         $gapAnalysis->load('idealCandidateProfile.jobPosting');
 
+        $experiences = $request->user()
+            ->experiences()
+            ->with(['accomplishments', 'skills'])
+            ->orderBy('started_at', 'desc')
+            ->get();
+
         return Inertia::render('gap-analyses/show', [
             'gapAnalysis' => $gapAnalysis,
+            'experiences' => $experiences,
         ]);
     }
 
-    public function finalize(Request $request, GapAnalysis $gapAnalysis): RedirectResponse
+    public function reanalyze(Request $request, GapAnalysis $gapAnalysis): RedirectResponse
     {
         abort_unless($gapAnalysis->user_id === $request->user()->id, 403);
 
-        $gapAnalysis->update(['is_finalized' => true]);
+        $gapAnalysis->update([
+            'previous_match_score' => $gapAnalysis->overall_match_score,
+            'strengths' => [],
+            'gaps' => [],
+            'overall_match_score' => null,
+            'ai_summary' => null,
+        ]);
+
+        PerformGapAnalysisJob::dispatch($gapAnalysis);
 
         return to_route('gap-analyses.show', $gapAnalysis)
-            ->with('success', 'Gap analysis finalized.');
+            ->with('success', 'Re-analyzing your profile...');
     }
 }

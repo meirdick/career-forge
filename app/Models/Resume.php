@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ResumeTemplate;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +19,7 @@ class Resume extends Model
         'title',
         'section_order',
         'is_finalized',
+        'template',
         'exported_path',
         'exported_format',
     ];
@@ -27,6 +29,7 @@ class Resume extends Model
         return [
             'section_order' => 'array',
             'is_finalized' => 'boolean',
+            'template' => ResumeTemplate::class,
         ];
     }
 

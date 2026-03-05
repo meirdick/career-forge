@@ -181,6 +181,27 @@ test('update profile sets is_user_edited and updates data', function () {
         ->red_flags->toHaveCount(2);
 });
 
+test('update profile partial update leaves other sections untouched', function () {
+    $posting = JobPosting::factory()->analyzed()->create(['user_id' => $this->user->id]);
+    $profile = IdealCandidateProfile::factory()->create([
+        'job_posting_id' => $posting->id,
+        'red_flags' => ['Job hopping without growth', 'No version control'],
+        'experience_profile' => ['minimum_years' => 5, 'key_areas' => ['Backend']],
+    ]);
+
+    $this->actingAs($this->user)
+        ->put("/job-postings/{$posting->id}/profile", [
+            'experience_profile' => ['minimum_years' => 8, 'key_areas' => ['Backend', 'Frontend']],
+        ])
+        ->assertRedirect();
+
+    $fresh = $profile->fresh();
+    expect($fresh)
+        ->is_user_edited->toBeTrue()
+        ->red_flags->toBe(['Job hopping without growth', 'No version control'])
+        ->experience_profile->toBe(['minimum_years' => 8, 'key_areas' => ['Backend', 'Frontend']]);
+});
+
 test('update profile returns 403 for other users posting', function () {
     $other = User::factory()->create();
     $posting = JobPosting::factory()->analyzed()->create(['user_id' => $other->id]);

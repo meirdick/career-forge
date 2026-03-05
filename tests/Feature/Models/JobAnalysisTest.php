@@ -107,12 +107,6 @@ test('gap analysis belongs to user and ideal candidate profile', function () {
         ->and($analysis->idealCandidateProfile->id)->toBe($profile->id);
 });
 
-test('gap analysis finalized state', function () {
-    $analysis = GapAnalysis::factory()->finalized()->create();
-
-    expect($analysis->is_finalized)->toBeTrue();
-});
-
 test('user has many gap analyses', function () {
     $user = User::factory()->create();
     GapAnalysis::factory()->count(2)->create(['user_id' => $user->id]);

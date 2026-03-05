@@ -64,6 +64,7 @@ class JobAnalyzer implements Agent, HasStructuredOutput
                 'growth_stage' => $schema->string(),
                 'notable_details' => $schema->array()->items($schema->string()),
             ]),
+            'candidate_summary' => $schema->string()->required(),
         ];
     }
 }

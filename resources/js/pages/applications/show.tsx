@@ -3,6 +3,8 @@ import axios from 'axios';
 import { FileText, Globe, Loader2, Mail, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
+import PipelineAssistantPanel from '@/components/pipeline-assistant-panel';
+import PipelineSteps from '@/components/pipeline-steps';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,14 +49,31 @@ export default function ShowApplication({ application }: { application: Applicat
     const [generatingEmail, setGeneratingEmail] = useState(false);
     const [coverLetter, setCoverLetter] = useState(application.cover_letter);
     const [submissionEmail, setSubmissionEmail] = useState(application.submission_email);
+    const [editingCoverLetter, setEditingCoverLetter] = useState(false);
+    const [coverLetterDraft, setCoverLetterDraft] = useState(application.cover_letter ?? '');
+    const [savingCoverLetter, setSavingCoverLetter] = useState(false);
 
     async function generateCoverLetter() {
         setGeneratingCoverLetter(true);
         try {
             const { data } = await axios.post(`/applications/${application.id}/generate-cover-letter`);
             setCoverLetter(data.cover_letter);
+            setCoverLetterDraft(data.cover_letter);
         } finally {
             setGeneratingCoverLetter(false);
+        }
+    }
+
+    async function saveCoverLetter() {
+        setSavingCoverLetter(true);
+        try {
+            await axios.put(`/applications/${application.id}/cover-letter`, {
+                cover_letter: coverLetterDraft,
+            });
+            setCoverLetter(coverLetterDraft);
+            setEditingCoverLetter(false);
+        } finally {
+            setSavingCoverLetter(false);
         }
     }
 
@@ -97,6 +116,17 @@ export default function ShowApplication({ application }: { application: Applicat
             <Head title={`${application.role} at ${application.company}`} />
 
             <div className="mx-auto max-w-3xl space-y-6 p-4">
+                {application.job_posting && (
+                    <PipelineSteps
+                        steps={[
+                            { label: 'Job Posting', href: `/job-postings/${application.job_posting.id}`, status: 'completed' },
+                            { label: 'Ideal Candidate', status: 'completed' },
+                            { label: 'Gap Analysis', status: 'completed' },
+                            { label: 'Resume', status: 'completed' },
+                            { label: 'Application', href: `/applications/${application.id}`, status: 'active' },
+                        ]}
+                    />
+                )}
                 <div className="flex items-start justify-between">
                     <Heading
                         title={application.role}
@@ -163,18 +193,52 @@ export default function ShowApplication({ application }: { application: Applicat
                 <Card>
                     <CardHeader className="flex-row items-center justify-between">
                         <CardTitle className="text-base">Cover Letter</CardTitle>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={generateCoverLetter}
-                            disabled={generatingCoverLetter}
-                        >
-                            {generatingCoverLetter ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <FileText className="mr-1 h-4 w-4" />}
-                            {coverLetter ? 'Regenerate' : 'Generate'}
-                        </Button>
+                        <div className="flex gap-2">
+                            {coverLetter && !editingCoverLetter && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        setCoverLetterDraft(coverLetter);
+                                        setEditingCoverLetter(true);
+                                    }}
+                                >
+                                    <Pencil className="mr-1 h-4 w-4" /> Edit
+                                </Button>
+                            )}
+                            {editingCoverLetter && (
+                                <>
+                                    <Button size="sm" onClick={saveCoverLetter} disabled={savingCoverLetter}>
+                                        {savingCoverLetter ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+                                        Save
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => setEditingCoverLetter(false)}>
+                                        Cancel
+                                    </Button>
+                                </>
+                            )}
+                            {!editingCoverLetter && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={generateCoverLetter}
+                                    disabled={generatingCoverLetter}
+                                >
+                                    {generatingCoverLetter ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <FileText className="mr-1 h-4 w-4" />}
+                                    {coverLetter ? 'Regenerate' : 'Generate'}
+                                </Button>
+                            )}
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        {coverLetter ? (
+                        {editingCoverLetter ? (
+                            <textarea
+                                value={coverLetterDraft}
+                                onChange={(e) => setCoverLetterDraft(e.target.value)}
+                                rows={12}
+                                className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
+                            />
+                        ) : coverLetter ? (
                             <p className="text-sm whitespace-pre-wrap">{coverLetter}</p>
                         ) : (
                             <p className="text-muted-foreground text-sm">
@@ -288,6 +352,10 @@ export default function ShowApplication({ application }: { application: Applicat
                     </>
                 )}
             </div>
+
+            {application.job_posting && (
+                <PipelineAssistantPanel context={{ step: 'application', pipelineKey: `job_posting:${application.job_posting.id}` }} />
+            )}
         </AppLayout>
     );
 }

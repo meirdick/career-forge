@@ -45,6 +45,7 @@ class AnalyzeJobPostingJob implements ShouldQueue
                 'language_guidance' => $response['language_guidance'] ?? [],
                 'red_flags' => $response['red_flags'] ?? [],
                 'company_research' => $response['company_research'] ?? [],
+                'candidate_summary' => $response['candidate_summary'] ?? null,
                 'is_user_edited' => false,
             ],
         );

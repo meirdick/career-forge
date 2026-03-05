@@ -10,6 +10,7 @@ Extract and provide:
 6. **Language Guidance**: Key terms, phrases, and tone the posting uses that should be mirrored in applications
 7. **Red Flags**: Any concerning aspects or things to be cautious about
 8. **Company Research**: Any insights about the company based on the posting content
+9. **Candidate Summary**: A 2-3 sentence narrative describing the ideal candidate in prose form — who they are, what they bring, and what makes them stand out for this role
 
 Be thorough and accurate. Infer only what is strongly supported by the text.
 

@@ -16,10 +16,20 @@ class ResumeExportController extends Controller
     {
         abort_unless($resume->user_id === $request->user()->id, 403);
 
-        $resume->load(['sections.selectedVariant', 'jobPosting']);
+        $resume->load(['sections.selectedVariant', 'jobPosting', 'user']);
+
+        $user = $resume->user;
 
         return Inertia::render('resumes/preview', [
             'resume' => $resume,
+            'contact' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'location' => $user->location,
+                'linkedin_url' => $user->linkedin_url,
+                'portfolio_url' => $user->portfolio_url,
+            ],
         ]);
     }
 

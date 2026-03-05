@@ -17,23 +17,15 @@ class GapAnalysisFactory extends Factory
             'user_id' => User::factory(),
             'ideal_candidate_profile_id' => IdealCandidateProfile::factory(),
             'strengths' => [
-                ['skill' => 'PHP', 'evidence' => '8 years professional experience'],
-                ['skill' => 'Laravel', 'evidence' => 'Multiple production applications'],
+                ['area' => 'PHP', 'evidence' => '8 years professional experience', 'relevance' => 'Core language requirement'],
+                ['area' => 'Laravel', 'evidence' => 'Multiple production applications', 'relevance' => 'Framework expertise'],
             ],
             'gaps' => [
-                ['skill' => 'React', 'classification' => 'reframable', 'notes' => 'Has Vue.js experience which transfers'],
-                ['skill' => 'AWS', 'classification' => 'promptable', 'notes' => 'Used cloud services but not specifically AWS'],
+                ['area' => 'React', 'description' => 'No direct React experience listed', 'classification' => 'reframable', 'suggestion' => 'Vue.js experience transfers well to React'],
+                ['area' => 'AWS', 'description' => 'No cloud platform experience documented', 'classification' => 'promptable', 'suggestion' => 'Have you used any cloud deployment services?'],
             ],
             'overall_match_score' => fake()->numberBetween(40, 95),
             'ai_summary' => fake()->optional(0.7)->paragraph(),
-            'is_finalized' => false,
         ];
-    }
-
-    public function finalized(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'is_finalized' => true,
-        ]);
     }
 }
