@@ -14,7 +14,14 @@ class RenderCvService
 
     public function __construct()
     {
-        $this->rendercvPath = config('services.rendercv.path') ?? 'rendercv';
+        $path = config('services.rendercv.path') ?? 'rendercv';
+
+        // Resolve relative paths from the application base path
+        if ($path !== 'rendercv' && ! str_starts_with($path, '/')) {
+            $path = base_path($path);
+        }
+
+        $this->rendercvPath = $path;
     }
 
     public function isAvailable(): bool
