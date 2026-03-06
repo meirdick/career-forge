@@ -38,7 +38,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Billing & Credits
     Route::get('settings/billing', [BillingController::class, 'show'])->name('billing.show');
-    Route::post('settings/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
+    Route::post('settings/billing/checkout', [BillingController::class, 'checkout'])
+        ->middleware('throttle:10,1')
+        ->name('billing.checkout');
     Route::get('settings/billing/success', [BillingController::class, 'success'])->name('billing.success');
     Route::post('settings/billing/promo', [BillingController::class, 'redeemPromo'])
         ->middleware('throttle:5,1')

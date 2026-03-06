@@ -11,7 +11,9 @@ Route::inertia('/', 'welcome', [
 ])->name('home');
 
 // Polar webhook (no CSRF)
-Route::post('polar/webhook', [PolarWebhookController::class, 'handle'])->name('polar.webhook');
+Route::post('polar/webhook', [PolarWebhookController::class, 'handle'])
+    ->middleware('throttle:60,1')
+    ->name('polar.webhook');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
