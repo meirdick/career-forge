@@ -9,82 +9,95 @@ type Step = {
 };
 
 export default function PipelineSteps({ steps }: { steps: Step[] }) {
+    const activeIndex = steps.findIndex((s) => s.status === 'active');
+
     return (
         <>
             {/* Desktop stepper */}
-            <div className="mb-6 hidden items-center sm:flex">
-                {steps.map((step, i) => (
-                    <div key={i} className="flex items-center">
-                        {i > 0 && (
+            <nav aria-label="Progress" className="mb-8 hidden sm:block">
+                <ol className="flex items-center">
+                    {steps.map((step, i) => (
+                        <li key={i} className={cn('relative flex items-center', i < steps.length - 1 && 'flex-1')}>
+                            <StepIndicator step={step} index={i} />
+                            {i < steps.length - 1 && <StepConnector nextStatus={steps[i + 1].status} />}
+                        </li>
+                    ))}
+                </ol>
+            </nav>
+
+            {/* Mobile stepper */}
+            <nav aria-label="Progress" className="mb-6 sm:hidden">
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5">
+                        {steps.map((step, i) => (
                             <div
+                                key={i}
                                 className={cn(
-                                    'h-0.5 w-8 md:w-12',
-                                    step.status === 'upcoming'
-                                        ? 'border-t border-dashed border-muted-foreground/30'
-                                        : 'bg-primary',
+                                    'h-1.5 rounded-full transition-all',
+                                    i === activeIndex ? 'w-6 bg-primary' : 'w-1.5',
+                                    step.status === 'completed' && 'bg-primary',
+                                    step.status === 'upcoming' && 'bg-muted-foreground/20',
                                 )}
                             />
-                        )}
-                        <StepCircle step={step} index={i} />
+                        ))}
                     </div>
-                ))}
-            </div>
-
-            {/* Mobile compact */}
-            <div className="mb-6 sm:hidden">
-                {steps.map((step, i) => {
-                    if (step.status !== 'active') return null;
-                    return (
-                        <div key={i} className="flex items-center gap-2">
-                            <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-primary-foreground">
-                                Step {i + 1} of {steps.length}
-                            </span>
-                            <span className="text-sm font-medium">{step.label}</span>
-                        </div>
-                    );
-                })}
-            </div>
+                    <span className="text-sm text-muted-foreground">
+                        Step {activeIndex + 1} of {steps.length}
+                    </span>
+                    <span className="text-sm font-medium">{steps[activeIndex]?.label}</span>
+                </div>
+            </nav>
         </>
     );
 }
 
-function StepCircle({ step, index }: { step: Step; index: number }) {
-    const circle = (
-        <div className="flex items-center gap-2">
+function StepConnector({ nextStatus }: { nextStatus: Step['status'] }) {
+    return (
+        <div className="mx-1 h-0.5 flex-1 overflow-hidden rounded-full bg-muted md:mx-2">
             <div
                 className={cn(
-                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors',
-                    step.status === 'completed' && 'bg-primary text-primary-foreground',
-                    step.status === 'active' && 'ring-2 ring-primary bg-background text-primary',
+                    'h-full rounded-full bg-primary transition-all duration-500',
+                    nextStatus === 'upcoming' ? 'w-0' : 'w-full',
+                )}
+            />
+        </div>
+    );
+}
+
+function StepIndicator({ step, index }: { step: Step; index: number }) {
+    const indicator = (
+        <span className="group relative flex flex-col items-center">
+            <span
+                className={cn(
+                    'relative z-10 flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold transition-all duration-200',
+                    step.status === 'completed' && 'bg-primary text-primary-foreground shadow-sm',
+                    step.status === 'active' &&
+                        'bg-primary/10 text-primary ring-2 ring-primary shadow-[0_0_0_4px_rgba(var(--color-primary)/0.1)]',
                     step.status === 'upcoming' && 'bg-muted text-muted-foreground',
                 )}
             >
-                {step.status === 'completed' ? (
-                    <Check className="h-3.5 w-3.5" />
-                ) : (
-                    index + 1
-                )}
-            </div>
+                {step.status === 'completed' ? <Check className="h-4 w-4" strokeWidth={2.5} /> : index + 1}
+            </span>
             <span
                 className={cn(
-                    'hidden text-xs font-medium whitespace-nowrap md:inline',
-                    step.status === 'active' && 'text-foreground',
+                    'mt-2 hidden text-xs font-medium whitespace-nowrap md:block',
+                    step.status === 'active' && 'text-primary',
                     step.status === 'completed' && 'text-foreground',
                     step.status === 'upcoming' && 'text-muted-foreground',
                 )}
             >
                 {step.label}
             </span>
-        </div>
+        </span>
     );
 
     if (step.href && step.status !== 'upcoming') {
         return (
-            <Link href={step.href} className="group flex items-center gap-2 transition-opacity hover:opacity-80">
-                {circle}
+            <Link href={step.href} className="transition-opacity hover:opacity-75">
+                {indicator}
             </Link>
         );
     }
 
-    return circle;
+    return indicator;
 }
