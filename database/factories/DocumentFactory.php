@@ -19,7 +19,7 @@ class DocumentFactory extends Factory
             'documentable_id' => null,
             'documentable_type' => null,
             'filename' => $filename,
-            'disk' => 'local',
+            'disk' => config('filesystems.default'),
             'path' => 'documents/'.$filename,
             'mime_type' => 'application/pdf',
             'size' => fake()->numberBetween(10000, 5000000),

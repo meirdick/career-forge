@@ -29,8 +29,15 @@ class ParseResumeJob implements ShouldQueue
     public function handle(DocumentExtractorService $extractor): void
     {
         $this->configureAiForUser($this->user, AiPurpose::ResumeParsing);
-        $path = Storage::disk($this->document->disk)->path($this->document->path);
-        $text = $extractor->extract($path);
+        $extension = pathinfo($this->document->path, PATHINFO_EXTENSION);
+        $tempPath = tempnam(sys_get_temp_dir(), 'resume_').'.'.$extension;
+        file_put_contents($tempPath, Storage::get($this->document->path));
+
+        try {
+            $text = $extractor->extract($tempPath);
+        } finally {
+            @unlink($tempPath);
+        }
 
         $prompt = view('prompts.resume-parser', ['text' => $text])->render();
         $response = (new ResumeParser)->prompt($prompt);

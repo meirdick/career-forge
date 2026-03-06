@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
-    Storage::fake('local');
+    Storage::fake();
     Queue::fake();
 });
 

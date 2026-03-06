@@ -39,11 +39,11 @@ class ResumeUploadController extends Controller
         ]);
 
         foreach ($request->file('files') as $file) {
-            $path = $file->store('resume-uploads', 'local');
+            $path = $file->store('resume-uploads');
 
             $document = $request->user()->documents()->create([
                 'filename' => $file->getClientOriginalName(),
-                'disk' => 'local',
+                'disk' => config('filesystems.default'),
                 'path' => $path,
                 'mime_type' => $file->getMimeType(),
                 'size' => $file->getSize(),

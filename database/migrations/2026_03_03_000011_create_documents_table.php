@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->nullableMorphs('documentable');
             $table->string('filename');
-            $table->string('disk')->default('local');
+            $table->string('disk');
             $table->string('path');
             $table->string('mime_type');
             $table->unsignedBigInteger('size');
