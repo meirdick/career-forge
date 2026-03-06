@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import axios from 'axios';
 import { CheckCircle2, Loader2, MessageCircle, Send } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,7 +28,11 @@ const stepTargets: Record<string, string> = {
     application: 'application',
 };
 
-export default function PipelineAssistantPanel({ context }: { context: PipelineContext }) {
+export type PipelineAssistantHandle = {
+    openWithMessage: (message: string) => void;
+};
+
+export default function PipelineAssistantPanel({ context, ref }: { context: PipelineContext; ref?: React.Ref<PipelineAssistantHandle> }) {
     const [open, setOpen] = useState(false);
     const [sessionId, setSessionId] = useState<number | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -36,11 +40,45 @@ export default function PipelineAssistantPanel({ context }: { context: PipelineC
     const [sending, setSending] = useState(false);
     const [resolving, setResolving] = useState(false);
     const [resolved, setResolved] = useState(false);
+    const [pendingMessage, setPendingMessage] = useState<string | null>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
+
+    useImperativeHandle(ref, () => ({
+        openWithMessage(message: string) {
+            setPendingMessage(message);
+            setOpen(true);
+            if (!resolved) {
+                resolveSession();
+            }
+        },
+    }));
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    useEffect(() => {
+        if (pendingMessage && sessionId && !sending) {
+            const msg = pendingMessage;
+            setPendingMessage(null);
+            setInput('');
+            setMessages((prev) => [...prev, { role: 'user', content: msg }]);
+            setSending(true);
+
+            axios.post(`/pipeline-chat/${sessionId}/chat`, { message: msg })
+                .then((response) => {
+                    const toolActions: string[] = response.data.tool_actions ?? [];
+                    setMessages((prev) => [...prev, { role: 'assistant', content: response.data.message, toolActions }]);
+                    if (toolActions.length > 0) {
+                        router.reload();
+                    }
+                })
+                .catch(() => {
+                    setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, there was an error. Please try again.' }]);
+                })
+                .finally(() => setSending(false));
+        }
+    }, [pendingMessage, sessionId, sending]);
 
     async function resolveSession() {
         if (resolved || resolving) return;

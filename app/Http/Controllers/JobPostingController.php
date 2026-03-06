@@ -85,8 +85,14 @@ class JobPostingController extends Controller
 
         $jobPosting->load('idealCandidateProfile');
 
+        $latestGapAnalysis = $jobPosting->idealCandidateProfile
+            ?->gapAnalyses()
+            ->latest()
+            ->first(['id', 'overall_match_score', 'created_at']);
+
         return Inertia::render('job-postings/show', [
             'posting' => $jobPosting,
+            'latestGapAnalysis' => $latestGapAnalysis,
         ]);
     }
 

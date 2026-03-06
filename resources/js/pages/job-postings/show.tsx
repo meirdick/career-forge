@@ -91,7 +91,13 @@ function SectionHeader({
     );
 }
 
-export default function ShowJobPosting({ posting }: { posting: JobPosting }) {
+type LatestGapAnalysis = {
+    id: number;
+    overall_match_score: number | null;
+    created_at: string;
+};
+
+export default function ShowJobPosting({ posting, latestGapAnalysis }: { posting: JobPosting; latestGapAnalysis?: LatestGapAnalysis | null }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Job Postings', href: '/job-postings' },
         { title: posting.title ?? 'Posting', href: `/job-postings/${posting.id}` },
@@ -308,7 +314,7 @@ export default function ShowJobPosting({ posting }: { posting: JobPosting }) {
                         steps={[
                             { label: 'Job Posting', href: `/job-postings/${posting.id}`, status: 'active' },
                             { label: 'Ideal Candidate', status: profile ? 'completed' : 'upcoming' },
-                            { label: 'Gap Analysis', status: 'upcoming' },
+                            { label: 'Gap Analysis', href: latestGapAnalysis ? `/gap-analyses/${latestGapAnalysis.id}` : undefined, status: latestGapAnalysis ? 'completed' : 'upcoming' },
                             { label: 'Resume', status: 'upcoming' },
                             { label: 'Application', status: 'upcoming' },
                         ]}
@@ -591,20 +597,51 @@ export default function ShowJobPosting({ posting }: { posting: JobPosting }) {
                             </CardContent>
                         </Card>
 
-                        <Card className="border-primary bg-primary/5">
-                            <CardContent className="flex items-center justify-between py-5">
-                                <div className="flex items-center gap-3">
-                                    <Target className="text-primary h-6 w-6" />
-                                    <div>
-                                        <p className="font-semibold">Ready to see how you match?</p>
-                                        <p className="text-muted-foreground text-sm">Run a gap analysis to compare your profile against this role.</p>
+                        {latestGapAnalysis ? (
+                            <Card className="border-success bg-success/5">
+                                <CardContent className="flex items-center justify-between py-5">
+                                    <div className="flex items-center gap-3">
+                                        <Target className="text-success h-6 w-6" />
+                                        <div>
+                                            <p className="font-semibold">
+                                                Gap Analysis Complete
+                                                {latestGapAnalysis.overall_match_score != null && (
+                                                    <span className="text-muted-foreground ml-2 text-sm font-normal">
+                                                        {latestGapAnalysis.overall_match_score}% match
+                                                    </span>
+                                                )}
+                                            </p>
+                                            <p className="text-muted-foreground text-sm">View your results or run a fresh analysis.</p>
+                                        </div>
                                     </div>
-                                </div>
-                                <Button onClick={() => router.post(`/job-postings/${posting.id}/gap-analysis`)}>
-                                    Run Gap Analysis <ArrowRight className="ml-1 h-4 w-4" />
-                                </Button>
-                            </CardContent>
-                        </Card>
+                                    <div className="flex gap-2">
+                                        <Button variant="outline" size="sm" onClick={() => router.post(`/job-postings/${posting.id}/gap-analysis`)}>
+                                            Run New
+                                        </Button>
+                                        <Button asChild>
+                                            <Link href={`/gap-analyses/${latestGapAnalysis.id}`}>
+                                                View Gap Analysis <ArrowRight className="ml-1 h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <Card className="border-primary bg-primary/5">
+                                <CardContent className="flex items-center justify-between py-5">
+                                    <div className="flex items-center gap-3">
+                                        <Target className="text-primary h-6 w-6" />
+                                        <div>
+                                            <p className="font-semibold">Ready to see how you match?</p>
+                                            <p className="text-muted-foreground text-sm">Run a gap analysis to compare your profile against this role.</p>
+                                        </div>
+                                    </div>
+                                    <Button onClick={() => router.post(`/job-postings/${posting.id}/gap-analysis`)}>
+                                        Run Gap Analysis <ArrowRight className="ml-1 h-4 w-4" />
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
                     </>
                 )}
 

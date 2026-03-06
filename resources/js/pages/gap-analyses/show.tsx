@@ -1,10 +1,10 @@
 import { Head, router } from '@inertiajs/react';
 import { CheckCircle, Loader2, RefreshCw, Target, TrendingUp } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import GapActionCard from '@/components/gap-resolution/gap-action-card';
 import Heading from '@/components/heading';
 import MatchScoreRing from '@/components/match-score-ring';
-import PipelineAssistantPanel from '@/components/pipeline-assistant-panel';
+import PipelineAssistantPanel, { type PipelineAssistantHandle } from '@/components/pipeline-assistant-panel';
 import PipelineSteps from '@/components/pipeline-steps';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -51,6 +51,7 @@ type GapAnalysis = {
 };
 
 export default function ShowGapAnalysis({ gapAnalysis, experiences }: { gapAnalysis: GapAnalysis; experiences: Experience[] }) {
+    const assistantRef = useRef<PipelineAssistantHandle>(null);
     const posting = gapAnalysis.ideal_candidate_profile.job_posting;
     const isAnalyzing = gapAnalysis.strengths.length === 0 && gapAnalysis.gaps.length === 0 && !gapAnalysis.ai_summary;
     const resolutions = gapAnalysis.gap_resolutions ?? {};
@@ -202,6 +203,7 @@ export default function ShowGapAnalysis({ gapAnalysis, experiences }: { gapAnaly
                                 experiences={experiences}
                                 resolution={resolutions[g.area]}
                                 onResolutionChange={handleResolutionChange}
+                                onCoach={(message) => assistantRef.current?.openWithMessage(message)}
                             />
                         ))}
                     </>
@@ -210,7 +212,7 @@ export default function ShowGapAnalysis({ gapAnalysis, experiences }: { gapAnaly
             </div>
 
             {!isAnalyzing && (
-                <PipelineAssistantPanel context={{ step: 'gap_analysis', pipelineKey: `gap_analysis:${gapAnalysis.id}` }} />
+                <PipelineAssistantPanel ref={assistantRef} context={{ step: 'gap_analysis', pipelineKey: `gap_analysis:${gapAnalysis.id}` }} />
             )}
         </AppLayout>
     );

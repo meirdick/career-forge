@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Check, ChevronDown, ChevronUp, Loader2, RotateCcw, Sparkles, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Loader2, MessageCircle, RotateCcw, Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,12 +50,14 @@ export default function GapActionCard({
     experiences,
     resolution,
     onResolutionChange,
+    onCoach,
 }: {
     gap: Gap;
     gapAnalysisId: number;
     experiences: Experience[];
     resolution?: Resolution;
     onResolutionChange: () => void;
+    onCoach?: (message: string) => void;
 }) {
     const [expanded, setExpanded] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -69,6 +71,10 @@ export default function GapActionCard({
 
     const isResolved = resolution?.status === 'resolved' || resolution?.status === 'acknowledged';
     const encodedArea = encodeURIComponent(gap.area);
+
+    function handleCoach() {
+        onCoach?.(`I need help with this ${gap.classification} gap: "${gap.area}". ${gap.description} The suggestion is: ${gap.suggestion}`);
+    }
 
     async function handleReframe() {
         if (!selectedExperienceId || loading) return;
@@ -186,6 +192,7 @@ export default function GapActionCard({
                                 onAccept={handleAcceptReframe}
                                 onReject={handleRejectReframe}
                                 loading={loading}
+                                onCoach={onCoach ? handleCoach : undefined}
                             />
                         )}
 
@@ -196,16 +203,27 @@ export default function GapActionCard({
                                 onAnswerChange={setAnswerText}
                                 onSubmit={handleAnswer}
                                 loading={loading}
+                                onCoach={onCoach ? handleCoach : undefined}
                             />
                         )}
 
                         {gap.classification === 'genuine' && (
-                            <GenuineAction onAcknowledge={handleAcknowledge} loading={loading} />
+                            <GenuineAction onAcknowledge={handleAcknowledge} loading={loading} onCoach={onCoach ? handleCoach : undefined} />
                         )}
                     </div>
                 )}
             </CardContent>
         </Card>
+    );
+}
+
+function CoachButton({ onCoach }: { onCoach?: () => void }) {
+    if (!onCoach) return null;
+    return (
+        <Button size="sm" variant="ghost" onClick={onCoach}>
+            <MessageCircle className="mr-1 h-3 w-3" />
+            Discuss with Coach
+        </Button>
     );
 }
 
@@ -218,6 +236,7 @@ function ReframableAction({
     onAccept,
     onReject,
     loading,
+    onCoach,
 }: {
     experiences: Experience[];
     selectedExperienceId: string;
@@ -227,6 +246,7 @@ function ReframableAction({
     onAccept: () => void;
     onReject: () => void;
     loading: boolean;
+    onCoach?: () => void;
 }) {
     return (
         <div className="space-y-3">
@@ -266,6 +286,8 @@ function ReframableAction({
                     </div>
                 </div>
             )}
+
+            <CoachButton onCoach={onCoach} />
         </div>
     );
 }
@@ -276,12 +298,14 @@ function PromptableAction({
     onAnswerChange,
     onSubmit,
     loading,
+    onCoach,
 }: {
     suggestion: string;
     answerText: string;
     onAnswerChange: (text: string) => void;
     onSubmit: () => void;
     loading: boolean;
+    onCoach?: () => void;
 }) {
     return (
         <div className="space-y-3">
@@ -294,25 +318,31 @@ function PromptableAction({
                 onChange={(e) => onAnswerChange(e.target.value)}
                 rows={3}
             />
-            <Button size="sm" onClick={onSubmit} disabled={!answerText.trim() || loading}>
-                {loading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
-                Save Answer
-            </Button>
+            <div className="flex items-center gap-2">
+                <Button size="sm" onClick={onSubmit} disabled={!answerText.trim() || loading}>
+                    {loading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
+                    Save Answer
+                </Button>
+                <CoachButton onCoach={onCoach} />
+            </div>
         </div>
     );
 }
 
-function GenuineAction({ onAcknowledge, loading }: { onAcknowledge: () => void; loading: boolean }) {
+function GenuineAction({ onAcknowledge, loading, onCoach }: { onAcknowledge: () => void; loading: boolean; onCoach?: () => void }) {
     return (
         <div className="space-y-3">
             <p className="text-muted-foreground text-sm">
                 This appears to be a genuine gap. Acknowledging it helps focus your preparation strategy — consider addressing it in your cover letter or
                 interview talking points.
             </p>
-            <Button size="sm" variant="outline" onClick={onAcknowledge} disabled={loading}>
-                {loading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Check className="mr-1 h-3 w-3" />}
-                Acknowledge Gap
-            </Button>
+            <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={onAcknowledge} disabled={loading}>
+                    {loading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Check className="mr-1 h-3 w-3" />}
+                    Acknowledge Gap
+                </Button>
+                <CoachButton onCoach={onCoach} />
+            </div>
         </div>
     );
 }
