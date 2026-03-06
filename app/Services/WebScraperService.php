@@ -51,14 +51,14 @@ class WebScraperService
                     'formats' => ['markdown'],
                 ]);
 
-            if ($response->successful()) {
+            if ($response->successful() && $response->json('success')) {
                 return $response->json('data.markdown');
             }
 
             Log::warning('Firecrawl scrape failed', [
                 'url' => $url,
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'error' => $response->json('error'),
             ]);
 
             return null;
