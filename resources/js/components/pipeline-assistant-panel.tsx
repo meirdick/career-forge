@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/react';
 import axios from 'axios';
-import { CheckCircle2, Loader2, MessageCircle, Send } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Loader2, MessageCircle, Send } from 'lucide-react';
 import { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,32 @@ const stepTargets: Record<string, string> = {
     resume_builder: 'resume',
     application: 'application',
 };
+
+function ToolActionsDisplay({ actions }: { actions: string[] }) {
+    const [expanded, setExpanded] = useState(false);
+
+    return (
+        <div className="px-1">
+            <button
+                onClick={() => setExpanded(!expanded)}
+                className="flex items-center gap-1.5 text-xs text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+            >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                <span>
+                    {actions.length} {actions.length === 1 ? 'change' : 'changes'} applied
+                </span>
+                {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </button>
+            {expanded && (
+                <ul className="mt-1 space-y-0.5 border-l-2 border-green-200 pl-3 dark:border-green-800">
+                    {actions.map((action, i) => (
+                        <li key={i} className="text-muted-foreground text-xs">{action}</li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
+}
 
 export type PipelineAssistantHandle = {
     openWithMessage: (message: string) => void;
@@ -173,12 +199,7 @@ export default function PipelineAssistantPanel({ context, ref }: { context: Pipe
                                                 <ReactMarkdown>{msg.content}</ReactMarkdown>
                                             </div>
                                             {msg.toolActions && msg.toolActions.length > 0 && (
-                                                <div className="flex items-center gap-1.5 px-1">
-                                                    <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-                                                    <span className="text-muted-foreground text-xs">
-                                                        Changes applied to your {stepTargets[context.step]}
-                                                    </span>
-                                                </div>
+                                                <ToolActionsDisplay actions={msg.toolActions} />
                                             )}
                                         </div>
                                     )}
