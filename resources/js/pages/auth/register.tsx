@@ -24,11 +24,11 @@ export default function Register() {
                 disableWhileProcessing
                 className="flex flex-col gap-6"
             >
-                {referralCode && (
-                    <input type="hidden" name="referral_code" value={referralCode} />
-                )}
                 {({ processing, errors }) => (
                     <>
+                        {referralCode && (
+                            <input type="hidden" name="referral_code" value={referralCode} />
+                        )}
                         <div className="grid gap-6">
                             <div className="grid gap-2">
                                 <Label htmlFor="name">Name</Label>
