@@ -2,7 +2,7 @@ import { Check, Loader2, Pencil, Sparkles, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { ParsedAccomplishment, ParsedEducation, ParsedExperience, ParsedProject, ParsedSkill, ParsedUrl, SectionKey } from './types';
+import type { ExtractionType, ParsedAccomplishment, ParsedEducation, ParsedExperience, ParsedProject, ParsedSkill, ParsedUrl, SectionKey } from './types';
 
 interface ItemCardProps {
     selected: boolean;
@@ -14,6 +14,24 @@ interface ItemCardProps {
     onAcceptEnhancement?: () => void;
     onRejectEnhancement?: () => void;
     compact?: boolean;
+}
+
+function ExtractionTypeBadge({ type, enhances }: { type?: ExtractionType; enhances?: string }) {
+    if (!type) return null;
+
+    if (type === 'enhancement') {
+        return (
+            <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                Enhanced{enhances ? ` · ${enhances}` : ''}
+            </Badge>
+        );
+    }
+
+    return (
+        <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300">
+            New
+        </Badge>
+    );
 }
 
 function CardActions({
@@ -124,13 +142,16 @@ export function ExperienceCard({
     compact,
 }: ItemCardProps & { item: ParsedExperience }) {
     return (
-        <Card className={`cursor-pointer ${!selected ? 'opacity-40' : ''}`}>
-            <CardHeader className={compact ? 'pb-2' : 'pb-2'}>
+        <Card className={`cursor-pointer ${!selected ? 'opacity-40' : ''} ${compact ? 'py-3 gap-2' : ''}`}>
+            <CardHeader className={`pb-2 ${compact ? 'px-4' : ''}`}>
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1 cursor-pointer" onClick={onToggle}>
-                        <CardTitle className={compact ? 'text-sm' : 'text-base'}>
-                            {item.title} at {item.company}
-                        </CardTitle>
+                        <div className="flex items-center gap-2">
+                            <CardTitle className={compact ? 'text-sm' : 'text-base'}>
+                                {item.title} at {item.company}
+                            </CardTitle>
+                            <ExtractionTypeBadge type={item.extraction_type} enhances={item.enhances} />
+                        </div>
                         <p className={`text-muted-foreground ${compact ? 'text-xs' : 'text-sm'}`}>
                             {item.started_at} — {item.is_current ? 'Present' : (item.ended_at ?? 'N/A')}
                             {item.location && ` · ${item.location}`}
@@ -140,7 +161,7 @@ export function ExperienceCard({
                 </div>
             </CardHeader>
             {(item.description || pendingEnhancement) && (
-                <CardContent className="pt-0">
+                <CardContent className={`pt-0 ${compact ? 'px-4' : ''}`}>
                     {item.description && <p className={`text-muted-foreground ${compact ? 'text-xs' : 'text-sm'}`}>{item.description}</p>}
                     {pendingEnhancement && onAcceptEnhancement && onRejectEnhancement && (
                         <EnhancementBanner enhancement={pendingEnhancement} onAccept={onAcceptEnhancement} onReject={onRejectEnhancement} />
@@ -164,16 +185,19 @@ export function AccomplishmentCard({
     compact,
 }: ItemCardProps & { item: ParsedAccomplishment }) {
     return (
-        <Card className={`cursor-pointer ${!selected ? 'opacity-40' : ''}`}>
-            <CardHeader className="pb-2">
+        <Card className={`cursor-pointer ${!selected ? 'opacity-40' : ''} ${compact ? 'py-3 gap-2' : ''}`}>
+            <CardHeader className={`pb-2 ${compact ? 'px-4' : ''}`}>
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1 cursor-pointer" onClick={onToggle}>
-                        <CardTitle className={compact ? 'text-sm' : 'text-base'}>{item.title}</CardTitle>
+                        <div className="flex items-center gap-2">
+                            <CardTitle className={compact ? 'text-sm' : 'text-base'}>{item.title}</CardTitle>
+                            <ExtractionTypeBadge type={item.extraction_type} enhances={item.enhances} />
+                        </div>
                     </div>
                     {selected && <CardActions onEdit={onEdit} onEnhance={onEnhance} enhancing={enhancing} />}
                 </div>
             </CardHeader>
-            <CardContent className="pt-0">
+            <CardContent className={`pt-0 ${compact ? 'px-4' : ''}`}>
                 <p className={`text-muted-foreground ${compact ? 'text-xs' : 'text-sm'}`}>{item.description}</p>
                 {item.impact && <p className={`mt-1 font-medium ${compact ? 'text-xs' : 'text-sm'}`}>{item.impact}</p>}
                 {pendingEnhancement && onAcceptEnhancement && onRejectEnhancement && (
@@ -217,11 +241,14 @@ export function EducationCard({
     compact,
 }: ItemCardProps & { item: ParsedEducation }) {
     return (
-        <Card className={`cursor-pointer ${!selected ? 'opacity-40' : ''}`}>
-            <CardHeader className="pb-2">
+        <Card className={`cursor-pointer ${!selected ? 'opacity-40' : ''} ${compact ? 'py-3 gap-2' : ''}`}>
+            <CardHeader className={`pb-2 ${compact ? 'px-4' : ''}`}>
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1 cursor-pointer" onClick={onToggle}>
-                        <CardTitle className={compact ? 'text-sm' : 'text-base'}>{item.title}</CardTitle>
+                        <div className="flex items-center gap-2">
+                            <CardTitle className={compact ? 'text-sm' : 'text-base'}>{item.title}</CardTitle>
+                            <ExtractionTypeBadge type={item.extraction_type} enhances={item.enhances} />
+                        </div>
                         <p className={`text-muted-foreground ${compact ? 'text-xs' : 'text-sm'}`}>
                             {item.institution}
                             {item.field && ` · ${item.field}`}
@@ -250,17 +277,20 @@ export function ProjectCard({
     compact,
 }: ItemCardProps & { item: ParsedProject }) {
     return (
-        <Card className={`cursor-pointer ${!selected ? 'opacity-40' : ''}`}>
-            <CardHeader className="pb-2">
+        <Card className={`cursor-pointer ${!selected ? 'opacity-40' : ''} ${compact ? 'py-3 gap-2' : ''}`}>
+            <CardHeader className={`pb-2 ${compact ? 'px-4' : ''}`}>
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1 cursor-pointer" onClick={onToggle}>
-                        <CardTitle className={compact ? 'text-sm' : 'text-base'}>{item.name}</CardTitle>
+                        <div className="flex items-center gap-2">
+                            <CardTitle className={compact ? 'text-sm' : 'text-base'}>{item.name}</CardTitle>
+                            <ExtractionTypeBadge type={item.extraction_type} enhances={item.enhances} />
+                        </div>
                         {item.role && <p className={`text-muted-foreground ${compact ? 'text-xs' : 'text-sm'}`}>{item.role}</p>}
                     </div>
                     {selected && <CardActions onEdit={onEdit} onEnhance={onEnhance} enhancing={enhancing} />}
                 </div>
             </CardHeader>
-            <CardContent className="pt-0">
+            <CardContent className={`pt-0 ${compact ? 'px-4' : ''}`}>
                 <p className={`text-muted-foreground ${compact ? 'text-xs' : 'text-sm'}`}>{item.description}</p>
                 {pendingEnhancement && onAcceptEnhancement && onRejectEnhancement && (
                     <EnhancementBanner enhancement={pendingEnhancement} onAccept={onAcceptEnhancement} onReject={onRejectEnhancement} />

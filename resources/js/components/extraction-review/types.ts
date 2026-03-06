@@ -1,3 +1,5 @@
+export type ExtractionType = 'new' | 'enhancement';
+
 export type ParsedExperience = {
     company: string;
     title: string;
@@ -6,6 +8,8 @@ export type ParsedExperience = {
     ended_at?: string;
     is_current: boolean;
     description?: string;
+    extraction_type?: ExtractionType;
+    enhances?: string;
 };
 
 export type ParsedAccomplishment = {
@@ -13,9 +17,11 @@ export type ParsedAccomplishment = {
     description: string;
     impact?: string;
     experience_index?: number;
+    extraction_type?: ExtractionType;
+    enhances?: string;
 };
 
-export type ParsedSkill = { name: string; category: string };
+export type ParsedSkill = { name: string; category: string; extraction_type?: ExtractionType; enhances?: string };
 
 export type ParsedEducation = {
     type: string;
@@ -23,6 +29,8 @@ export type ParsedEducation = {
     title: string;
     field?: string;
     completed_at?: string;
+    extraction_type?: ExtractionType;
+    enhances?: string;
 };
 
 export type ParsedProject = {
@@ -31,6 +39,8 @@ export type ParsedProject = {
     role?: string;
     outcome?: string;
     experience_index?: number;
+    extraction_type?: ExtractionType;
+    enhances?: string;
 };
 
 export type ParsedUrl = {
