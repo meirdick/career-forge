@@ -1,11 +1,10 @@
 import { router } from '@inertiajs/react';
 import axios from 'axios';
-import { CheckCircle2, ChevronDown, ChevronUp, Loader2, MessageCircle, Send } from 'lucide-react';
-import { useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { ArrowUp, Check, CheckCircle2, MessageCircle, Sparkles } from 'lucide-react';
+import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string; toolActions?: string[] };
 
@@ -14,42 +13,176 @@ type PipelineContext = {
     pipelineKey: string;
 };
 
-const stepLabels: Record<string, string> = {
-    job_posting: 'Job Posting Assistant',
-    gap_analysis: 'Gap Analysis Coach',
-    resume_builder: 'Resume Assistant',
-    application: 'Application Assistant',
+type StepConfig = {
+    label: string;
+    subtitle: string;
+    placeholder: string;
+    prompts: string[];
 };
 
-const stepTargets: Record<string, string> = {
-    job_posting: 'candidate profile',
-    gap_analysis: 'gap analysis',
-    resume_builder: 'resume',
-    application: 'application',
+const stepConfig: Record<string, StepConfig> = {
+    job_posting: {
+        label: 'Job Posting Assistant',
+        subtitle: 'Analyzes the role and builds your candidate profile',
+        placeholder: 'Ask about this job posting...',
+        prompts: [
+            'What are the key requirements for this role?',
+            'How well does my profile match this job?',
+            'What skills should I highlight?',
+        ],
+    },
+    gap_analysis: {
+        label: 'Gap Analysis Coach',
+        subtitle: 'Identifies skill gaps and recommends evidence',
+        placeholder: 'Ask about your gaps...',
+        prompts: [
+            'What are my most critical gaps?',
+            'How can I address my weakest areas?',
+            'Which gaps should I prioritize first?',
+        ],
+    },
+    resume_builder: {
+        label: 'Resume Assistant',
+        subtitle: 'Helps tailor your resume to the role',
+        placeholder: 'Ask about your resume...',
+        prompts: [
+            'How can I improve my resume for this role?',
+            'What achievements should I highlight?',
+            'Review my resume bullet points',
+        ],
+    },
+    application: {
+        label: 'Application Assistant',
+        subtitle: 'Guides you through the application process',
+        placeholder: 'Ask about your application...',
+        prompts: [
+            'Help me write a cover letter',
+            'What should I emphasize in my application?',
+            'How can I stand out as a candidate?',
+        ],
+    },
 };
 
-function ToolActionsDisplay({ actions }: { actions: string[] }) {
-    const [expanded, setExpanded] = useState(false);
+function AiAvatar({ size = 'md' }: { size?: 'sm' | 'md' }) {
+    const sizeClasses = size === 'sm' ? 'size-6' : 'size-8';
+    const iconClasses = size === 'sm' ? 'size-3' : 'size-4';
 
     return (
-        <div className="px-1">
-            <button
-                onClick={() => setExpanded(!expanded)}
-                className="flex items-center gap-1.5 text-xs text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
-            >
-                <CheckCircle2 className="h-3.5 w-3.5" />
+        <div className={`bg-primary/10 text-primary relative flex ${sizeClasses} shrink-0 items-center justify-center rounded-full`}>
+            <Sparkles className={iconClasses} />
+        </div>
+    );
+}
+
+function ToolActionsCard({ actions }: { actions: string[] }) {
+    return (
+        <div className="border-success/30 bg-success/5 mt-2 rounded-lg border px-3 py-2.5">
+            <div className="text-success mb-1.5 flex items-center gap-1.5 text-xs font-medium">
+                <CheckCircle2 className="size-3.5" />
                 <span>
                     {actions.length} {actions.length === 1 ? 'change' : 'changes'} applied
                 </span>
-                {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-            </button>
-            {expanded && (
-                <ul className="mt-1 space-y-0.5 border-l-2 border-green-200 pl-3 dark:border-green-800">
-                    {actions.map((action, i) => (
-                        <li key={i} className="text-muted-foreground text-xs">{action}</li>
-                    ))}
-                </ul>
-            )}
+            </div>
+            <ul className="space-y-1">
+                {actions.map((action, i) => (
+                    <li key={i} className="text-muted-foreground flex items-start gap-1.5 text-xs">
+                        <Check className="text-success mt-0.5 size-3 shrink-0" />
+                        <span>{action}</span>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
+function ThinkingIndicator() {
+    return (
+        <div className="flex items-start gap-2.5 px-5 py-1">
+            <AiAvatar size="sm" />
+            <div className="flex items-center gap-2 pt-1">
+                <div className="flex gap-1">
+                    <span className="bg-muted-foreground/40 size-1.5 animate-bounce rounded-full [animation-delay:0ms]" />
+                    <span className="bg-muted-foreground/40 size-1.5 animate-bounce rounded-full [animation-delay:150ms]" />
+                    <span className="bg-muted-foreground/40 size-1.5 animate-bounce rounded-full [animation-delay:300ms]" />
+                </div>
+                <span className="text-muted-foreground text-xs">Thinking...</span>
+            </div>
+        </div>
+    );
+}
+
+function EmptyState({ config, onPromptClick }: { config: StepConfig; onPromptClick: (prompt: string) => void }) {
+    return (
+        <div className="flex flex-1 flex-col items-center justify-center px-6">
+            <div className="bg-primary/10 text-primary mb-4 flex size-12 items-center justify-center rounded-full">
+                <Sparkles className="size-6" />
+            </div>
+            <h3 className="text-foreground mb-1 text-sm font-semibold">{config.label}</h3>
+            <p className="text-muted-foreground mb-6 text-center text-xs">{config.subtitle}</p>
+            <div className="flex w-full flex-col gap-2">
+                {config.prompts.map((prompt, i) => (
+                    <button
+                        key={i}
+                        onClick={() => onPromptClick(prompt)}
+                        className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg border px-3 py-2.5 text-left text-sm transition-colors"
+                    >
+                        {prompt}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function ChatInput({
+    value,
+    onChange,
+    onSend,
+    placeholder,
+    disabled,
+}: {
+    value: string;
+    onChange: (value: string) => void;
+    onSend: () => void;
+    placeholder: string;
+    disabled: boolean;
+}) {
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    useEffect(() => {
+        const el = textareaRef.current;
+        if (el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 96) + 'px';
+        }
+    }, [value]);
+
+    return (
+        <div className="border-t bg-background px-5 py-4">
+            <div className="relative">
+                <textarea
+                    ref={textareaRef}
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            onSend();
+                        }
+                    }}
+                    placeholder={placeholder}
+                    disabled={disabled}
+                    rows={1}
+                    className="border-input bg-muted/50 placeholder:text-muted-foreground focus:ring-ring w-full resize-none rounded-xl py-3 pr-11 pl-3.5 text-sm focus:ring-1 focus:outline-none disabled:opacity-50"
+                />
+                <button
+                    onClick={onSend}
+                    disabled={disabled || !value.trim()}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 absolute right-2 bottom-2 flex size-7 items-center justify-center rounded-lg transition-colors disabled:opacity-30"
+                >
+                    <ArrowUp className="size-4" />
+                </button>
+            </div>
         </div>
     );
 }
@@ -69,6 +202,8 @@ export default function PipelineAssistantPanel({ context, ref }: { context: Pipe
     const [pendingMessage, setPendingMessage] = useState<string | null>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
 
+    const config = stepConfig[context.step];
+
     useImperativeHandle(ref, () => ({
         openWithMessage(message: string) {
             setPendingMessage(message);
@@ -81,28 +216,13 @@ export default function PipelineAssistantPanel({ context, ref }: { context: Pipe
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [messages, sending]);
 
     useEffect(() => {
         if (pendingMessage && sessionId && !sending) {
             const msg = pendingMessage;
             setPendingMessage(null);
-            setInput('');
-            setMessages((prev) => [...prev, { role: 'user', content: msg }]);
-            setSending(true);
-
-            axios.post(`/pipeline-chat/${sessionId}/chat`, { message: msg })
-                .then((response) => {
-                    const toolActions: string[] = response.data.tool_actions ?? [];
-                    setMessages((prev) => [...prev, { role: 'assistant', content: response.data.message, toolActions }]);
-                    if (toolActions.length > 0) {
-                        router.reload();
-                    }
-                })
-                .catch(() => {
-                    setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, there was an error. Please try again.' }]);
-                })
-                .finally(() => setSending(false));
+            sendMessage(msg);
         }
     }, [pendingMessage, sessionId, sending]);
 
@@ -129,30 +249,40 @@ export default function PipelineAssistantPanel({ context, ref }: { context: Pipe
         }
     }
 
-    async function sendMessage() {
-        if (!input.trim() || sending || !sessionId) return;
-        const userMessage = input.trim();
-        setInput('');
-        setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
-        setSending(true);
+    const sendMessage = useCallback(
+        async (messageOverride?: string) => {
+            const userMessage = messageOverride?.trim() || input.trim();
+            if (!userMessage || sending || !sessionId) return;
 
-        try {
-            const response = await axios.post(`/pipeline-chat/${sessionId}/chat`, {
-                message: userMessage,
-            });
-
-            const toolActions: string[] = response.data.tool_actions ?? [];
-
-            setMessages((prev) => [...prev, { role: 'assistant', content: response.data.message, toolActions }]);
-
-            if (toolActions.length > 0) {
-                router.reload();
+            if (!messageOverride) {
+                setInput('');
             }
-        } catch {
-            setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, there was an error. Please try again.' }]);
-        } finally {
-            setSending(false);
-        }
+            setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
+            setSending(true);
+
+            try {
+                const response = await axios.post(`/pipeline-chat/${sessionId}/chat`, {
+                    message: userMessage,
+                });
+
+                const toolActions: string[] = response.data.tool_actions ?? [];
+
+                setMessages((prev) => [...prev, { role: 'assistant', content: response.data.message, toolActions }]);
+
+                if (toolActions.length > 0) {
+                    router.reload();
+                }
+            } catch {
+                setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, there was an error. Please try again.' }]);
+            } finally {
+                setSending(false);
+            }
+        },
+        [input, sending, sessionId],
+    );
+
+    function handlePromptClick(prompt: string) {
+        sendMessage(prompt);
     }
 
     return (
@@ -163,74 +293,81 @@ export default function PipelineAssistantPanel({ context, ref }: { context: Pipe
                 size="lg"
             >
                 <MessageCircle className="h-5 w-5" />
-                <span className="hidden sm:inline">{stepLabels[context.step]}</span>
+                <span className="hidden sm:inline">{config.label}</span>
             </Button>
 
             <Sheet open={open} onOpenChange={setOpen}>
-                <SheetContent side="right" className="flex w-full flex-col sm:max-w-md">
-                    <SheetHeader>
-                        <SheetTitle>{stepLabels[context.step]}</SheetTitle>
+                <SheetContent side="right" className="flex w-full flex-col gap-0 sm:max-w-lg">
+                    <SheetHeader className="border-b px-5 pb-3 pt-5 shadow-xs">
+                        <div className="flex items-center gap-3">
+                            <div className="relative">
+                                <AiAvatar size="md" />
+                                <span className="bg-success absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2 ring-white dark:ring-zinc-950" />
+                            </div>
+                            <div>
+                                <SheetTitle className="text-sm">{config.label}</SheetTitle>
+                                <SheetDescription className="text-xs">{config.subtitle}</SheetDescription>
+                            </div>
+                        </div>
                     </SheetHeader>
 
                     <div className="flex flex-1 flex-col overflow-hidden">
-                        <div className="flex-1 space-y-3 overflow-y-auto p-4">
-                            {resolving && (
-                                <div className="flex items-center gap-2 py-4">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
+                        {resolving && (
+                            <div className="flex flex-1 items-center justify-center">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex gap-1">
+                                        <span className="bg-muted-foreground/40 size-1.5 animate-bounce rounded-full [animation-delay:0ms]" />
+                                        <span className="bg-muted-foreground/40 size-1.5 animate-bounce rounded-full [animation-delay:150ms]" />
+                                        <span className="bg-muted-foreground/40 size-1.5 animate-bounce rounded-full [animation-delay:300ms]" />
+                                    </div>
                                     <span className="text-muted-foreground text-sm">Loading conversation...</span>
                                 </div>
-                            )}
-
-                            {!resolving && messages.length === 0 && (
-                                <p className="text-muted-foreground text-sm">
-                                    Ask me anything about this step. I have context about your current progress and can help you move forward.
-                                </p>
-                            )}
-
-                            {messages.map((msg, i) => (
-                                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    {msg.role === 'user' ? (
-                                        <div className="bg-primary text-primary-foreground max-w-[85%] rounded-lg px-3 py-2 text-sm">
-                                            <p className="whitespace-pre-wrap">{msg.content}</p>
-                                        </div>
-                                    ) : (
-                                        <div className="max-w-[85%] space-y-1.5">
-                                            <div className="prose prose-sm dark:prose-invert bg-muted rounded-lg px-3 py-2">
-                                                <ReactMarkdown>{msg.content}</ReactMarkdown>
-                                            </div>
-                                            {msg.toolActions && msg.toolActions.length > 0 && (
-                                                <ToolActionsDisplay actions={msg.toolActions} />
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-
-                            {sending && (
-                                <div className="flex justify-start">
-                                    <div className="bg-muted rounded-lg px-3 py-2">
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                    </div>
-                                </div>
-                            )}
-                            <div ref={chatEndRef} />
-                        </div>
-
-                        <div className="border-t p-4">
-                            <div className="flex gap-2">
-                                <Input
-                                    value={input}
-                                    onChange={(e) => setInput(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                                    placeholder="Ask a question..."
-                                    disabled={sending || !sessionId}
-                                />
-                                <Button size="sm" onClick={sendMessage} disabled={sending || !input.trim() || !sessionId}>
-                                    <Send className="h-4 w-4" />
-                                </Button>
                             </div>
-                        </div>
+                        )}
+
+                        {!resolving && resolved && messages.length === 0 && !sending && (
+                            <EmptyState config={config} onPromptClick={handlePromptClick} />
+                        )}
+
+                        {(messages.length > 0 || sending) && (
+                            <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+                                {messages.map((msg, i) => (
+                                    <div key={i}>
+                                        {msg.role === 'user' ? (
+                                            <div className="flex justify-end">
+                                                <div className="bg-primary text-primary-foreground max-w-[85%] rounded-2xl px-3.5 py-2 text-sm">
+                                                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-start gap-2.5">
+                                                <AiAvatar size="sm" />
+                                                <div className="max-w-[85%]">
+                                                    <div className="prose prose-sm dark:prose-invert max-w-none text-sm">
+                                                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                                    </div>
+                                                    {msg.toolActions && msg.toolActions.length > 0 && (
+                                                        <ToolActionsCard actions={msg.toolActions} />
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+
+                                {sending && <ThinkingIndicator />}
+                                <div ref={chatEndRef} />
+                            </div>
+                        )}
                     </div>
+
+                    <ChatInput
+                        value={input}
+                        onChange={setInput}
+                        onSend={() => sendMessage()}
+                        placeholder={config.placeholder}
+                        disabled={sending || !sessionId}
+                    />
                 </SheetContent>
             </Sheet>
         </>
