@@ -64,8 +64,8 @@ export default function ReviewImport({ document, parseResult }: { document: Docu
                         <CardContent className="py-8 text-center">
                             <X className="mx-auto mb-3 h-10 w-10 text-red-500" />
                             <p className="text-muted-foreground">{parseResult.error ?? 'An error occurred while parsing your resume.'}</p>
-                            <Button variant="outline" className="mt-4" onClick={() => router.visit('/resume-upload')}>
-                                Try Again
+                            <Button variant="outline" className="mt-4" onClick={() => router.post(ResumeUploadController.retry(document.id).url)}>
+                                Re-analyze
                             </Button>
                         </CardContent>
                     </Card>
