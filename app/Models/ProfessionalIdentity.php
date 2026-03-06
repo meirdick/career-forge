@@ -19,7 +19,15 @@ class ProfessionalIdentity extends Model
         'collaboration_approach',
         'communication_style',
         'cultural_preferences',
+        'resume_header_config',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'resume_header_config' => 'array',
+        ];
+    }
 
     public function user(): BelongsTo
     {

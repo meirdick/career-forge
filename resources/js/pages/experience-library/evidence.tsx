@@ -19,7 +19,7 @@ import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Experience Library', href: '/experience-library' },
-    { title: 'Evidence', href: evidenceIndex() },
+    { title: 'Links', href: evidenceIndex() },
 ];
 
 const evidenceTypes = ['portfolio', 'repository', 'article', 'review', 'testimonial', 'other'] as const;
@@ -67,14 +67,14 @@ export default function Evidence({ entries }: { entries: EvidenceEntry[] }) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Evidence" />
+            <Head title="Links" />
 
             <div className="mx-auto max-w-4xl space-y-6 p-4">
                 <div className="flex items-center justify-between">
-                    <Heading title="Evidence" description="Links, portfolios, and other supporting evidence" />
+                    <Heading title="Links" description="Links, portfolios, and other supporting evidence" />
                     <Button onClick={() => setShowForm(!showForm)}>
                         <Plus className="mr-2 h-4 w-4" />
-                        Add Evidence
+                        Add Link
                     </Button>
                 </div>
 
@@ -132,9 +132,9 @@ export default function Evidence({ entries }: { entries: EvidenceEntry[] }) {
                 {entries.length === 0 ? (
                     <EmptyState
                         icon={LinkIcon}
-                        title="No evidence entries yet"
+                        title="No links yet"
                         description="Add links, portfolios, and other supporting evidence to strengthen your profile."
-                        action={<Button onClick={() => setShowForm(true)}><Plus className="mr-2 h-4 w-4" />Add Evidence</Button>}
+                        action={<Button onClick={() => setShowForm(true)}><Plus className="mr-2 h-4 w-4" />Add Link</Button>}
                     />
                 ) : (
                     <div className="space-y-3">

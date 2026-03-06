@@ -7,6 +7,7 @@ use App\Concerns\ProfileValidationRules;
 use App\Models\User;
 use App\Services\CreditService;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
 class CreateNewUser implements CreatesNewUsers
@@ -23,15 +24,29 @@ class CreateNewUser implements CreatesNewUsers
         Validator::make($input, [
             ...$this->profileRules(),
             'password' => $this->passwordRules(),
+            'referral_code' => ['nullable', 'string', 'max:20'],
         ])->validate();
+
+        $referrer = null;
+
+        if (! empty($input['referral_code'])) {
+            $referrer = User::where('referral_code', $input['referral_code'])->first();
+        }
 
         $user = User::create([
             'name' => $input['name'],
             'email' => $input['email'],
             'password' => $input['password'],
+            'referral_code' => Str::random(8),
+            'referred_by' => $referrer?->id,
         ]);
 
-        app(CreditService::class)->grantSignupBonus($user);
+        $creditService = app(CreditService::class);
+        $creditService->grantSignupBonus($user);
+
+        if ($referrer) {
+            $creditService->grantReferralBonus($referrer, $user);
+        }
 
         return $user;
     }

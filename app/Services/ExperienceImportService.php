@@ -10,7 +10,7 @@ class ExperienceImportService
     /**
      * Import extracted experience data into the user's experience library with intelligent merging.
      *
-     * @param  array{experiences?: array, skills?: array, accomplishments?: array, education?: array, projects?: array}  $data
+     * @param  array{experiences?: array, skills?: array, accomplishments?: array, education?: array, projects?: array, urls?: array}  $data
      * @return array{created: int, merged: int, skipped: int}
      */
     public function import(User $user, array $data): array
@@ -19,7 +19,7 @@ class ExperienceImportService
         $experienceMap = [];
         $nullish = static fn ($value) => in_array($value, [null, 'null', ''], true) ? null : $value;
 
-        $user->load(['experiences', 'skills', 'accomplishments', 'educationEntries', 'projects']);
+        $user->load(['experiences', 'skills', 'accomplishments', 'educationEntries', 'projects', 'evidenceEntries']);
 
         foreach ($data['experiences'] ?? [] as $index => $expData) {
             $existing = $user->experiences
@@ -170,6 +170,34 @@ class ExperienceImportService
             }
         }
 
+        foreach ($data['urls'] ?? [] as $urlData) {
+            $url = $urlData['url'];
+            $existing = $user->evidenceEntries
+                ->first(fn ($e) => mb_strtolower($e->url ?? '') === mb_strtolower($url));
+
+            if ($existing) {
+                $stats['skipped']++;
+            } else {
+                $type = $this->mapUrlType($urlData['type'] ?? 'other');
+
+                $user->evidenceEntries()->create([
+                    'type' => $type,
+                    'title' => $urlData['label'] ?? $this->generateUrlTitle($url),
+                    'url' => $url,
+                ]);
+                $stats['created']++;
+
+                // Auto-populate user profile fields
+                if (($urlData['type'] ?? '') === 'linkedin' && ! $user->linkedin_url) {
+                    $user->update(['linkedin_url' => $url]);
+                }
+
+                if (in_array($urlData['type'] ?? '', ['portfolio', 'personal']) && ! $user->portfolio_url) {
+                    $user->update(['portfolio_url' => $url]);
+                }
+            }
+        }
+
         return $stats;
     }
 
@@ -242,6 +270,30 @@ class ExperienceImportService
         $value = (string) preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $value);
 
         return (string) preg_replace('/\s+/', ' ', trim($value));
+    }
+
+    /**
+     * Map AI-extracted URL type to evidence entry type.
+     */
+    private function mapUrlType(string $type): string
+    {
+        return match ($type) {
+            'github' => 'repository',
+            'linkedin', 'portfolio', 'personal' => 'portfolio',
+            'article' => 'article',
+            default => 'other',
+        };
+    }
+
+    /**
+     * Generate a human-readable title from a URL.
+     */
+    private function generateUrlTitle(string $url): string
+    {
+        $host = parse_url($url, PHP_URL_HOST) ?? $url;
+        $host = preg_replace('/^www\./', '', $host);
+
+        return ucfirst($host);
     }
 
     /**

@@ -10,6 +10,8 @@ import { login } from '@/routes';
 import { store } from '@/routes/register';
 
 export default function Register() {
+    const referralCode = new URLSearchParams(window.location.search).get('ref');
+
     return (
         <AuthLayout
             title="Create an account"
@@ -22,6 +24,9 @@ export default function Register() {
                 disableWhileProcessing
                 className="flex flex-col gap-6"
             >
+                {referralCode && (
+                    <input type="hidden" name="referral_code" value={referralCode} />
+                )}
                 {({ processing, errors }) => (
                     <>
                         <div className="grid gap-6">

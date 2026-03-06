@@ -13,6 +13,7 @@ export function useExtractionReview(initialData: ExtractionData) {
         skills: new Set<number>(),
         education: new Set<number>(),
         projects: new Set<number>(),
+        urls: new Set<number>(),
     });
     const [enhancingKey, setEnhancingKey] = useState<EnhancementKey | null>(null);
     const [pendingEnhancements, setPendingEnhancements] = useState<Map<EnhancementKey, Record<string, unknown>>>(new Map());
@@ -25,6 +26,7 @@ export function useExtractionReview(initialData: ExtractionData) {
             skills: new Set(initialData.skills.map((_, i) => i)),
             education: new Set(initialData.education.map((_, i) => i)),
             projects: new Set(initialData.projects.map((_, i) => i)),
+            urls: new Set((initialData.urls ?? []).map((_, i) => i)),
         });
         setPendingEnhancements(new Map());
         setEnhancingKey(null);
@@ -52,7 +54,7 @@ export function useExtractionReview(initialData: ExtractionData) {
     }, []);
 
     const enhanceItem = useCallback(async (section: SectionKey, index: number) => {
-        if (section === 'skills') return; // Skills don't need enhancement
+        if (section === 'skills' || section === 'urls') return; // Skills and URLs don't need enhancement
 
         const key: EnhancementKey = `${section}-${index}`;
         setEnhancingKey(key);
@@ -105,6 +107,7 @@ export function useExtractionReview(initialData: ExtractionData) {
             skills: editedData.skills.filter((_, i) => selected.skills.has(i)),
             education: editedData.education.filter((_, i) => selected.education.has(i)),
             projects: editedData.projects.filter((_, i) => selected.projects.has(i)),
+            urls: (editedData.urls ?? []).filter((_, i) => selected.urls.has(i)),
         };
     }, [editedData, selected]);
 
@@ -114,7 +117,8 @@ export function useExtractionReview(initialData: ExtractionData) {
             selected.accomplishments.size +
             selected.skills.size +
             selected.education.size +
-            selected.projects.size,
+            selected.projects.size +
+            selected.urls.size,
         [selected],
     );
 

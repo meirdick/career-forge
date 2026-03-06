@@ -13,6 +13,14 @@ export type AiAccessProps = {
     hasApiKey?: boolean;
 };
 
+export type AiAccessDeniedFlash = {
+    message: string;
+    access_mode: string;
+    purpose: string;
+    cost: number;
+    balance: number;
+} | null;
+
 declare module '@inertiajs/core' {
     export interface InertiaConfig {
         sharedPageProps: {
@@ -20,6 +28,11 @@ declare module '@inertiajs/core' {
             auth: Auth;
             sidebarOpen: boolean;
             aiAccess: AiAccessProps;
+            flash: {
+                ai_access_denied: AiAccessDeniedFlash;
+            };
+            showWelcome: boolean;
+            referralCode: string | null;
             [key: string]: unknown;
         };
     }

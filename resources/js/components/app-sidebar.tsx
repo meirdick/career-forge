@@ -75,7 +75,7 @@ const experienceLibraryItems: NavItem[] = [
         icon: Tag,
     },
     {
-        title: 'Evidence',
+        title: 'Links',
         href: evidenceIndex(),
         icon: LinkIcon,
     },

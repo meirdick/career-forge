@@ -63,12 +63,19 @@ class ResumeParser implements Agent, HasStructuredOutput
             'experience_index' => $schema->integer(),
         ]);
 
+        $urlSchema = $schema->object([
+            'url' => $schema->string()->required(),
+            'type' => $schema->string()->required(),
+            'label' => $schema->string(),
+        ]);
+
         return [
             'experiences' => $schema->array()->items($experienceSchema)->required(),
             'accomplishments' => $schema->array()->items($accomplishmentSchema)->required(),
             'skills' => $schema->array()->items($skillSchema)->required(),
             'education' => $schema->array()->items($educationSchema)->required(),
             'projects' => $schema->array()->items($projectSchema)->required(),
+            'urls' => $schema->array()->items($urlSchema)->required(),
         ];
     }
 }

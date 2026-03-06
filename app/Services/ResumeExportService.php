@@ -13,6 +13,7 @@ class ResumeExportService
 {
     public function __construct(
         private RenderCvService $renderCvService,
+        private ResumeHeaderService $headerService,
     ) {}
 
     public function toPdf(Resume $resume): string
@@ -33,9 +34,9 @@ class ResumeExportService
 
     public function toDocx(Resume $resume): string
     {
-        $resume->load(['sections.selectedVariant', 'user', 'jobPosting']);
+        $resume->load(['sections.selectedVariant', 'user.professionalIdentity', 'jobPosting']);
 
-        $user = $resume->user;
+        $header = $this->headerService->resolveHeader($resume);
         $template = $resume->template?->value ?? 'classic';
 
         $styles = $this->getDocxStyles($template);
@@ -51,17 +52,17 @@ class ResumeExportService
 
         // Contact header
         $section->addText(
-            $user->name ?? 'Candidate',
+            $header['name'],
             ['bold' => true, 'size' => $styles['nameSize'], 'color' => $styles['headingColor']],
             ['alignment' => Jc::CENTER]
         );
 
         $contactParts = array_filter([
-            $user->email,
-            $user->phone,
-            $user->location,
-            $user->linkedin_url,
-            $user->portfolio_url,
+            $header['email'],
+            $header['phone'],
+            $header['location'],
+            $header['linkedin_url'],
+            $header['portfolio_url'],
         ]);
 
         if (! empty($contactParts)) {
@@ -100,10 +101,12 @@ class ResumeExportService
     private function toDomPdf(Resume $resume): string
     {
         $template = $resume->template?->value ?? 'classic';
+        $header = $this->headerService->resolveHeader($resume);
 
         $pdf = Pdf::loadView('resumes.pdf', [
             'resume' => $resume,
             'user' => $resume->user,
+            'header' => $header,
             'template' => $template,
         ]);
 

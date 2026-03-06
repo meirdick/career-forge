@@ -17,6 +17,12 @@ Route::post('polar/webhook', [PolarWebhookController::class, 'handle'])
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+
+    Route::post('welcome/dismiss', function () {
+        request()->user()->update(['welcome_dismissed_at' => now()]);
+
+        return back();
+    })->name('welcome.dismiss');
 });
 
 require __DIR__.'/settings.php';

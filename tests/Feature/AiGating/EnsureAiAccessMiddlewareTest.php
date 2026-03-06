@@ -97,6 +97,31 @@ test('gated mode allows free tier user within limits', function () {
     expect($response->status())->not->toBe(402);
 });
 
+test('inertia request redirects back with flash on access denied', function () {
+    config(['ai.gating.mode' => 'gated']);
+
+    $user = User::factory()->create();
+    UsageLimit::factory()->create([
+        'user_id' => $user->id,
+        'job_postings_used' => 1,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->post(route('job-postings.store'), [
+            'raw_text' => 'Test job posting',
+        ], [
+            'X-Inertia' => 'true',
+            'X-Inertia-Version' => '1',
+        ]);
+
+    $response->assertRedirect();
+    $response->assertSessionHas('ai_access_denied', function (array $data) {
+        return $data['message'] === 'AI access limit reached'
+            && $data['access_mode'] === 'free_tier'
+            && $data['purpose'] === 'job_analysis';
+    });
+});
+
 test('chat route is gated', function () {
     config(['ai.gating.mode' => 'gated']);
 

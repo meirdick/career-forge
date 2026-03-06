@@ -51,6 +51,7 @@ class ParseResumeJob implements ShouldQueue
                 'skills' => $response['skills'] ?? [],
                 'education' => $response['education'] ?? [],
                 'projects' => $response['projects'] ?? [],
+                'urls' => $response['urls'] ?? [],
             ],
         ], now()->addHour());
 

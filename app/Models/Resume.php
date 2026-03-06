@@ -22,6 +22,7 @@ class Resume extends Model
         'template',
         'exported_path',
         'exported_format',
+        'header_config',
     ];
 
     protected function casts(): array
@@ -30,6 +31,7 @@ class Resume extends Model
             'section_order' => 'array',
             'is_finalized' => 'boolean',
             'template' => ResumeTemplate::class,
+            'header_config' => 'array',
         ];
     }
 

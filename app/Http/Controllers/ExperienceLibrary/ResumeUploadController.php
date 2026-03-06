@@ -9,8 +9,10 @@ use App\Services\ExperienceImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ResumeUploadController extends Controller
 {
@@ -86,6 +88,13 @@ class ResumeUploadController extends Controller
             ->with('success', 'Re-parsing in progress...');
     }
 
+    public function download(Request $request, Document $document): StreamedResponse
+    {
+        abort_unless($document->user_id === $request->user()->id, 403);
+
+        return Storage::disk($document->disk)->download($document->path, $document->filename);
+    }
+
     public function commit(Request $request, Document $document, ExperienceImportService $importService): RedirectResponse
     {
         abort_unless($document->user_id === $request->user()->id, 403);
@@ -108,10 +117,14 @@ class ResumeUploadController extends Controller
             'projects' => 'array',
             'projects.*.name' => 'required|string',
             'projects.*.description' => 'required|string',
+            'urls' => 'array',
+            'urls.*.url' => 'required|url',
+            'urls.*.type' => 'required|string',
+            'urls.*.label' => 'nullable|string',
         ]);
 
         $stats = $importService->import($request->user(), $request->only([
-            'experiences', 'accomplishments', 'skills', 'education', 'projects',
+            'experiences', 'accomplishments', 'skills', 'education', 'projects', 'urls',
         ]));
 
         Cache::put("resume-parse:{$document->id}", ['status' => 'imported'], now()->addYear());

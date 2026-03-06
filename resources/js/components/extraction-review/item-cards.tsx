@@ -2,7 +2,7 @@ import { Check, Loader2, Pencil, Sparkles, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { ParsedAccomplishment, ParsedEducation, ParsedExperience, ParsedProject, ParsedSkill, SectionKey } from './types';
+import type { ParsedAccomplishment, ParsedEducation, ParsedExperience, ParsedProject, ParsedSkill, ParsedUrl, SectionKey } from './types';
 
 interface ItemCardProps {
     selected: boolean;
@@ -267,5 +267,40 @@ export function ProjectCard({
                 )}
             </CardContent>
         </Card>
+    );
+}
+
+const urlTypeLabels: Record<string, string> = {
+    linkedin: 'LinkedIn',
+    github: 'GitHub',
+    portfolio: 'Portfolio',
+    article: 'Article',
+    other: 'Other',
+};
+
+export function LinkBadges({
+    urls,
+    selected,
+    onToggle,
+}: {
+    urls: ParsedUrl[];
+    selected: Set<number>;
+    onToggle: (section: SectionKey, index: number) => void;
+}) {
+    return (
+        <div className="space-y-2">
+            {urls.map((url, i) => (
+                <div
+                    key={i}
+                    className={`flex cursor-pointer items-center gap-2 rounded-md border p-2 ${selected.has(i) ? '' : 'opacity-40'}`}
+                    onClick={() => onToggle('urls', i)}
+                >
+                    <Badge variant={selected.has(i) ? 'secondary' : 'outline'} className="shrink-0">
+                        {urlTypeLabels[url.type] ?? url.type}
+                    </Badge>
+                    <span className="min-w-0 truncate text-sm">{url.label || url.url}</span>
+                </div>
+            ))}
+        </div>
     );
 }

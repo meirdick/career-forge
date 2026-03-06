@@ -47,6 +47,9 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user,
             ],
+            'flash' => [
+                'ai_access_denied' => fn () => $request->session()->get('ai_access_denied'),
+            ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'profileCompleteness' => $user
                 ? app(ProfileCompletenessService::class)->calculate($user)['score']
@@ -60,6 +63,8 @@ class HandleInertiaRequests extends Middleware
             ] : [
                 'gatingEnabled' => false,
             ],
+            'showWelcome' => $user && $gatingEnabled && $user->welcome_dismissed_at === null,
+            'referralCode' => $user?->referral_code,
         ];
     }
 }

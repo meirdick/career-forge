@@ -71,4 +71,5 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('resume-upload/{document}/review', [ResumeUploadController::class, 'review'])->name('resume-upload.review');
     Route::post('resume-upload/{document}/retry', [ResumeUploadController::class, 'retry'])->middleware('ai.access:resume_parsing')->name('resume-upload.retry');
     Route::post('resume-upload/{document}/commit', [ResumeUploadController::class, 'commit'])->name('resume-upload.commit');
+    Route::get('documents/{document}/download', [ResumeUploadController::class, 'download'])->name('documents.download');
 });

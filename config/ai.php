@@ -34,6 +34,7 @@ return [
         'credits_per_purchase' => 500,
         'purchase_price_cents' => 500,
         'signup_bonus' => (int) env('AI_SIGNUP_BONUS', 250),
+        'referral_bonus' => (int) env('AI_REFERRAL_BONUS', 250),
         'promo_code' => env('AI_PROMO_CODE', null),
         'promo_code_credits' => (int) env('AI_PROMO_CODE_CREDITS', 0),
         'costs' => [

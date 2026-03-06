@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>{{ $user->name ?? 'Resume' }}</title>
+    <title>{{ $header['name'] ?? $user->name ?? 'Resume' }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -60,15 +60,15 @@
 </head>
 <body>
     <div class="header">
-        <h1>{{ $user->name ?? 'Candidate' }}</h1>
+        <h1>{{ $header['name'] ?? $user->name ?? 'Candidate' }}</h1>
         <div class="contact-info">
             @php
                 $parts = array_filter([
-                    $user->email,
-                    $user->phone,
-                    $user->location,
-                    $user->linkedin_url,
-                    $user->portfolio_url,
+                    $header['email'] ?? $user->email,
+                    $header['phone'] ?? $user->phone,
+                    $header['location'] ?? $user->location,
+                    $header['linkedin_url'] ?? $user->linkedin_url,
+                    $header['portfolio_url'] ?? $user->portfolio_url,
                 ]);
             @endphp
             {{ implode(' | ', $parts) }}

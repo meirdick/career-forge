@@ -33,7 +33,7 @@ class EvidenceEntryController extends Controller
         $request->user()->evidenceEntries()->create($request->validated());
 
         return to_route('evidence.index')
-            ->with('success', 'Evidence entry added.');
+            ->with('success', 'Link added.');
     }
 
     public function update(UpdateEvidenceEntryRequest $request, EvidenceEntry $evidenceEntry): RedirectResponse
@@ -43,13 +43,13 @@ class EvidenceEntryController extends Controller
         $evidenceEntry->update($request->validated());
 
         return to_route('evidence.index')
-            ->with('success', 'Evidence entry updated.');
+            ->with('success', 'Link updated.');
     }
 
     public function indexLink(Request $request, EvidenceEntry $evidenceEntry, WebScraperService $scraper): JsonResponse
     {
         abort_unless($evidenceEntry->user_id === $request->user()->id, 403);
-        abort_unless($evidenceEntry->url, 422, 'Evidence entry has no URL.');
+        abort_unless($evidenceEntry->url, 422, 'Link has no URL.');
 
         $content = $scraper->scrape($evidenceEntry->url);
 
@@ -73,6 +73,6 @@ class EvidenceEntryController extends Controller
         $evidenceEntry->delete();
 
         return to_route('evidence.index')
-            ->with('success', 'Evidence entry deleted.');
+            ->with('success', 'Link deleted.');
     }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\GenerateResumeJob;
+use App\Models\Document;
 use App\Models\GapAnalysis;
 use App\Models\IdealCandidateProfile;
 use App\Models\JobPosting;
@@ -9,6 +10,7 @@ use App\Models\ResumeSection;
 use App\Models\ResumeSectionVariant;
 use App\Models\User;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
@@ -191,5 +193,68 @@ test('destroy returns 403 for other users resume', function () {
 
     $this->actingAs($this->user)
         ->delete("/resumes/{$resume->id}")
+        ->assertForbidden();
+});
+
+test('index shows uploaded documents', function () {
+    Document::factory()->create([
+        'user_id' => $this->user->id,
+        'filename' => 'my-resume.pdf',
+        'metadata' => ['purpose' => 'resume_import'],
+    ]);
+
+    $this->actingAs($this->user)
+        ->get('/resumes')
+        ->assertSuccessful()
+        ->assertInertia(
+            fn ($page) => $page
+                ->component('resumes/index')
+                ->has('uploadedDocuments', 1)
+                ->where('uploadedDocuments.0.filename', 'my-resume.pdf')
+        );
+});
+
+test('index does not show non-resume documents', function () {
+    Document::factory()->create([
+        'user_id' => $this->user->id,
+        'metadata' => ['purpose' => 'other'],
+    ]);
+
+    $this->actingAs($this->user)
+        ->get('/resumes')
+        ->assertSuccessful()
+        ->assertInertia(
+            fn ($page) => $page
+                ->component('resumes/index')
+                ->has('uploadedDocuments', 0)
+        );
+});
+
+test('document download works for owner', function () {
+    Storage::fake();
+    Storage::put('resume-uploads/test.pdf', 'fake-pdf-content');
+
+    $document = Document::factory()->create([
+        'user_id' => $this->user->id,
+        'filename' => 'test.pdf',
+        'disk' => 'local',
+        'path' => 'resume-uploads/test.pdf',
+        'metadata' => ['purpose' => 'resume_import'],
+    ]);
+
+    $this->actingAs($this->user)
+        ->get("/documents/{$document->id}/download")
+        ->assertSuccessful();
+});
+
+test('document download returns 403 for non-owner', function () {
+    $other = User::factory()->create();
+    $document = Document::factory()->create([
+        'user_id' => $other->id,
+        'metadata' => ['purpose' => 'resume_import'],
+    ]);
+
+    $this->actingAs($this->user)
+        ->get("/documents/{$document->id}/download")
         ->assertForbidden();
 });

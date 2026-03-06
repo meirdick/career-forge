@@ -78,6 +78,26 @@ class CreditService
         return $this->addBonus($user, $amount, 'Signup bonus');
     }
 
+    public function grantReferralBonus(User $referrer, User $referred): ?CreditTransaction
+    {
+        $amount = config('ai.gating.referral_bonus', 0);
+
+        if ($amount <= 0) {
+            return null;
+        }
+
+        $alreadyGranted = $referrer->creditTransactions()
+            ->where('type', CreditTransactionType::Bonus)
+            ->whereJsonContains('metadata->referral_user_id', $referred->id)
+            ->exists();
+
+        if ($alreadyGranted) {
+            return null;
+        }
+
+        return $this->addBonus($referrer, $amount, 'Referral bonus', ['referral_user_id' => $referred->id]);
+    }
+
     public function redeemPromoCode(User $user, string $code): ?CreditTransaction
     {
         $code = strtoupper(trim($code));
@@ -100,7 +120,7 @@ class CreditService
         return $this->addBonus($user, $credits, "Promo code: {$code}", ['promo_code' => $code]);
     }
 
-    protected function addBonus(User $user, int $amount, string $description, ?array $metadata = null): CreditTransaction
+    public function addBonus(User $user, int $amount, string $description, ?array $metadata = null): CreditTransaction
     {
         return DB::transaction(function () use ($user, $amount, $description, $metadata) {
             $balance = CreditBalance::firstOrCreate(

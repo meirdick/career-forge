@@ -4,6 +4,7 @@ namespace App\Http\Controllers\ExperienceLibrary;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ExperienceLibrary\UpdateProfessionalIdentityRequest;
+use App\Services\ResumeHeaderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,6 +18,11 @@ class ProfessionalIdentityController extends Controller
 
         return Inertia::render('experience-library/identity', [
             'identity' => $identity,
+            'user' => [
+                'name' => $request->user()->name,
+                'legal_name' => $request->user()->legal_name,
+            ],
+            'resumeHeaderConfig' => $identity?->resume_header_config ?? ResumeHeaderService::defaults(),
         ]);
     }
 
@@ -24,8 +30,12 @@ class ProfessionalIdentityController extends Controller
     {
         $request->user()->professionalIdentity()->updateOrCreate(
             ['user_id' => $request->user()->id],
-            $request->validated(),
+            $request->safe()->except(['legal_name']),
         );
+
+        if ($request->has('legal_name')) {
+            $request->user()->update(['legal_name' => $request->input('legal_name')]);
+        }
 
         return to_route('identity.edit')
             ->with('success', 'Professional identity updated.');

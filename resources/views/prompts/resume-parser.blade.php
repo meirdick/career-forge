@@ -19,6 +19,10 @@ Extract the following information from the resume text:
    - name, description, role (person's role in the project), outcome (if mentioned)
    - Link each project to the experience it belongs to using the experience index (0-based), or null if standalone.
 
+6. **URLs** (all links/URLs found in the resume):
+   - Extract all URLs found anywhere in the resume — headers, footers, contact sections, inline text.
+   - url (the full URL), type (classify as: "linkedin" for linkedin.com URLs, "github" for github.com URLs, "portfolio" for personal websites/portfolios, "article" for blog posts or published articles, "other" for anything else), label (descriptive label if available, e.g. the link text)
+
 Be thorough but accurate. Only extract information that is clearly stated or strongly implied. Use reasonable date approximations when exact dates aren't provided (e.g., "2020" becomes "2020-01-01").
 
 Here is the resume text:

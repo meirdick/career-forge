@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\ApplicationStatus;
 use App\Models\Resume;
 use App\Services\ResumeExportService;
+use App\Services\ResumeHeaderService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -12,24 +13,15 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ResumeExportController extends Controller
 {
-    public function preview(Request $request, Resume $resume): Response
+    public function preview(Request $request, Resume $resume, ResumeHeaderService $headerService): Response
     {
         abort_unless($resume->user_id === $request->user()->id, 403);
 
-        $resume->load(['sections.selectedVariant', 'jobPosting', 'user']);
-
-        $user = $resume->user;
+        $resume->load(['sections.selectedVariant', 'jobPosting', 'user.professionalIdentity']);
 
         return Inertia::render('resumes/preview', [
             'resume' => $resume,
-            'contact' => [
-                'name' => $user->name,
-                'email' => $user->email,
-                'phone' => $user->phone,
-                'location' => $user->location,
-                'linkedin_url' => $user->linkedin_url,
-                'portfolio_url' => $user->portfolio_url,
-            ],
+            'contact' => $headerService->resolveHeader($resume),
         ]);
     }
 

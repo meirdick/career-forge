@@ -32,14 +32,25 @@ class EnsureAiAccess
         if (! $this->gatingService->canPerformAction($user, $aiPurpose)) {
             $mode = $this->gatingService->resolveAccessMode($user);
             $cost = app(CreditService::class)->getCostForPurpose($aiPurpose);
+            $balance = app(CreditService::class)->getBalance($user);
 
-            if ($request->wantsJson() || $request->header('X-Inertia')) {
+            if ($request->header('X-Inertia')) {
+                return redirect()->back()->with('ai_access_denied', [
+                    'message' => 'AI access limit reached',
+                    'access_mode' => $mode->value,
+                    'purpose' => $purpose,
+                    'cost' => $cost,
+                    'balance' => $balance,
+                ]);
+            }
+
+            if ($request->wantsJson()) {
                 return response()->json([
                     'message' => 'AI access limit reached',
                     'access_mode' => $mode->value,
                     'purpose' => $purpose,
                     'cost' => $cost,
-                    'balance' => app(CreditService::class)->getBalance($user),
+                    'balance' => $balance,
                     'free_tier_usage' => $this->gatingService->getFreeTierUsage($user),
                 ], 402);
             }

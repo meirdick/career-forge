@@ -2,6 +2,7 @@
 
 use App\Jobs\ParseResumeJob;
 use App\Models\Document;
+use App\Models\EvidenceEntry;
 use App\Models\Experience;
 use App\Models\Skill;
 use App\Models\User;
@@ -168,4 +169,89 @@ test('commit returns 403 for other users document', function () {
     $this->actingAs($this->user)
         ->post("/resume-upload/{$document->id}/commit", [])
         ->assertForbidden();
+});
+
+test('commit imports URLs as link entries', function () {
+    $document = Document::factory()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->post("/resume-upload/{$document->id}/commit", [
+            'urls' => [
+                ['url' => 'https://github.com/jdoe', 'type' => 'github', 'label' => 'GitHub Profile'],
+                ['url' => 'https://linkedin.com/in/jdoe', 'type' => 'linkedin'],
+            ],
+        ])
+        ->assertRedirect('/experience-library');
+
+    expect(EvidenceEntry::count())->toBe(2);
+
+    $github = EvidenceEntry::where('url', 'https://github.com/jdoe')->first();
+    expect($github)
+        ->type->toBe('repository')
+        ->title->toBe('GitHub Profile');
+
+    $linkedin = EvidenceEntry::where('url', 'https://linkedin.com/in/jdoe')->first();
+    expect($linkedin)
+        ->type->toBe('portfolio');
+});
+
+test('commit skips duplicate URLs', function () {
+    $document = Document::factory()->create(['user_id' => $this->user->id]);
+    EvidenceEntry::factory()->create([
+        'user_id' => $this->user->id,
+        'url' => 'https://github.com/jdoe',
+    ]);
+
+    $this->actingAs($this->user)
+        ->post("/resume-upload/{$document->id}/commit", [
+            'urls' => [
+                ['url' => 'https://github.com/jdoe', 'type' => 'github'],
+            ],
+        ])
+        ->assertRedirect('/experience-library');
+
+    expect(EvidenceEntry::where('user_id', $this->user->id)->count())->toBe(1);
+});
+
+test('commit auto-populates user linkedin_url from URL when empty', function () {
+    $document = Document::factory()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->post("/resume-upload/{$document->id}/commit", [
+            'urls' => [
+                ['url' => 'https://linkedin.com/in/jdoe', 'type' => 'linkedin'],
+            ],
+        ])
+        ->assertRedirect('/experience-library');
+
+    expect($this->user->fresh()->linkedin_url)->toBe('https://linkedin.com/in/jdoe');
+});
+
+test('commit does not overwrite existing user linkedin_url', function () {
+    $this->user->update(['linkedin_url' => 'https://linkedin.com/in/existing']);
+    $document = Document::factory()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->post("/resume-upload/{$document->id}/commit", [
+            'urls' => [
+                ['url' => 'https://linkedin.com/in/jdoe', 'type' => 'linkedin'],
+            ],
+        ])
+        ->assertRedirect('/experience-library');
+
+    expect($this->user->fresh()->linkedin_url)->toBe('https://linkedin.com/in/existing');
+});
+
+test('commit auto-populates user portfolio_url from URL when empty', function () {
+    $document = Document::factory()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->post("/resume-upload/{$document->id}/commit", [
+            'urls' => [
+                ['url' => 'https://johndoe.com', 'type' => 'portfolio'],
+            ],
+        ])
+        ->assertRedirect('/experience-library');
+
+    expect($this->user->fresh()->portfolio_url)->toBe('https://johndoe.com');
 });

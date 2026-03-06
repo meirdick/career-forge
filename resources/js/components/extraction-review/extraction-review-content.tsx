@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import EditItemDialog from './edit-item-dialog';
-import { AccomplishmentCard, EducationCard, ExperienceCard, ProjectCard, SkillBadges } from './item-cards';
+import { AccomplishmentCard, EducationCard, ExperienceCard, LinkBadges, ProjectCard, SkillBadges } from './item-cards';
 import type { ExtractionData, SectionKey } from './types';
 import { useExtractionReview } from './use-extraction-review';
 
@@ -140,6 +140,18 @@ export default function ExtractionReviewContent({ data, onImport, importing, com
                                     compact={compact}
                                 />
                             ))}
+                        </section>
+                    </>
+                )}
+
+                {review.editedData.urls?.length > 0 && (
+                    <>
+                        <Separator />
+                        <section className="space-y-3">
+                            <h3 className={compact ? 'text-sm font-semibold' : 'text-lg font-semibold'}>
+                                Links ({review.selected.urls?.size ?? 0}/{review.editedData.urls.length})
+                            </h3>
+                            <LinkBadges urls={review.editedData.urls} selected={review.selected.urls ?? new Set()} onToggle={review.toggle} />
                         </section>
                     </>
                 )}

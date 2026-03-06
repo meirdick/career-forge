@@ -33,12 +33,19 @@ export type ParsedProject = {
     experience_index?: number;
 };
 
+export type ParsedUrl = {
+    url: string;
+    type: string;
+    label?: string;
+};
+
 export type ExtractionData = {
     experiences: ParsedExperience[];
     accomplishments: ParsedAccomplishment[];
     skills: ParsedSkill[];
     education: ParsedEducation[];
     projects: ParsedProject[];
+    urls: ParsedUrl[];
 };
 
 export type SectionKey = keyof ExtractionData;

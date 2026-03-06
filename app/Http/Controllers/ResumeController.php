@@ -8,6 +8,7 @@ use App\Models\GapAnalysis;
 use App\Models\Resume;
 use App\Models\ResumeSection;
 use App\Models\ResumeSectionVariant;
+use App\Services\ResumeHeaderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -24,8 +25,23 @@ class ResumeController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        $uploadedDocuments = $request->user()
+            ->documents()
+            ->where('metadata->purpose', 'resume_import')
+            ->latest()
+            ->get()
+            ->map(fn ($doc) => [
+                'id' => $doc->id,
+                'filename' => $doc->filename,
+                'size' => $doc->size,
+                'mime_type' => $doc->mime_type,
+                'created_at' => $doc->created_at->toIso8601String(),
+                'download_url' => route('documents.download', $doc),
+            ]);
+
         return Inertia::render('resumes/index', [
             'resumes' => $resumes,
+            'uploadedDocuments' => $uploadedDocuments,
         ]);
     }
 
@@ -54,10 +70,13 @@ class ResumeController extends Controller
     {
         abort_unless($resume->user_id === $request->user()->id, 403);
 
-        $resume->load(['sections.variants', 'sections.selectedVariant', 'jobPosting', 'gapAnalysis', 'user']);
+        $resume->load(['sections.variants', 'sections.selectedVariant', 'jobPosting', 'gapAnalysis', 'user.professionalIdentity']);
+
+        $globalConfig = $request->user()->professionalIdentity?->resume_header_config ?? ResumeHeaderService::defaults();
 
         return Inertia::render('resumes/show', [
             'resume' => $resume,
+            'globalHeaderConfig' => $globalConfig,
         ]);
     }
 
@@ -71,9 +90,16 @@ class ResumeController extends Controller
             'section_order.*' => 'integer|exists:resume_sections,id',
             'is_finalized' => 'sometimes|boolean',
             'template' => ['sometimes', Rule::enum(ResumeTemplate::class)],
+            'header_config' => 'sometimes|nullable|array',
+            'header_config.name_preference' => 'sometimes|in:display_name,legal_name',
+            'header_config.show_email' => 'sometimes|boolean',
+            'header_config.show_phone' => 'sometimes|boolean',
+            'header_config.show_location' => 'sometimes|boolean',
+            'header_config.show_linkedin' => 'sometimes|boolean',
+            'header_config.show_portfolio' => 'sometimes|boolean',
         ]);
 
-        $resume->update($request->only(['title', 'section_order', 'is_finalized', 'template']));
+        $resume->update($request->only(['title', 'section_order', 'is_finalized', 'template', 'header_config']));
 
         if ($request->has('section_order')) {
             foreach ($request->input('section_order') as $index => $sectionId) {

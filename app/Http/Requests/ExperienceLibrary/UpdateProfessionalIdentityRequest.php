@@ -6,17 +6,12 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateProfessionalIdentityRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
     /**
-     * Get the validation rules that apply to the request.
-     *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
@@ -29,6 +24,14 @@ class UpdateProfessionalIdentityRequest extends FormRequest
             'collaboration_approach' => 'nullable|string',
             'communication_style' => 'nullable|string',
             'cultural_preferences' => 'nullable|string',
+            'legal_name' => 'nullable|string|max:255',
+            'resume_header_config' => 'nullable|array',
+            'resume_header_config.name_preference' => 'sometimes|in:display_name,legal_name',
+            'resume_header_config.show_email' => 'sometimes|boolean',
+            'resume_header_config.show_phone' => 'sometimes|boolean',
+            'resume_header_config.show_location' => 'sometimes|boolean',
+            'resume_header_config.show_linkedin' => 'sometimes|boolean',
+            'resume_header_config.show_portfolio' => 'sometimes|boolean',
         ];
     }
 }

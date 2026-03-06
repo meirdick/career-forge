@@ -12,8 +12,9 @@ class RenderCvService
 {
     private string $rendercvPath;
 
-    public function __construct()
-    {
+    public function __construct(
+        private ResumeHeaderService $headerService,
+    ) {
         $path = config('services.rendercv.path') ?? 'rendercv';
 
         // Resolve relative paths from the application base path
@@ -84,32 +85,32 @@ class RenderCvService
 
     public function buildYaml(Resume $resume): string
     {
-        $resume->loadMissing(['sections.selectedVariant', 'user', 'jobPosting']);
+        $resume->loadMissing(['sections.selectedVariant', 'user.professionalIdentity', 'jobPosting']);
 
-        $user = $resume->user;
+        $header = $this->headerService->resolveHeader($resume);
 
         $cv = [
-            'name' => $user->name ?? 'Candidate',
+            'name' => $header['name'],
         ];
 
-        if ($user->location) {
-            $cv['location'] = $user->location;
+        if ($header['location']) {
+            $cv['location'] = $header['location'];
         }
 
-        if ($user->email) {
-            $cv['email'] = $user->email;
+        if ($header['email']) {
+            $cv['email'] = $header['email'];
         }
 
-        if ($user->phone) {
-            $cv['phone'] = $user->phone;
+        if ($header['phone']) {
+            $cv['phone'] = $header['phone'];
         }
 
-        if ($user->portfolio_url) {
-            $cv['website'] = $user->portfolio_url;
+        if ($header['portfolio_url']) {
+            $cv['website'] = $header['portfolio_url'];
         }
 
-        if ($user->linkedin_url) {
-            $username = $this->extractLinkedInUsername($user->linkedin_url);
+        if ($header['linkedin_url']) {
+            $username = $this->extractLinkedInUsername($header['linkedin_url']);
             if ($username) {
                 $cv['social_networks'] = [
                     ['network' => 'LinkedIn', 'username' => $username],
