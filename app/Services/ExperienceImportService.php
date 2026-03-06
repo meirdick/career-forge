@@ -24,19 +24,20 @@ class ExperienceImportService
         foreach ($data['experiences'] ?? [] as $index => $expData) {
             $existing = $user->experiences
                 ->first(function ($e) use ($expData) {
-                    if (mb_strtolower($e->company) !== mb_strtolower($expData['company'])) {
-                        return false;
-                    }
-                    if (mb_strtolower($e->title) !== mb_strtolower($expData['title'])) {
-                        return false;
-                    }
-
-                    return $this->datesOverlap(
+                    $companyMatch = $this->fuzzyMatch($e->company, $expData['company']);
+                    $datesMatch = $this->datesOverlap(
                         $e->started_at,
                         $e->ended_at,
                         $expData['started_at'] ?? null,
                         $expData['ended_at'] ?? null,
                     );
+
+                    if (! $companyMatch || ! $datesMatch) {
+                        return false;
+                    }
+
+                    // Same company + overlapping dates: use lenient title matching
+                    return $this->fuzzyMatch($e->title, $expData['title'], threshold: 60);
                 });
 
             if ($existing) {
@@ -113,8 +114,12 @@ class ExperienceImportService
         foreach ($data['education'] ?? [] as $eduData) {
             $existing = $user->educationEntries
                 ->first(function ($e) use ($eduData) {
-                    return mb_strtolower($e->institution) === mb_strtolower($eduData['institution'])
-                        && mb_strtolower($e->title) === mb_strtolower($eduData['title']);
+                    if (! $this->fuzzyMatch($e->institution, $eduData['institution'])) {
+                        return false;
+                    }
+
+                    // Same institution: use lenient title matching
+                    return $this->fuzzyMatch($e->title, $eduData['title'], threshold: 60);
                 });
 
             if ($existing) {
@@ -226,5 +231,42 @@ class ExperienceImportService
 
         // If starts are within 90 days, consider overlapping (handles approximated dates)
         return $a1->diffInDays($b1) <= 90;
+    }
+
+    /**
+     * Normalize a string for comparison by lowercasing, stripping punctuation, and collapsing whitespace.
+     */
+    private function normalize(string $value): string
+    {
+        $value = mb_strtolower(trim($value));
+        $value = (string) preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $value);
+
+        return (string) preg_replace('/\s+/', ' ', trim($value));
+    }
+
+    /**
+     * Fuzzy-match two strings using normalized comparison, containment check, and similarity scoring.
+     */
+    private function fuzzyMatch(string $a, string $b, int $threshold = 85): bool
+    {
+        $normA = $this->normalize($a);
+        $normB = $this->normalize($b);
+
+        if ($normA === $normB) {
+            return true;
+        }
+
+        // One contains the other (handles "Startup Accelerator Program" vs "Extreme Startups Accelerator")
+        $shorter = mb_strlen($normA) <= mb_strlen($normB) ? $normA : $normB;
+        $longer = mb_strlen($normA) > mb_strlen($normB) ? $normA : $normB;
+
+        if (mb_strlen($shorter) >= 4 && str_contains($longer, $shorter)) {
+            return true;
+        }
+
+        // Percentage similarity
+        similar_text($normA, $normB, $percent);
+
+        return $percent >= $threshold;
     }
 }
