@@ -85,3 +85,23 @@ test('destroy returns 403 for other users entry', function () {
         ->delete("/evidence/{$entry->id}")
         ->assertForbidden();
 });
+
+test('store normalizes url without protocol', function () {
+    $this->actingAs($this->user)->post('/evidence', [
+        'type' => 'portfolio',
+        'title' => 'My Site',
+        'url' => 'www.example.com',
+    ])->assertRedirect('/evidence');
+
+    expect(EvidenceEntry::first()->url)->toBe('https://www.example.com');
+});
+
+test('store preserves url with existing protocol', function () {
+    $this->actingAs($this->user)->post('/evidence', [
+        'type' => 'portfolio',
+        'title' => 'My Site',
+        'url' => 'http://example.com',
+    ])->assertRedirect('/evidence');
+
+    expect(EvidenceEntry::first()->url)->toBe('http://example.com');
+});

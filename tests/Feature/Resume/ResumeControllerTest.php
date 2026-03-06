@@ -123,6 +123,33 @@ test('update can finalize resume', function () {
     expect($resume->fresh()->is_finalized)->toBeTrue();
 });
 
+test('update saves header config', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->put("/resumes/{$resume->id}", [
+            'header_config' => [
+                'name_preference' => 'legal_name',
+                'show_email' => true,
+                'show_phone' => false,
+            ],
+        ])
+        ->assertRedirect();
+
+    $config = $resume->fresh()->header_config;
+    expect($config['name_preference'])->toBe('legal_name');
+    expect($config['show_phone'])->toBeFalse();
+});
+
+test('show passes globalHeaderConfig', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}")
+        ->assertSuccessful()
+        ->assertInertia(fn ($page) => $page->has('globalHeaderConfig'));
+});
+
 test('select variant updates section', function () {
     $resume = Resume::factory()->create(['user_id' => $this->user->id]);
     $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);

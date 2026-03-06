@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, Bot, Check, Download, Eye, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Bot, Check, ChevronDown, Download, Eye, Loader2, Pencil, Settings, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Heading from '@/components/heading';
 import PipelineAssistantPanel from '@/components/pipeline-assistant-panel';
@@ -8,6 +8,9 @@ import TemplatePicker from '@/components/resume-templates/template-picker';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
@@ -15,19 +18,45 @@ import type { BreadcrumbItem } from '@/types';
 
 type Variant = { id: number; label: string; content: string; formatted_content: string; emphasis: string | null; is_ai_generated: boolean; is_user_edited: boolean };
 type Section = { id: number; type: string; title: string; sort_order: number; selected_variant_id: number | null; variants: Variant[]; selected_variant: Variant | null };
+type HeaderConfig = {
+    name_preference: string;
+    show_email: boolean;
+    show_phone: boolean;
+    show_location: boolean;
+    show_linkedin: boolean;
+    show_portfolio: boolean;
+};
+
 type ResumeData = {
     id: number;
     title: string;
     template: string;
     is_finalized: boolean;
+    header_config: HeaderConfig | null;
     sections: Section[];
     job_posting: { id: number; title: string | null; company: string | null } | null;
 };
 
-export default function ShowResume({ resume }: { resume: ResumeData }) {
+const headerToggleFields = [
+    { key: 'show_email' as const, label: 'Email' },
+    { key: 'show_phone' as const, label: 'Phone' },
+    { key: 'show_location' as const, label: 'Location' },
+    { key: 'show_linkedin' as const, label: 'LinkedIn' },
+    { key: 'show_portfolio' as const, label: 'Portfolio' },
+];
+
+export default function ShowResume({ resume, globalHeaderConfig }: { resume: ResumeData; globalHeaderConfig: HeaderConfig }) {
     const isGenerating = resume.sections.length === 0;
     const [editingVariant, setEditingVariant] = useState<number | null>(null);
     const [editContent, setEditContent] = useState('');
+    const [headerOpen, setHeaderOpen] = useState(false);
+
+    const effectiveConfig: HeaderConfig = { ...globalHeaderConfig, ...(resume.header_config ?? {}) };
+
+    function updateHeaderConfig(key: string, value: boolean | string) {
+        const updated = { ...effectiveConfig, [key]: value };
+        router.put(`/resumes/${resume.id}`, { header_config: updated }, { preserveScroll: true });
+    }
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Resumes', href: '/resumes' },
@@ -115,6 +144,66 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
                             onChange={(key) => router.put(`/resumes/${resume.id}`, { template: key }, { preserveScroll: true })}
                         />
                     </div>
+                )}
+
+                {!isGenerating && !resume.is_finalized && (
+                    <Collapsible open={headerOpen} onOpenChange={setHeaderOpen}>
+                        <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="sm" className="gap-2">
+                                <Settings className="h-4 w-4" />
+                                Header Settings
+                                <ChevronDown className={`h-4 w-4 transition-transform ${headerOpen ? 'rotate-180' : ''}`} />
+                            </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                            <Card className="mt-2">
+                                <CardContent className="space-y-4 pt-4">
+                                    <div>
+                                        <Label className="mb-2 block text-sm font-medium">Name Preference</Label>
+                                        <div className="flex items-center gap-4">
+                                            <label className="flex items-center gap-2 text-sm">
+                                                <input
+                                                    type="radio"
+                                                    name="name_preference"
+                                                    value="display_name"
+                                                    checked={effectiveConfig.name_preference === 'display_name'}
+                                                    onChange={() => updateHeaderConfig('name_preference', 'display_name')}
+                                                    className="accent-primary"
+                                                />
+                                                Display Name
+                                            </label>
+                                            <label className="flex items-center gap-2 text-sm">
+                                                <input
+                                                    type="radio"
+                                                    name="name_preference"
+                                                    value="legal_name"
+                                                    checked={effectiveConfig.name_preference === 'legal_name'}
+                                                    onChange={() => updateHeaderConfig('name_preference', 'legal_name')}
+                                                    className="accent-primary"
+                                                />
+                                                Legal Name
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-medium">Show on Resume</Label>
+                                        {headerToggleFields.map((field) => (
+                                            <label key={field.key} className="flex items-center gap-2">
+                                                <Checkbox
+                                                    checked={effectiveConfig[field.key]}
+                                                    onCheckedChange={(checked) => updateHeaderConfig(field.key, !!checked)}
+                                                />
+                                                <span className="text-sm">{field.label}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                    <p className="text-muted-foreground text-xs">
+                                        These override your global defaults from the Identity page.
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        </CollapsibleContent>
+                    </Collapsible>
                 )}
 
                 {isGenerating && (

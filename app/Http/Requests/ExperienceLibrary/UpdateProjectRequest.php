@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests\ExperienceLibrary;
 
+use App\Concerns\NormalizesUrls;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateProjectRequest extends FormRequest
 {
+    use NormalizesUrls;
+
     /**
      * Determine if the user is authorized to make this request.
      */

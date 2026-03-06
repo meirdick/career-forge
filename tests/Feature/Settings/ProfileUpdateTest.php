@@ -115,6 +115,25 @@ test('contact fields are optional when updating profile', function () {
     expect($user->portfolio_url)->toBeNull();
 });
 
+test('profile normalizes urls without protocol', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'name' => 'Test User',
+            'email' => $user->email,
+            'linkedin_url' => 'www.linkedin.com/in/testuser',
+            'portfolio_url' => 'mysite.com',
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('profile.edit'));
+
+    $user->refresh();
+
+    expect($user->linkedin_url)->toBe('https://www.linkedin.com/in/testuser');
+    expect($user->portfolio_url)->toBe('https://mysite.com');
+});
+
 test('correct password must be provided to delete account', function () {
     $user = User::factory()->create();
 

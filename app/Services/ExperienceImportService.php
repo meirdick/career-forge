@@ -172,6 +172,10 @@ class ExperienceImportService
 
         foreach ($data['urls'] ?? [] as $urlData) {
             $url = $urlData['url'];
+
+            if (! preg_match('#^https?://#i', $url)) {
+                $url = 'https://'.$url;
+            }
             $existing = $user->evidenceEntries
                 ->first(fn ($e) => mb_strtolower($e->url ?? '') === mb_strtolower($url));
 

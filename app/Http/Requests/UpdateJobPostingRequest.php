@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Concerns\NormalizesUrls;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateJobPostingRequest extends FormRequest
 {
+    use NormalizesUrls;
+
     public function authorize(): bool
     {
         return true;

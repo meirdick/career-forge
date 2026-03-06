@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\ProfessionalIdentity;
 use App\Models\Resume;
 use App\Models\ResumeSection;
 use App\Models\ResumeSectionVariant;
@@ -134,4 +135,60 @@ test('finalize returns 403 for other users resume', function () {
     $this->actingAs($this->user)
         ->post("/resumes/{$resume->id}/finalize")
         ->assertForbidden();
+});
+
+test('preview uses resolved header from ResumeHeaderService', function () {
+    $this->user->update(['legal_name' => 'Jane Marie Doe']);
+    ProfessionalIdentity::factory()->create([
+        'user_id' => $this->user->id,
+        'resume_header_config' => [
+            'name_preference' => 'legal_name',
+            'show_phone' => false,
+        ],
+    ]);
+
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/preview")
+        ->assertSuccessful()
+        ->assertInertia(
+            fn ($page) => $page
+                ->where('contact.name', 'Jane Marie Doe')
+                ->where('contact.phone', null)
+        );
+});
+
+test('export pdf uses resolved header', function () {
+    $this->user->update(['legal_name' => 'Legal Name Test']);
+    ProfessionalIdentity::factory()->create([
+        'user_id' => $this->user->id,
+        'resume_header_config' => ['name_preference' => 'legal_name'],
+    ]);
+
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+    $variant = ResumeSectionVariant::factory()->create(['resume_section_id' => $section->id]);
+    $section->update(['selected_variant_id' => $variant->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/export/pdf")
+        ->assertSuccessful();
+});
+
+test('export docx uses resolved header', function () {
+    $this->user->update(['legal_name' => 'Legal Name DOCX']);
+    ProfessionalIdentity::factory()->create([
+        'user_id' => $this->user->id,
+        'resume_header_config' => ['name_preference' => 'legal_name'],
+    ]);
+
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+    $variant = ResumeSectionVariant::factory()->create(['resume_section_id' => $section->id]);
+    $section->update(['selected_variant_id' => $variant->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/export/docx")
+        ->assertSuccessful();
 });
