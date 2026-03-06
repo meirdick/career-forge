@@ -2,13 +2,13 @@
 
 namespace App\Ai\Agents;
 
+use App\Ai\Concerns\FailsOverOnBillingErrors;
 use Laravel\Ai\Attributes\MaxTokens;
 use Laravel\Ai\Attributes\Temperature;
 use Laravel\Ai\Attributes\Timeout;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
-use Laravel\Ai\Promptable;
 use Stringable;
 
 /**
@@ -19,7 +19,8 @@ use Stringable;
 #[Timeout(120)]
 class InterviewCoach implements Agent, Conversational
 {
-    use Promptable, RemembersConversations;
+    use FailsOverOnBillingErrors;
+    use RemembersConversations;
 
     public function __construct(
         public string $experienceContext = '',

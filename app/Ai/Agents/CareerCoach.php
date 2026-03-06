@@ -2,6 +2,7 @@
 
 namespace App\Ai\Agents;
 
+use App\Ai\Concerns\FailsOverOnBillingErrors;
 use App\Ai\Tools\EditResumeSection;
 use App\Ai\Tools\GenerateCoverLetter;
 use App\Ai\Tools\GenerateSubmissionEmail;
@@ -25,7 +26,6 @@ use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Contracts\HasTools;
-use Laravel\Ai\Promptable;
 use Stringable;
 
 #[MaxTokens(4096)]
@@ -34,7 +34,8 @@ use Stringable;
 #[Timeout(120)]
 class CareerCoach implements Agent, Conversational, HasTools
 {
-    use Promptable, RemembersConversations;
+    use FailsOverOnBillingErrors;
+    use RemembersConversations;
 
     public function __construct(
         public string $experienceContext = '',

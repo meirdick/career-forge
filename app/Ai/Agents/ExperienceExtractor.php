@@ -2,13 +2,13 @@
 
 namespace App\Ai\Agents;
 
+use App\Ai\Concerns\FailsOverOnBillingErrors;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Attributes\MaxTokens;
 use Laravel\Ai\Attributes\Temperature;
 use Laravel\Ai\Attributes\Timeout;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasStructuredOutput;
-use Laravel\Ai\Promptable;
 use Stringable;
 
 #[MaxTokens(20000)]
@@ -16,7 +16,7 @@ use Stringable;
 #[Timeout(120)]
 class ExperienceExtractor implements Agent, HasStructuredOutput
 {
-    use Promptable;
+    use FailsOverOnBillingErrors;
 
     public function instructions(): Stringable|string
     {
