@@ -1,5 +1,5 @@
 import { Form, Head, router } from '@inertiajs/react';
-import { ExternalLink, LinkIcon, Loader2, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { CheckCircle, ExternalLink, Import, LinkIcon, Loader2, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -48,7 +48,7 @@ type IndexResult = {
 };
 
 type IndexStatus = {
-    status: 'processing' | 'completed' | 'failed';
+    status: 'processing' | 'completed' | 'failed' | 'imported';
     data?: IndexResult;
     error?: string;
 };
@@ -57,6 +57,54 @@ type Props = {
     entries: EvidenceEntry[];
     indexResults: Record<number, IndexStatus>;
 };
+
+function IndexResultsDisplay({ data, imported, onImport }: { data: IndexResult; imported: boolean; onImport: () => void }) {
+    return (
+        <div className="space-y-2 rounded-md bg-muted/50 p-3">
+            <div className="flex items-center justify-between">
+                <p className="text-xs font-medium">Extracted from URL:</p>
+                {imported && (
+                    <Badge variant="secondary" className="text-xs">
+                        <CheckCircle className="mr-1 h-3 w-3" />
+                        Imported
+                    </Badge>
+                )}
+            </div>
+            {data.skills.length > 0 && (
+                <div>
+                    <p className="text-xs text-muted-foreground">Skills</p>
+                    <div className="flex flex-wrap gap-1">
+                        {data.skills.map((s, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs">{s.name}</Badge>
+                        ))}
+                    </div>
+                </div>
+            )}
+            {data.accomplishments.length > 0 && (
+                <div>
+                    <p className="text-xs text-muted-foreground">Accomplishments</p>
+                    {data.accomplishments.map((a, i) => (
+                        <p key={i} className="text-xs">{a.title} — {a.description}</p>
+                    ))}
+                </div>
+            )}
+            {data.projects.length > 0 && (
+                <div>
+                    <p className="text-xs text-muted-foreground">Projects</p>
+                    {data.projects.map((p, i) => (
+                        <p key={i} className="text-xs">{p.name} — {p.description}</p>
+                    ))}
+                </div>
+            )}
+            {!imported && (
+                <Button variant="outline" size="sm" className="mt-1" onClick={onImport}>
+                    <Import className="mr-1 h-3 w-3" />
+                    Import to Library
+                </Button>
+            )}
+        </div>
+    );
+}
 
 export default function Evidence({ entries, indexResults }: Props) {
     const [showForm, setShowForm] = useState(false);
@@ -86,6 +134,10 @@ export default function Evidence({ entries, indexResults }: Props) {
 
     function indexLink(entryId: number) {
         router.post(EvidenceEntryController.indexLink(entryId).url, {}, { preserveScroll: true });
+    }
+
+    function importResults(entryId: number) {
+        router.post(EvidenceEntryController.importResults(entryId).url, {}, { preserveScroll: true });
     }
 
     return (
@@ -202,36 +254,12 @@ export default function Evidence({ entries, indexResults }: Props) {
                                     {indexResults[entry.id]?.status === 'failed' && (
                                         <p className="text-sm text-destructive">{indexResults[entry.id].error || 'Indexing failed.'}</p>
                                     )}
-                                    {indexResults[entry.id]?.status === 'completed' && indexResults[entry.id].data && (
-                                        <div className="space-y-2 rounded-md bg-muted/50 p-3">
-                                            <p className="text-xs font-medium">Extracted from URL:</p>
-                                            {indexResults[entry.id].data!.skills.length > 0 && (
-                                                <div>
-                                                    <p className="text-xs text-muted-foreground">Skills</p>
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {indexResults[entry.id].data!.skills.map((s, i) => (
-                                                            <Badge key={i} variant="secondary" className="text-xs">{s.name}</Badge>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {indexResults[entry.id].data!.accomplishments.length > 0 && (
-                                                <div>
-                                                    <p className="text-xs text-muted-foreground">Accomplishments</p>
-                                                    {indexResults[entry.id].data!.accomplishments.map((a, i) => (
-                                                        <p key={i} className="text-xs">{a.title} — {a.description}</p>
-                                                    ))}
-                                                </div>
-                                            )}
-                                            {indexResults[entry.id].data!.projects.length > 0 && (
-                                                <div>
-                                                    <p className="text-xs text-muted-foreground">Projects</p>
-                                                    {indexResults[entry.id].data!.projects.map((p, i) => (
-                                                        <p key={i} className="text-xs">{p.name} — {p.description}</p>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
+                                    {(indexResults[entry.id]?.status === 'completed' || indexResults[entry.id]?.status === 'imported') && indexResults[entry.id].data && (
+                                        <IndexResultsDisplay
+                                            data={indexResults[entry.id].data!}
+                                            imported={indexResults[entry.id].status === 'imported'}
+                                            onImport={() => importResults(entry.id)}
+                                        />
                                     )}
                                 </CardContent>
                             </Card>

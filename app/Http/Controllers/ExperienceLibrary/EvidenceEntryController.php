@@ -7,6 +7,7 @@ use App\Http\Requests\ExperienceLibrary\StoreEvidenceEntryRequest;
 use App\Http\Requests\ExperienceLibrary\UpdateEvidenceEntryRequest;
 use App\Jobs\IndexLinkJob;
 use App\Models\EvidenceEntry;
+use App\Services\ExperienceImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -68,6 +69,23 @@ class EvidenceEntryController extends Controller
         IndexLinkJob::dispatch($request->user(), $evidenceEntry);
 
         return back();
+    }
+
+    public function importResults(Request $request, EvidenceEntry $evidenceEntry, ExperienceImportService $importService): RedirectResponse
+    {
+        abort_unless($evidenceEntry->user_id === $request->user()->id, 403);
+
+        $cached = Cache::get("evidence-index:{$evidenceEntry->id}");
+        abort_unless($cached && $cached['status'] === 'completed' && isset($cached['data']), 422, 'No completed index results to import.');
+
+        $stats = $importService->import($request->user(), $cached['data']);
+
+        Cache::put("evidence-index:{$evidenceEntry->id}", [
+            'status' => 'imported',
+            'data' => $cached['data'],
+        ], now()->addYear());
+
+        return back()->with('success', ExperienceImportService::buildImportMessage($stats));
     }
 
     public function destroy(Request $request, EvidenceEntry $evidenceEntry): RedirectResponse

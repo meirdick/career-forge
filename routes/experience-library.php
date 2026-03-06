@@ -51,6 +51,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('evidence/{evidenceEntry}', [EvidenceEntryController::class, 'update'])->name('evidence.update');
     Route::delete('evidence/{evidenceEntry}', [EvidenceEntryController::class, 'destroy'])->name('evidence.destroy');
     Route::post('evidence/{evidenceEntry}/index-link', [EvidenceEntryController::class, 'indexLink'])->middleware('ai.access:link_indexing')->name('evidence.index-link');
+    Route::post('evidence/{evidenceEntry}/import-results', [EvidenceEntryController::class, 'importResults'])->name('evidence.import-results');
 
     // Tags
     Route::get('tags', [TagController::class, 'index'])->name('tags.index');
