@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { FileText, Loader2, RefreshCw, Upload, X, CheckCircle2, Clock } from 'lucide-react';
+import { FileText, Loader2, RefreshCw, Upload, X, CheckCircle2, Clock, PackageCheck } from 'lucide-react';
 import { useRef, useState, useCallback } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -30,7 +30,7 @@ type UploadedDocument = {
     filename: string;
     size: number;
     created_at: string;
-    status: 'processing' | 'completed' | 'failed';
+    status: 'processing' | 'completed' | 'imported' | 'failed';
 };
 
 function formatFileSize(bytes: number): string {
@@ -105,6 +105,7 @@ export default function UploadResume({ documents = [] }: { documents?: UploadedD
     const statusConfig = {
         processing: { icon: Clock, label: 'Processing', variant: 'secondary' as const },
         completed: { icon: CheckCircle2, label: 'Ready', variant: 'default' as const },
+        imported: { icon: PackageCheck, label: 'Imported', variant: 'outline' as const },
         failed: { icon: X, label: 'Failed', variant: 'destructive' as const },
     };
 

@@ -114,7 +114,7 @@ class ResumeUploadController extends Controller
             'experiences', 'accomplishments', 'skills', 'education', 'projects',
         ]));
 
-        Cache::forget("resume-parse:{$document->id}");
+        Cache::put("resume-parse:{$document->id}", ['status' => 'imported'], now()->addYear());
 
         return to_route('experience-library.index')
             ->with('success', ExperienceImportService::buildImportMessage($stats));
