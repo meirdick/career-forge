@@ -161,7 +161,7 @@ test('configureRuntimeProvider does nothing for non-byok users', function () {
     $service = app(AiGatingService::class);
     $service->configureRuntimeProvider($user);
 
-    expect(config('ai.default'))->toBe('anthropic');
+    expect(config('ai.default'))->toBe(['anthropic', 'gemini']);
 });
 
 test('chargeCredits deducts from balance for credits mode', function () {
