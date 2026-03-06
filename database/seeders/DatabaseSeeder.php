@@ -27,16 +27,38 @@ use App\Models\Skill;
 use App\Models\Tag;
 use App\Models\TransparencyPage;
 use App\Models\User;
+use App\Services\CreditService;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        $user = User::firstOrCreate(
+            ['email' => 'test@example.com'],
+            [
+                'name' => 'Test User',
+                'email_verified_at' => now(),
+                'password' => 'password',
+            ],
+        );
+
+        app(CreditService::class)->grantSignupBonus($user);
+        $balance = app(CreditService::class)->getBalance($user);
+
+        $this->command->info('');
+        $this->command->info('  Seeded user:');
+        $this->command->info("    Name:     {$user->name}");
+        $this->command->info("    Email:    {$user->email}");
+        $this->command->info('    Password: password');
+        $this->command->info("    Credits:  {$balance}");
+        $this->command->info('');
+
+        if (! $user->wasRecentlyCreated) {
+            $this->command->warn('  User already exists — skipping demo data.');
+
+            return;
+        }
 
         // Experience Library
         $skills = collect([
