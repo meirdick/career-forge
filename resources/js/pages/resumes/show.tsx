@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, Bot, Check, ChevronDown, Download, Eye, Loader2, Pencil, Settings, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Bot, Check, ChevronDown, Download, Eye, EyeOff, Loader2, Pencil, Settings, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Heading from '@/components/heading';
 import PipelineAssistantPanel from '@/components/pipeline-assistant-panel';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,7 +18,7 @@ import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 
 type Variant = { id: number; label: string; content: string; formatted_content: string; emphasis: string | null; is_ai_generated: boolean; is_user_edited: boolean };
-type Section = { id: number; type: string; title: string; sort_order: number; selected_variant_id: number | null; variants: Variant[]; selected_variant: Variant | null };
+type Section = { id: number; type: string; title: string; sort_order: number; selected_variant_id: number | null; is_hidden: boolean; variants: Variant[]; selected_variant: Variant | null };
 type HeaderConfig = {
     name_preference: string;
     show_email: boolean;
@@ -50,6 +51,8 @@ export default function ShowResume({ resume, globalHeaderConfig }: { resume: Res
     const [editingVariant, setEditingVariant] = useState<number | null>(null);
     const [editContent, setEditContent] = useState('');
     const [headerOpen, setHeaderOpen] = useState(false);
+    const [editingTitle, setEditingTitle] = useState<number | null>(null);
+    const [editTitleValue, setEditTitleValue] = useState('');
 
     const effectiveConfig: HeaderConfig = { ...globalHeaderConfig, ...(resume.header_config ?? {}) };
 
@@ -88,6 +91,20 @@ export default function ShowResume({ resume, globalHeaderConfig }: { resume: Res
 
     function saveVariant(variantId: number) {
         router.put(`/resumes/${resume.id}/variants/${variantId}`, { content: editContent }, { preserveScroll: true, onSuccess: () => setEditingVariant(null) });
+    }
+
+    function toggleSection(sectionId: number) {
+        router.put(`/resumes/${resume.id}/sections/${sectionId}/toggle`, {}, { preserveScroll: true });
+    }
+
+    function saveSectionTitle(sectionId: number) {
+        router.patch(`/resumes/${resume.id}/sections/${sectionId}`, { title: editTitleValue }, { preserveScroll: true, onSuccess: () => setEditingTitle(null) });
+    }
+
+    function deleteSection(sectionId: number) {
+        if (confirm('Delete this section? This cannot be undone.')) {
+            router.delete(`/resumes/${resume.id}/sections/${sectionId}`, { preserveScroll: true });
+        }
     }
 
     return (
@@ -216,35 +233,89 @@ export default function ShowResume({ resume, globalHeaderConfig }: { resume: Res
                 )}
 
                 {sortedSections.map((section, index) => (
-                        <div key={section.id} className="space-y-3">
+                        <div key={section.id} className={`space-y-3 ${section.is_hidden ? 'opacity-50' : ''}`}>
                             <Separator />
                             <div className="flex items-center justify-between">
-                                <h2 className="text-lg font-semibold">{section.title}</h2>
-                                {!resume.is_finalized && sortedSections.length > 1 && (
+                                <div className="flex items-center gap-2">
+                                    {editingTitle === section.id ? (
+                                        <div className="flex items-center gap-1">
+                                            <Input
+                                                value={editTitleValue}
+                                                onChange={(e) => setEditTitleValue(e.target.value)}
+                                                className="h-8 w-48"
+                                                onKeyDown={(e) => { if (e.key === 'Enter') saveSectionTitle(section.id); if (e.key === 'Escape') setEditingTitle(null); }}
+                                                autoFocus
+                                            />
+                                            <Button variant="ghost" size="sm" onClick={() => saveSectionTitle(section.id)}>
+                                                <Check className="h-3 w-3" />
+                                            </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => setEditingTitle(null)}>
+                                                <X className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <h2 className={`text-lg font-semibold ${section.is_hidden ? 'line-through' : ''}`}>{section.title}</h2>
+                                            {section.is_hidden && <Badge variant="secondary" className="text-xs">Hidden</Badge>}
+                                        </>
+                                    )}
+                                </div>
+                                {!resume.is_finalized && (
                                     <div className="flex gap-1">
+                                        {editingTitle !== section.id && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => { setEditingTitle(section.id); setEditTitleValue(section.title); }}
+                                                title="Rename section"
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                        )}
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            disabled={index === 0}
-                                            onClick={() => moveSection(index, index - 1)}
-                                            title="Move up"
+                                            onClick={() => toggleSection(section.id)}
+                                            title={section.is_hidden ? 'Show section' : 'Hide section'}
                                         >
-                                            <ArrowUp className="h-4 w-4" />
+                                            {section.is_hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                                         </Button>
+                                        {sortedSections.length > 1 && (
+                                            <>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    disabled={index === 0}
+                                                    onClick={() => moveSection(index, index - 1)}
+                                                    title="Move up"
+                                                >
+                                                    <ArrowUp className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    disabled={index === sortedSections.length - 1}
+                                                    onClick={() => moveSection(index, index + 1)}
+                                                    title="Move down"
+                                                >
+                                                    <ArrowDown className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        )}
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            disabled={index === sortedSections.length - 1}
-                                            onClick={() => moveSection(index, index + 1)}
-                                            title="Move down"
+                                            onClick={() => deleteSection(section.id)}
+                                            title="Delete section"
+                                            className="text-destructive hover:text-destructive"
                                         >
-                                            <ArrowDown className="h-4 w-4" />
+                                            <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 )}
                             </div>
 
-                            {section.selected_variant && (
+                            {!section.is_hidden && section.selected_variant && (
                                 <Card className={section.selected_variant.is_ai_generated && !section.selected_variant.is_user_edited ? 'border-l-4 border-l-info' : section.selected_variant.is_user_edited ? 'border-l-4 border-l-success' : ''}>
                                     <CardContent className="pt-4">
                                         {section.selected_variant.is_ai_generated && (
@@ -273,22 +344,32 @@ export default function ShowResume({ resume, globalHeaderConfig }: { resume: Res
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div
-                                                className="prose prose-sm dark:prose-invert max-w-none cursor-pointer"
-                                                onClick={() => {
-                                                    if (!resume.is_finalized) {
-                                                        setEditingVariant(section.selected_variant!.id);
-                                                        setEditContent(section.selected_variant!.content);
-                                                    }
-                                                }}
-                                                dangerouslySetInnerHTML={{ __html: section.selected_variant.formatted_content }}
-                                            />
+                                            <div className="group relative">
+                                                <div
+                                                    className="prose prose-sm dark:prose-invert max-w-none"
+                                                    dangerouslySetInnerHTML={{ __html: section.selected_variant.formatted_content }}
+                                                />
+                                                {!resume.is_finalized && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="absolute top-0 right-0 opacity-0 group-hover:opacity-100"
+                                                        onClick={() => {
+                                                            setEditingVariant(section.selected_variant!.id);
+                                                            setEditContent(section.selected_variant!.content);
+                                                        }}
+                                                        title="Edit content"
+                                                    >
+                                                        <Pencil className="h-3 w-3" />
+                                                    </Button>
+                                                )}
+                                            </div>
                                         )}
                                     </CardContent>
                                 </Card>
                             )}
 
-                            {section.variants.length > 1 && (
+                            {!section.is_hidden && section.variants.length > 1 && (
                                 <div className="flex flex-wrap gap-2">
                                     {section.variants.map((variant) => (
                                         <Button

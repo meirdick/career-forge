@@ -77,14 +77,16 @@
 
     <div class="body-content">
         @foreach($resume->sections->sortBy('sort_order') as $section)
-            <div class="section">
-                <h2>{{ $section->title }}</h2>
-                @if($section->selectedVariant)
-                    <div class="section-content">
-                        {!! Str::markdown($section->selectedVariant->content) !!}
-                    </div>
-                @endif
-            </div>
+            @if(!$section->is_hidden)
+                <div class="section">
+                    <h2>{{ $section->title }}</h2>
+                    @if($section->selectedVariant)
+                        <div class="section-content">
+                            {!! Str::markdown($section->selectedVariant->content) !!}
+                        </div>
+                    @endif
+                </div>
+            @endif
         @endforeach
     </div>
 </body>

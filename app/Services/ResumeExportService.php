@@ -52,7 +52,7 @@ class ResumeExportService
 
         // Contact header
         $section->addText(
-            $header['name'],
+            $this->sanitizeForXml($header['name']),
             ['bold' => true, 'size' => $styles['nameSize'], 'color' => $styles['headingColor']],
             ['alignment' => Jc::CENTER]
         );
@@ -67,7 +67,7 @@ class ResumeExportService
 
         if (! empty($contactParts)) {
             $section->addText(
-                implode(' | ', $contactParts),
+                $this->sanitizeForXml(implode(' | ', $contactParts)),
                 ['size' => $styles['contactSize'], 'color' => '666666'],
                 ['alignment' => Jc::CENTER]
             );
@@ -75,8 +75,8 @@ class ResumeExportService
 
         $section->addTextBreak();
 
-        foreach ($resume->sections->sortBy('sort_order') as $resumeSection) {
-            $section->addTitle($resumeSection->title, 2);
+        foreach ($resume->sections->where('is_hidden', false)->sortBy('sort_order') as $resumeSection) {
+            $section->addTitle($this->sanitizeForXml($resumeSection->title), 2);
 
             if ($resumeSection->selectedVariant) {
                 $this->addMarkdownContent($section, $resumeSection->selectedVariant->content, $styles);
@@ -124,6 +124,7 @@ class ResumeExportService
 
     private function addMarkdownContent(\PhpOffice\PhpWord\Element\Section $section, string $content, array $styles): void
     {
+        $content = $this->sanitizeForXml($content);
         $lines = explode("\n", $content);
 
         foreach ($lines as $line) {
@@ -133,15 +134,30 @@ class ResumeExportService
                 continue;
             }
 
+            // Heading lines (### Heading)
+            if (preg_match('/^(#{1,6})\s+(.+)$/', $trimmed, $matches)) {
+                $headingText = $this->stripInlineFormatting($this->stripMarkdownLinks($matches[2]));
+                $section->addTitle($headingText, 2);
+
+                continue;
+            }
+
             // Bullet point
             if (preg_match('/^[-*]\s+(.+)$/', $trimmed, $matches)) {
-                $this->addFormattedListItem($section, $matches[1], $styles);
+                $this->addFormattedListItem($section, $this->stripMarkdownLinks($matches[1]), $styles);
+
+                continue;
+            }
+
+            // Numbered list (1. item)
+            if (preg_match('/^\d+\.\s+(.+)$/', $trimmed, $matches)) {
+                $this->addFormattedListItem($section, $this->stripMarkdownLinks($matches[1]), $styles);
 
                 continue;
             }
 
             // Regular text with inline formatting
-            $this->addFormattedText($section, $trimmed, $styles);
+            $this->addFormattedText($section, $this->stripMarkdownLinks($trimmed), $styles);
         }
     }
 
@@ -165,6 +181,12 @@ class ResumeExportService
         // Split by markdown bold and italic markers
         $parts = preg_split('/(\*\*[^*]+\*\*|\*[^*]+\*)/', $text, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
 
+        if ($parts === false) {
+            $container->addText($text);
+
+            return;
+        }
+
         foreach ($parts as $part) {
             if (preg_match('/^\*\*(.+)\*\*$/', $part, $matches)) {
                 $container->addText($matches[1], ['bold' => true]);
@@ -174,6 +196,32 @@ class ResumeExportService
                 $container->addText($part);
             }
         }
+    }
+
+    /**
+     * Strip characters that are invalid in XML 1.0.
+     */
+    private function sanitizeForXml(string $text): string
+    {
+        return preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text) ?? $text;
+    }
+
+    /**
+     * Convert markdown link syntax to plain text.
+     */
+    private function stripMarkdownLinks(string $text): string
+    {
+        return preg_replace('/\[([^\]]+)\]\([^)]+\)/', '$1', $text) ?? $text;
+    }
+
+    /**
+     * Remove inline bold/italic markers from text.
+     */
+    private function stripInlineFormatting(string $text): string
+    {
+        $text = preg_replace('/\*\*([^*]+)\*\*/', '$1', $text) ?? $text;
+
+        return preg_replace('/\*([^*]+)\*/', '$1', $text) ?? $text;
     }
 
     /**

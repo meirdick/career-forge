@@ -66,6 +66,21 @@ test('export docx downloads file', function () {
         ->exported_format->toBe('docx');
 });
 
+test('export pdf renders for each template style', function (string $template) {
+    $resume = Resume::factory()->create([
+        'user_id' => $this->user->id,
+        'template' => $template,
+    ]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+    $variant = ResumeSectionVariant::factory()->create(['resume_section_id' => $section->id]);
+    $section->update(['selected_variant_id' => $variant->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/export/pdf")
+        ->assertSuccessful()
+        ->assertHeader('content-type', 'application/pdf');
+})->with(['classic', 'moderncv', 'sb2nov', 'engineeringresumes', 'engineeringclassic']);
+
 test('export returns 404 for invalid format', function () {
     $resume = Resume::factory()->create(['user_id' => $this->user->id]);
 
@@ -191,4 +206,163 @@ test('export docx uses resolved header', function () {
     $this->actingAs($this->user)
         ->get("/resumes/{$resume->id}/export/docx")
         ->assertSuccessful();
+});
+
+test('docx handles markdown links', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+    $variant = ResumeSectionVariant::factory()->create([
+        'resume_section_id' => $section->id,
+        'content' => 'Check out [My Portfolio](https://example.com) for details.',
+    ]);
+    $section->update(['selected_variant_id' => $variant->id]);
+
+    $response = $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/export/docx")
+        ->assertSuccessful();
+
+    $fullPath = storage_path('app/private/resumes/'.$resume->id.'.docx');
+    expect(file_exists($fullPath))->toBeTrue();
+
+    $zip = new \ZipArchive;
+    expect($zip->open($fullPath))->toBe(true);
+    $zip->close();
+});
+
+test('docx handles headers in content', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+    $variant = ResumeSectionVariant::factory()->create([
+        'resume_section_id' => $section->id,
+        'content' => "### Company Name\n- Built features\n- Led team",
+    ]);
+    $section->update(['selected_variant_id' => $variant->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/export/docx")
+        ->assertSuccessful();
+
+    $fullPath = storage_path('app/private/resumes/'.$resume->id.'.docx');
+    $zip = new \ZipArchive;
+    expect($zip->open($fullPath))->toBe(true);
+    $zip->close();
+});
+
+test('docx handles invalid xml characters', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+    $variant = ResumeSectionVariant::factory()->create([
+        'resume_section_id' => $section->id,
+        'content' => "Some text with \x00 null \x08 backspace \x0B vertical tab chars",
+    ]);
+    $section->update(['selected_variant_id' => $variant->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/export/docx")
+        ->assertSuccessful();
+
+    $fullPath = storage_path('app/private/resumes/'.$resume->id.'.docx');
+    $zip = new \ZipArchive;
+    expect($zip->open($fullPath))->toBe(true);
+    $zip->close();
+});
+
+test('docx handles numbered lists', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+    $variant = ResumeSectionVariant::factory()->create([
+        'resume_section_id' => $section->id,
+        'content' => "1. First item\n2. Second item\n3. Third item",
+    ]);
+    $section->update(['selected_variant_id' => $variant->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/export/docx")
+        ->assertSuccessful();
+
+    $fullPath = storage_path('app/private/resumes/'.$resume->id.'.docx');
+    $zip = new \ZipArchive;
+    expect($zip->open($fullPath))->toBe(true);
+    $zip->close();
+});
+
+test('docx generates valid zip for each template', function (string $template) {
+    $resume = Resume::factory()->create([
+        'user_id' => $this->user->id,
+        'template' => $template,
+    ]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+    $variant = ResumeSectionVariant::factory()->create(['resume_section_id' => $section->id]);
+    $section->update(['selected_variant_id' => $variant->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/export/docx")
+        ->assertSuccessful();
+
+    $fullPath = storage_path('app/private/resumes/'.$resume->id.'.docx');
+    $zip = new \ZipArchive;
+    expect($zip->open($fullPath))->toBe(true);
+    $zip->close();
+})->with(['classic', 'moderncv', 'sb2nov', 'engineeringresumes', 'engineeringclassic']);
+
+test('hidden sections excluded from pdf export', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $visibleSection = ResumeSection::factory()->create([
+        'resume_id' => $resume->id,
+        'title' => 'Visible Section',
+        'is_hidden' => false,
+    ]);
+    $hiddenSection = ResumeSection::factory()->create([
+        'resume_id' => $resume->id,
+        'title' => 'Hidden Section',
+        'is_hidden' => true,
+    ]);
+    $v1 = ResumeSectionVariant::factory()->create(['resume_section_id' => $visibleSection->id]);
+    $v2 = ResumeSectionVariant::factory()->create(['resume_section_id' => $hiddenSection->id]);
+    $visibleSection->update(['selected_variant_id' => $v1->id]);
+    $hiddenSection->update(['selected_variant_id' => $v2->id]);
+
+    // Verify rendered Blade view excludes hidden sections
+    $resume->load(['sections.selectedVariant', 'user', 'jobPosting']);
+    $header = app(\App\Services\ResumeHeaderService::class)->resolveHeader($resume);
+    $html = view('resumes.pdf', [
+        'resume' => $resume,
+        'user' => $resume->user,
+        'header' => $header,
+        'template' => $resume->template?->value ?? 'classic',
+    ])->render();
+
+    expect($html)->toContain('Visible Section');
+    expect($html)->not->toContain('Hidden Section');
+});
+
+test('hidden sections excluded from docx export', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $visibleSection = ResumeSection::factory()->create([
+        'resume_id' => $resume->id,
+        'title' => 'Visible Section',
+        'is_hidden' => false,
+    ]);
+    $hiddenSection = ResumeSection::factory()->create([
+        'resume_id' => $resume->id,
+        'title' => 'Hidden Section',
+        'is_hidden' => true,
+    ]);
+    $v1 = ResumeSectionVariant::factory()->create(['resume_section_id' => $visibleSection->id]);
+    $v2 = ResumeSectionVariant::factory()->create(['resume_section_id' => $hiddenSection->id]);
+    $visibleSection->update(['selected_variant_id' => $v1->id]);
+    $hiddenSection->update(['selected_variant_id' => $v2->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/export/docx")
+        ->assertSuccessful();
+
+    $fullPath = storage_path('app/private/resumes/'.$resume->id.'.docx');
+    $zip = new \ZipArchive;
+    $zip->open($fullPath);
+    $xmlContent = $zip->getFromName('word/document.xml');
+    $zip->close();
+
+    expect($xmlContent)->toContain('Visible Section');
+    expect($xmlContent)->not->toContain('Hidden Section');
 });

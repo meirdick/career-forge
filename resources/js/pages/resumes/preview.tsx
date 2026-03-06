@@ -8,7 +8,7 @@ import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 
 type Variant = { id: number; content: string; formatted_content: string };
-type Section = { id: number; title: string; sort_order: number; selected_variant: Variant | null };
+type Section = { id: number; title: string; sort_order: number; is_hidden: boolean; selected_variant: Variant | null };
 type Contact = {
     name?: string;
     email?: string;
@@ -73,7 +73,7 @@ export default function PreviewResume({ resume, contact }: { resume: ResumeData;
                 </div>
 
                 {/* Resume Document Preview */}
-                <ResumeDocument template={resume.template ?? 'classic'} contact={contact} sections={resume.sections} />
+                <ResumeDocument template={resume.template ?? 'classic'} contact={contact} sections={resume.sections.filter((s) => !s.is_hidden)} />
             </div>
         </AppLayout>
     );

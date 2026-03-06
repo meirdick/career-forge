@@ -109,7 +109,7 @@ class ResumeController extends Controller
             }
         }
 
-        return to_route('resumes.show', $resume)
+        return back()
             ->with('success', 'Resume updated.');
     }
 
@@ -139,6 +139,43 @@ class ResumeController extends Controller
 
         return to_route('resumes.show', $resume)
             ->with('success', 'Variant updated.');
+    }
+
+    public function toggleSection(Request $request, Resume $resume, ResumeSection $resumeSection): RedirectResponse
+    {
+        abort_unless($resume->user_id === $request->user()->id, 403);
+        abort_unless($resumeSection->resume_id === $resume->id, 404);
+
+        $resumeSection->update(['is_hidden' => ! $resumeSection->is_hidden]);
+
+        return back();
+    }
+
+    public function updateSection(Request $request, Resume $resume, ResumeSection $resumeSection): RedirectResponse
+    {
+        abort_unless($resume->user_id === $request->user()->id, 403);
+        abort_unless($resumeSection->resume_id === $resume->id, 404);
+
+        $request->validate(['title' => 'required|string|max:255']);
+
+        $resumeSection->update(['title' => $request->input('title')]);
+
+        return back();
+    }
+
+    public function destroySection(Request $request, Resume $resume, ResumeSection $resumeSection): RedirectResponse
+    {
+        abort_unless($resume->user_id === $request->user()->id, 403);
+        abort_unless($resumeSection->resume_id === $resume->id, 404);
+
+        $sectionOrder = $resume->section_order ?? [];
+        $sectionOrder = array_values(array_filter($sectionOrder, fn ($id) => $id !== $resumeSection->id));
+        $resume->update(['section_order' => $sectionOrder]);
+
+        $resumeSection->variants()->delete();
+        $resumeSection->delete();
+
+        return back();
     }
 
     public function destroy(Request $request, Resume $resume): RedirectResponse

@@ -7,51 +7,50 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Calibri', 'Helvetica Neue', 'Arial', sans-serif;
-            font-size: 10.5pt;
-            line-height: 1.4;
+            font-size: 10pt;
+            line-height: 1.3;
             color: #1a1a1a;
-            padding: 36px 48px;
+            padding: 28px 40px;
         }
         .contact-header {
             text-align: center;
-            margin-bottom: 16px;
+            margin-bottom: 10px;
         }
         .contact-header h1 {
-            font-size: 22pt;
+            font-size: 18pt;
             font-weight: 700;
             color: #111;
-            margin-bottom: 4px;
-            letter-spacing: 0.5px;
+            margin-bottom: 2px;
         }
         .contact-info {
             font-size: 9pt;
             color: #555;
-            line-height: 1.6;
+            line-height: 1.4;
         }
         .contact-info a {
             color: #555;
             text-decoration: none;
         }
         .section {
-            margin-top: 14px;
+            margin-top: 10px;
         }
         .section h2 {
-            font-size: 11pt;
+            font-size: 10pt;
             font-weight: 700;
             color: #111;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            border-bottom: 1.5px solid #333;
-            padding-bottom: 2px;
-            margin-bottom: 6px;
+            letter-spacing: 1.5px;
+            border-bottom: 2.5px solid #111;
+            padding-bottom: 1px;
+            margin-bottom: 4px;
         }
         .section-content {
-            font-size: 10.5pt;
-            line-height: 1.45;
+            font-size: 10pt;
+            line-height: 1.3;
         }
-        .section-content p { margin-bottom: 4px; }
-        .section-content ul { margin: 2px 0 6px 18px; }
-        .section-content li { margin-bottom: 2px; }
+        .section-content p { margin-bottom: 2px; }
+        .section-content ul { margin: 1px 0 4px 16px; }
+        .section-content li { margin-bottom: 1px; }
         .section-content strong { font-weight: 600; }
     </style>
 </head>

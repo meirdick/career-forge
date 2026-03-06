@@ -42,6 +42,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('resumes/{resume}', [ResumeController::class, 'update'])->name('resumes.update');
     Route::put('resumes/{resume}/sections/{resumeSection}', [ResumeController::class, 'selectVariant'])->name('resumes.select-variant');
     Route::put('resumes/{resume}/variants/{resumeSectionVariant}', [ResumeController::class, 'editVariant'])->name('resumes.edit-variant');
+    Route::put('resumes/{resume}/sections/{resumeSection}/toggle', [ResumeController::class, 'toggleSection'])->name('resumes.toggle-section');
+    Route::patch('resumes/{resume}/sections/{resumeSection}', [ResumeController::class, 'updateSection'])->name('resumes.update-section');
+    Route::delete('resumes/{resume}/sections/{resumeSection}', [ResumeController::class, 'destroySection'])->name('resumes.destroy-section');
     Route::delete('resumes/{resume}', [ResumeController::class, 'destroy'])->name('resumes.destroy');
 
     // Resume Export

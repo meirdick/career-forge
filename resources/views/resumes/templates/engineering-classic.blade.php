@@ -6,22 +6,23 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Calibri', 'Helvetica Neue', 'Arial', sans-serif;
+            font-family: 'Times New Roman', 'Georgia', serif;
             font-size: 10.5pt;
             line-height: 1.4;
             color: #1a1a1a;
-            padding: 36px 48px;
+            padding: 34px 46px;
         }
         .contact-header {
             text-align: center;
-            margin-bottom: 16px;
+            border-bottom: 2.5px solid #333;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
         }
         .contact-header h1 {
-            font-size: 22pt;
+            font-size: 20pt;
             font-weight: 700;
             color: #111;
             margin-bottom: 4px;
-            letter-spacing: 0.5px;
         }
         .contact-info {
             font-size: 9pt;
@@ -33,26 +34,26 @@
             text-decoration: none;
         }
         .section {
-            margin-top: 14px;
+            margin-top: 12px;
         }
         .section h2 {
             font-size: 11pt;
             font-weight: 700;
             color: #111;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            border-bottom: 1.5px solid #333;
+            letter-spacing: 0.8px;
+            border-bottom: 1px solid #999;
             padding-bottom: 2px;
             margin-bottom: 6px;
         }
         .section-content {
             font-size: 10.5pt;
-            line-height: 1.45;
+            line-height: 1.4;
         }
-        .section-content p { margin-bottom: 4px; }
+        .section-content p { margin-bottom: 3px; }
         .section-content ul { margin: 2px 0 6px 18px; }
         .section-content li { margin-bottom: 2px; }
-        .section-content strong { font-weight: 600; }
+        .section-content strong { font-weight: 700; }
     </style>
 </head>
 <body>

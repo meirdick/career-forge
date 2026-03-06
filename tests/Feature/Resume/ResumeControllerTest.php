@@ -123,6 +123,28 @@ test('update can finalize resume', function () {
     expect($resume->fresh()->is_finalized)->toBeTrue();
 });
 
+test('update from preview page redirects back to preview', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->from("/resumes/{$resume->id}/preview")
+        ->put("/resumes/{$resume->id}", [
+            'template' => 'moderncv',
+        ])
+        ->assertRedirect("/resumes/{$resume->id}/preview");
+});
+
+test('update from show page redirects back to show', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->from("/resumes/{$resume->id}")
+        ->put("/resumes/{$resume->id}", [
+            'title' => 'New Title',
+        ])
+        ->assertRedirect("/resumes/{$resume->id}");
+});
+
 test('update saves header config', function () {
     $resume = Resume::factory()->create(['user_id' => $this->user->id]);
 
@@ -283,5 +305,76 @@ test('document download returns 403 for non-owner', function () {
 
     $this->actingAs($this->user)
         ->get("/documents/{$document->id}/download")
+        ->assertForbidden();
+});
+
+test('toggle section hides section', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id, 'is_hidden' => false]);
+
+    $this->actingAs($this->user)
+        ->put("/resumes/{$resume->id}/sections/{$section->id}/toggle")
+        ->assertRedirect();
+
+    expect($section->fresh()->is_hidden)->toBeTrue();
+});
+
+test('toggle section shows hidden section', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id, 'is_hidden' => true]);
+
+    $this->actingAs($this->user)
+        ->put("/resumes/{$resume->id}/sections/{$section->id}/toggle")
+        ->assertRedirect();
+
+    expect($section->fresh()->is_hidden)->toBeFalse();
+});
+
+test('toggle section returns 403 for other user', function () {
+    $other = User::factory()->create();
+    $resume = Resume::factory()->create(['user_id' => $other->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+
+    $this->actingAs($this->user)
+        ->put("/resumes/{$resume->id}/sections/{$section->id}/toggle")
+        ->assertForbidden();
+});
+
+test('update section title', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id, 'title' => 'Old Title']);
+
+    $this->actingAs($this->user)
+        ->patch("/resumes/{$resume->id}/sections/{$section->id}", [
+            'title' => 'New Title',
+        ])
+        ->assertRedirect();
+
+    expect($section->fresh()->title)->toBe('New Title');
+});
+
+test('destroy section deletes section', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id, 'section_order' => [1, 2]]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+    ResumeSectionVariant::factory()->count(2)->create(['resume_section_id' => $section->id]);
+
+    $resume->update(['section_order' => [$section->id]]);
+
+    $this->actingAs($this->user)
+        ->delete("/resumes/{$resume->id}/sections/{$section->id}")
+        ->assertRedirect();
+
+    expect(ResumeSection::find($section->id))->toBeNull();
+    expect(ResumeSectionVariant::where('resume_section_id', $section->id)->count())->toBe(0);
+    expect($resume->fresh()->section_order)->not->toContain($section->id);
+});
+
+test('destroy section returns 403 for other user', function () {
+    $other = User::factory()->create();
+    $resume = Resume::factory()->create(['user_id' => $other->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+
+    $this->actingAs($this->user)
+        ->delete("/resumes/{$resume->id}/sections/{$section->id}")
         ->assertForbidden();
 });

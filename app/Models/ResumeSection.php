@@ -18,6 +18,7 @@ class ResumeSection extends Model
         'title',
         'sort_order',
         'selected_variant_id',
+        'is_hidden',
     ];
 
     protected function casts(): array
@@ -25,6 +26,7 @@ class ResumeSection extends Model
         return [
             'type' => ResumeSectionType::class,
             'sort_order' => 'integer',
+            'is_hidden' => 'boolean',
         ];
     }
 
