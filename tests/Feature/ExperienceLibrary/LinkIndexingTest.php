@@ -1,9 +1,10 @@
 <?php
 
-use App\Ai\Agents\LinkIndexer;
+use App\Jobs\IndexLinkJob;
 use App\Models\EvidenceEntry;
 use App\Models\User;
-use App\Services\WebScraperService;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Queue;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
@@ -11,38 +12,71 @@ beforeEach(function () {
         'user_id' => $this->user->id,
         'url' => 'https://github.com/testuser',
     ]);
+    Queue::fake();
 });
 
-test('index link returns extracted professional info', function () {
-    $this->mock(WebScraperService::class)
-        ->shouldReceive('scrape')
-        ->with('https://github.com/testuser')
-        ->andReturn('# John Doe - Full Stack Developer\nBuilt a microservices platform handling 1M requests/day.');
-
-    LinkIndexer::fake();
-
+test('index link dispatches job and redirects', function () {
     $this->actingAs($this->user)
-        ->postJson("/evidence/{$this->entry->id}/index-link")
-        ->assertSuccessful()
-        ->assertJsonStructure(['skills', 'accomplishments', 'projects']);
+        ->post("/evidence/{$this->entry->id}/index-link")
+        ->assertRedirect();
 
-    LinkIndexer::assertPrompted(fn ($prompt) => str_contains($prompt->prompt, 'web page content'));
+    Queue::assertPushed(IndexLinkJob::class, function ($job) {
+        return $job->evidenceEntry->id === $this->entry->id
+            && $job->user->id === $this->user->id;
+    });
+
+    $cached = Cache::get("evidence-index:{$this->entry->id}");
+    expect($cached)->status->toBe('processing');
 });
 
 test('index link returns 403 for other users evidence', function () {
     $other = User::factory()->create();
 
     $this->actingAs($other)
-        ->postJson("/evidence/{$this->entry->id}/index-link")
+        ->post("/evidence/{$this->entry->id}/index-link")
         ->assertForbidden();
+
+    Queue::assertNothingPushed();
 });
 
-test('index link returns 422 when URL cannot be fetched', function () {
-    $this->mock(WebScraperService::class)
-        ->shouldReceive('scrape')
-        ->andReturn(null);
+test('index passes cached index results as prop', function () {
+    Cache::put("evidence-index:{$this->entry->id}", [
+        'status' => 'completed',
+        'data' => [
+            'skills' => [['name' => 'PHP', 'category' => 'technical']],
+            'accomplishments' => [],
+            'projects' => [],
+        ],
+    ]);
 
     $this->actingAs($this->user)
-        ->postJson("/evidence/{$this->entry->id}/index-link")
-        ->assertUnprocessable();
+        ->get('/evidence')
+        ->assertSuccessful()
+        ->assertInertia(
+            fn ($page) => $page
+                ->component('experience-library/evidence')
+                ->has("indexResults.{$this->entry->id}")
+                ->where("indexResults.{$this->entry->id}.status", 'completed')
+                ->has("indexResults.{$this->entry->id}.data.skills", 1)
+        );
+});
+
+test('index does not include results for entries without urls', function () {
+    $noUrlEntry = EvidenceEntry::factory()->create([
+        'user_id' => $this->user->id,
+        'url' => null,
+    ]);
+
+    Cache::put("evidence-index:{$noUrlEntry->id}", [
+        'status' => 'completed',
+        'data' => ['skills' => [], 'accomplishments' => [], 'projects' => []],
+    ]);
+
+    $this->actingAs($this->user)
+        ->get('/evidence')
+        ->assertSuccessful()
+        ->assertInertia(
+            fn ($page) => $page
+                ->missing("indexResults.{$noUrlEntry->id}")
+        );
 });

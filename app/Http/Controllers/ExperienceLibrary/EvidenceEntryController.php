@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers\ExperienceLibrary;
 
-use App\Ai\Agents\LinkIndexer;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ExperienceLibrary\StoreEvidenceEntryRequest;
 use App\Http\Requests\ExperienceLibrary\UpdateEvidenceEntryRequest;
+use App\Jobs\IndexLinkJob;
 use App\Models\EvidenceEntry;
-use App\Services\WebScraperService;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,8 +22,19 @@ class EvidenceEntryController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        $indexResults = [];
+        foreach ($entries as $entry) {
+            if ($entry->url) {
+                $cached = Cache::get("evidence-index:{$entry->id}");
+                if ($cached) {
+                    $indexResults[$entry->id] = $cached;
+                }
+            }
+        }
+
         return Inertia::render('experience-library/evidence', [
             'entries' => $entries,
+            'indexResults' => $indexResults,
         ]);
     }
 
@@ -46,24 +56,18 @@ class EvidenceEntryController extends Controller
             ->with('success', 'Link updated.');
     }
 
-    public function indexLink(Request $request, EvidenceEntry $evidenceEntry, WebScraperService $scraper): JsonResponse
+    public function indexLink(Request $request, EvidenceEntry $evidenceEntry): RedirectResponse
     {
         abort_unless($evidenceEntry->user_id === $request->user()->id, 403);
         abort_unless($evidenceEntry->url, 422, 'Link has no URL.');
 
-        $content = $scraper->scrape($evidenceEntry->url);
+        Cache::put("evidence-index:{$evidenceEntry->id}", [
+            'status' => 'processing',
+        ], now()->addHour());
 
-        if (! $content) {
-            return response()->json(['error' => 'Could not fetch URL content.'], 422);
-        }
+        IndexLinkJob::dispatch($request->user(), $evidenceEntry);
 
-        $response = (new LinkIndexer)->prompt("Analyze this web page content and extract professional information:\n\n{$content}");
-
-        return response()->json([
-            'skills' => $response['skills'] ?? [],
-            'accomplishments' => $response['accomplishments'] ?? [],
-            'projects' => $response['projects'] ?? [],
-        ]);
+        return back();
     }
 
     public function destroy(Request $request, EvidenceEntry $evidenceEntry): RedirectResponse

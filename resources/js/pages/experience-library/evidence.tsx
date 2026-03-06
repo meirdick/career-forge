@@ -1,7 +1,6 @@
 import { Form, Head, router } from '@inertiajs/react';
-import axios from 'axios';
 import { ExternalLink, LinkIcon, Loader2, Plus, Sparkles, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -48,21 +47,45 @@ type IndexResult = {
     projects: { name: string; description: string; role?: string }[];
 };
 
-export default function Evidence({ entries }: { entries: EvidenceEntry[] }) {
-    const [showForm, setShowForm] = useState(false);
-    const [indexingId, setIndexingId] = useState<number | null>(null);
-    const [indexResults, setIndexResults] = useState<Record<number, IndexResult>>({});
+type IndexStatus = {
+    status: 'processing' | 'completed' | 'failed';
+    data?: IndexResult;
+    error?: string;
+};
 
-    async function indexLink(entryId: number) {
-        setIndexingId(entryId);
-        try {
-            const { data } = await axios.post(EvidenceEntryController.indexLink(entryId).url);
-            setIndexResults((prev) => ({ ...prev, [entryId]: data }));
-        } catch {
-            // error handled silently
-        } finally {
-            setIndexingId(null);
+type Props = {
+    entries: EvidenceEntry[];
+    indexResults: Record<number, IndexStatus>;
+};
+
+export default function Evidence({ entries, indexResults }: Props) {
+    const [showForm, setShowForm] = useState(false);
+    const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const hasProcessing = Object.values(indexResults).some((r) => r.status === 'processing');
+
+    useEffect(() => {
+        if (hasProcessing && !pollingRef.current) {
+            pollingRef.current = setInterval(() => {
+                router.reload({ only: ['indexResults'] });
+            }, 3000);
         }
+
+        if (!hasProcessing && pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+        }
+
+        return () => {
+            if (pollingRef.current) {
+                clearInterval(pollingRef.current);
+                pollingRef.current = null;
+            }
+        };
+    }, [hasProcessing]);
+
+    function indexLink(entryId: number) {
+        router.post(EvidenceEntryController.indexLink(entryId).url, {}, { preserveScroll: true });
     }
 
     return (
@@ -156,10 +179,10 @@ export default function Evidence({ entries }: { entries: EvidenceEntry[] }) {
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => indexLink(entry.id)}
-                                                disabled={indexingId === entry.id}
+                                                disabled={indexResults[entry.id]?.status === 'processing'}
                                             >
-                                                {indexingId === entry.id ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
-                                                Index
+                                                {indexResults[entry.id]?.status === 'processing' ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+                                                {indexResults[entry.id]?.status === 'processing' ? 'Indexing...' : 'Index'}
                                             </Button>
                                         )}
                                         <Button
@@ -176,31 +199,34 @@ export default function Evidence({ entries }: { entries: EvidenceEntry[] }) {
                                     {entry.description && (
                                         <p className="text-sm text-muted-foreground">{entry.description}</p>
                                     )}
-                                    {indexResults[entry.id] && (
+                                    {indexResults[entry.id]?.status === 'failed' && (
+                                        <p className="text-sm text-destructive">{indexResults[entry.id].error || 'Indexing failed.'}</p>
+                                    )}
+                                    {indexResults[entry.id]?.status === 'completed' && indexResults[entry.id].data && (
                                         <div className="space-y-2 rounded-md bg-muted/50 p-3">
                                             <p className="text-xs font-medium">Extracted from URL:</p>
-                                            {indexResults[entry.id].skills.length > 0 && (
+                                            {indexResults[entry.id].data!.skills.length > 0 && (
                                                 <div>
                                                     <p className="text-xs text-muted-foreground">Skills</p>
                                                     <div className="flex flex-wrap gap-1">
-                                                        {indexResults[entry.id].skills.map((s, i) => (
+                                                        {indexResults[entry.id].data!.skills.map((s, i) => (
                                                             <Badge key={i} variant="secondary" className="text-xs">{s.name}</Badge>
                                                         ))}
                                                     </div>
                                                 </div>
                                             )}
-                                            {indexResults[entry.id].accomplishments.length > 0 && (
+                                            {indexResults[entry.id].data!.accomplishments.length > 0 && (
                                                 <div>
                                                     <p className="text-xs text-muted-foreground">Accomplishments</p>
-                                                    {indexResults[entry.id].accomplishments.map((a, i) => (
+                                                    {indexResults[entry.id].data!.accomplishments.map((a, i) => (
                                                         <p key={i} className="text-xs">{a.title} — {a.description}</p>
                                                     ))}
                                                 </div>
                                             )}
-                                            {indexResults[entry.id].projects.length > 0 && (
+                                            {indexResults[entry.id].data!.projects.length > 0 && (
                                                 <div>
                                                     <p className="text-xs text-muted-foreground">Projects</p>
-                                                    {indexResults[entry.id].projects.map((p, i) => (
+                                                    {indexResults[entry.id].data!.projects.map((p, i) => (
                                                         <p key={i} className="text-xs">{p.name} — {p.description}</p>
                                                     ))}
                                                 </div>
