@@ -1,5 +1,5 @@
-import { Head, router } from '@inertiajs/react';
-import { CheckCircle, Loader2, RefreshCw, Target, TrendingUp } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { ArrowRight, CheckCircle, FileText, Loader2, RefreshCw, Target, TrendingUp } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import GapActionCard from '@/components/gap-resolution/gap-action-card';
 import Heading from '@/components/heading';
@@ -50,7 +50,13 @@ type GapAnalysis = {
     };
 };
 
-export default function ShowGapAnalysis({ gapAnalysis, experiences }: { gapAnalysis: GapAnalysis; experiences: Experience[] }) {
+type LatestResume = {
+    id: number;
+    title: string;
+    is_finalized: boolean;
+} | null;
+
+export default function ShowGapAnalysis({ gapAnalysis, experiences, latestResume }: { gapAnalysis: GapAnalysis; experiences: Experience[]; latestResume: LatestResume }) {
     const assistantRef = useRef<PipelineAssistantHandle>(null);
     const posting = gapAnalysis.ideal_candidate_profile.job_posting;
     const isAnalyzing = gapAnalysis.strengths.length === 0 && gapAnalysis.gaps.length === 0 && !gapAnalysis.ai_summary;
@@ -91,8 +97,8 @@ export default function ShowGapAnalysis({ gapAnalysis, experiences }: { gapAnaly
                     steps={[
                         { label: 'Job Posting', href: `/job-postings/${posting.id}`, status: 'completed' },
                         { label: 'Ideal Candidate', href: `/job-postings/${posting.id}`, status: 'completed' },
-                        { label: 'Gap Analysis', href: `/gap-analyses/${gapAnalysis.id}`, status: 'active' },
-                        { label: 'Resume', status: 'upcoming' },
+                        { label: 'Gap Analysis', href: `/gap-analyses/${gapAnalysis.id}`, status: latestResume ? 'completed' : 'active' },
+                        { label: 'Resume', href: latestResume ? `/resumes/${latestResume.id}` : undefined, status: latestResume ? 'active' : 'upcoming' },
                         { label: 'Application', status: 'upcoming' },
                     ]}
                 />
@@ -108,9 +114,19 @@ export default function ShowGapAnalysis({ gapAnalysis, experiences }: { gapAnaly
                                 <RefreshCw className="mr-1 h-4 w-4" />
                                 Re-analyze
                             </Button>
-                            <Button variant="outline" size="sm" onClick={() => router.post(`/gap-analyses/${gapAnalysis.id}/resume`)}>
-                                Generate Resume
-                            </Button>
+                            {latestResume ? (
+                                <Button size="sm" asChild>
+                                    <Link href={`/resumes/${latestResume.id}`}>
+                                        <FileText className="mr-1 h-4 w-4" />
+                                        View Resume
+                                        <ArrowRight className="ml-1 h-4 w-4" />
+                                    </Link>
+                                </Button>
+                            ) : (
+                                <Button variant="outline" size="sm" onClick={() => router.post(`/gap-analyses/${gapAnalysis.id}/resume`)}>
+                                    Generate Resume
+                                </Button>
+                            )}
                         </div>
                     )}
                 </div>

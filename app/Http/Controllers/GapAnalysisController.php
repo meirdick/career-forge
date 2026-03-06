@@ -41,9 +41,18 @@ class GapAnalysisController extends Controller
             ->orderBy('started_at', 'desc')
             ->get();
 
+        $latestResume = $gapAnalysis->resumes()
+            ->latest()
+            ->first(['id', 'title', 'is_finalized', 'created_at']);
+
         return Inertia::render('gap-analyses/show', [
             'gapAnalysis' => $gapAnalysis,
             'experiences' => $experiences,
+            'latestResume' => $latestResume ? [
+                'id' => $latestResume->id,
+                'title' => $latestResume->title,
+                'is_finalized' => $latestResume->is_finalized,
+            ] : null,
         ]);
     }
 
