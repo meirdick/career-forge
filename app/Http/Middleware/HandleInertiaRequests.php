@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\AiGatingService;
+use App\Services\CreditService;
 use App\Services\ProfileCompletenessService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -36,16 +38,28 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $gatingEnabled = config('ai.gating.mode') !== 'selfhosted';
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            'profileCompleteness' => $request->user()
-                ? app(ProfileCompletenessService::class)->calculate($request->user())['score']
+            'profileCompleteness' => $user
+                ? app(ProfileCompletenessService::class)->calculate($user)['score']
                 : null,
+            'aiAccess' => $user && $gatingEnabled ? [
+                'mode' => app(AiGatingService::class)->resolveAccessMode($user)->value,
+                'credits' => app(CreditService::class)->getBalance($user),
+                'gatingEnabled' => true,
+                'freeTierUsage' => app(AiGatingService::class)->getFreeTierUsage($user),
+                'hasApiKey' => (bool) $user->activeApiKey,
+            ] : [
+                'gatingEnabled' => false,
+            ],
         ];
     }
 }

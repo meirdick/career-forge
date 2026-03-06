@@ -50,7 +50,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('evidence', [EvidenceEntryController::class, 'store'])->name('evidence.store');
     Route::put('evidence/{evidenceEntry}', [EvidenceEntryController::class, 'update'])->name('evidence.update');
     Route::delete('evidence/{evidenceEntry}', [EvidenceEntryController::class, 'destroy'])->name('evidence.destroy');
-    Route::post('evidence/{evidenceEntry}/index-link', [EvidenceEntryController::class, 'indexLink'])->name('evidence.index-link');
+    Route::post('evidence/{evidenceEntry}/index-link', [EvidenceEntryController::class, 'indexLink'])->middleware('ai.access:link_indexing')->name('evidence.index-link');
 
     // Tags
     Route::get('tags', [TagController::class, 'index'])->name('tags.index');
@@ -63,12 +63,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::redirect('interview', '/career-chat')->name('interview.index');
 
     // AI Enhancement
-    Route::post('experience-library/enhance', ExperienceEnhanceController::class)->name('experience-library.enhance');
+    Route::post('experience-library/enhance', ExperienceEnhanceController::class)->middleware('ai.access:content_enhance')->name('experience-library.enhance');
 
     // Resume Upload & Import
     Route::get('resume-upload', [ResumeUploadController::class, 'create'])->name('resume-upload.create');
-    Route::post('resume-upload', [ResumeUploadController::class, 'store'])->name('resume-upload.store');
+    Route::post('resume-upload', [ResumeUploadController::class, 'store'])->middleware('ai.access:resume_parsing')->name('resume-upload.store');
     Route::get('resume-upload/{document}/review', [ResumeUploadController::class, 'review'])->name('resume-upload.review');
-    Route::post('resume-upload/{document}/retry', [ResumeUploadController::class, 'retry'])->name('resume-upload.retry');
+    Route::post('resume-upload/{document}/retry', [ResumeUploadController::class, 'retry'])->middleware('ai.access:resume_parsing')->name('resume-upload.retry');
     Route::post('resume-upload/{document}/commit', [ResumeUploadController::class, 'commit'])->name('resume-upload.commit');
 });

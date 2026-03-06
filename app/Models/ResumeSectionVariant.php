@@ -35,7 +35,11 @@ class ResumeSectionVariant extends Model
 
     protected function formattedContent(): Attribute
     {
-        return Attribute::get(fn () => Str::markdown($this->content ?? ''));
+        return Attribute::get(function () {
+            $html = Str::markdown($this->content ?? '');
+
+            return strip_tags($html, '<p><br><strong><b><em><i><ul><ol><li><h1><h2><h3><h4><h5><h6><a><code><pre><blockquote><span><table><thead><tbody><tr><th><td>');
+        });
     }
 
     public function section(): BelongsTo

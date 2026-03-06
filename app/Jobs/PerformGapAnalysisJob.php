@@ -3,14 +3,15 @@
 namespace App\Jobs;
 
 use App\Ai\Agents\GapAnalyzer;
+use App\Concerns\ConfiguresAiForUser;
+use App\Enums\AiPurpose;
 use App\Models\GapAnalysis;
-use App\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
 class PerformGapAnalysisJob implements ShouldQueue
 {
-    use Queueable;
+    use ConfiguresAiForUser, Queueable;
 
     public int $timeout = 120;
 
@@ -24,6 +25,8 @@ class PerformGapAnalysisJob implements ShouldQueue
     {
         $profile = $this->gapAnalysis->idealCandidateProfile;
         $user = $this->gapAnalysis->user;
+
+        $this->configureAiForUser($user, AiPurpose::GapAnalysis);
 
         $library = [
             'experiences' => $user->experiences()->with(['accomplishments', 'projects', 'skills'])->get()->toArray(),
@@ -45,5 +48,7 @@ class PerformGapAnalysisJob implements ShouldQueue
             'overall_match_score' => $response['overall_match_score'] ?? null,
             'ai_summary' => $response['summary'] ?? null,
         ]);
+
+        $this->chargeAiUsage($user, AiPurpose::GapAnalysis);
     }
 }

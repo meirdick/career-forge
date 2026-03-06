@@ -135,4 +135,48 @@ class User extends Authenticatable
     {
         return $this->hasMany(ChatSession::class);
     }
+
+    public function apiKeys(): HasMany
+    {
+        return $this->hasMany(UserApiKey::class);
+    }
+
+    public function activeApiKey(): HasOne
+    {
+        return $this->hasOne(UserApiKey::class)->where('is_active', true);
+    }
+
+    public function creditBalance(): HasOne
+    {
+        return $this->hasOne(CreditBalance::class);
+    }
+
+    public function creditTransactions(): HasMany
+    {
+        return $this->hasMany(CreditTransaction::class);
+    }
+
+    public function usageLimit(): HasOne
+    {
+        return $this->hasOne(UsageLimit::class);
+    }
+
+    public function hasAiAccess(): bool
+    {
+        if (config('ai.gating.mode') === 'selfhosted') {
+            return true;
+        }
+
+        if ($this->activeApiKey()->exists()) {
+            return true;
+        }
+
+        $balance = $this->creditBalance;
+
+        if ($balance && $balance->balance > 0) {
+            return true;
+        }
+
+        return true; // Free tier always has some access
+    }
 }

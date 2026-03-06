@@ -21,6 +21,8 @@ class AiInteraction extends Model
         'input_tokens',
         'output_tokens',
         'duration_ms',
+        'credits_charged',
+        'billing_type',
     ];
 
     protected function casts(): array
@@ -29,6 +31,7 @@ class AiInteraction extends Model
             'input_tokens' => 'integer',
             'output_tokens' => 'integer',
             'duration_ms' => 'integer',
+            'credits_charged' => 'integer',
         ];
     }
 

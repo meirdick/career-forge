@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Settings\ApiKeyController;
+use App\Http\Controllers\Settings\BillingController;
 use App\Http\Controllers\Settings\DataExportController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
@@ -28,4 +30,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('two-factor.show');
 
     Route::get('settings/export', DataExportController::class)->name('data-export');
+
+    // API Keys (BYOK)
+    Route::get('settings/api-keys', [ApiKeyController::class, 'show'])->name('api-keys.show');
+    Route::post('settings/api-keys', [ApiKeyController::class, 'store'])->name('api-keys.store');
+    Route::delete('settings/api-keys/{apiKeyId}', [ApiKeyController::class, 'destroy'])->name('api-keys.destroy');
+
+    // Billing & Credits
+    Route::get('settings/billing', [BillingController::class, 'show'])->name('billing.show');
+    Route::post('settings/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
+    Route::get('settings/billing/success', [BillingController::class, 'success'])->name('billing.success');
+    Route::post('settings/billing/promo', [BillingController::class, 'redeemPromo'])
+        ->middleware('throttle:5,1')
+        ->name('billing.redeem-promo');
 });

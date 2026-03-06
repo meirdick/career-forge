@@ -3,13 +3,15 @@
 namespace App\Jobs;
 
 use App\Ai\Agents\JobAnalyzer;
+use App\Concerns\ConfiguresAiForUser;
+use App\Enums\AiPurpose;
 use App\Models\JobPosting;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
 class AnalyzeJobPostingJob implements ShouldQueue
 {
-    use Queueable;
+    use ConfiguresAiForUser, Queueable;
 
     public int $timeout = 120;
 
@@ -21,6 +23,7 @@ class AnalyzeJobPostingJob implements ShouldQueue
 
     public function handle(): void
     {
+        $this->configureAiForUser($this->jobPosting->user, AiPurpose::JobAnalysis);
         $prompt = view('prompts.job-analysis', ['text' => $this->jobPosting->raw_text])->render();
         $response = (new JobAnalyzer)->prompt($prompt);
 
@@ -49,5 +52,7 @@ class AnalyzeJobPostingJob implements ShouldQueue
                 'is_user_edited' => false,
             ],
         );
+
+        $this->chargeAiUsage($this->jobPosting->user, AiPurpose::JobAnalysis);
     }
 }

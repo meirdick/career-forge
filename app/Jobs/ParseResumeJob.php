@@ -3,6 +3,8 @@
 namespace App\Jobs;
 
 use App\Ai\Agents\ResumeParser;
+use App\Concerns\ConfiguresAiForUser;
+use App\Enums\AiPurpose;
 use App\Models\Document;
 use App\Models\User;
 use App\Services\DocumentExtractorService;
@@ -13,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
 
 class ParseResumeJob implements ShouldQueue
 {
-    use Queueable;
+    use ConfiguresAiForUser, Queueable;
 
     public int $timeout = 120;
 
@@ -26,6 +28,7 @@ class ParseResumeJob implements ShouldQueue
 
     public function handle(DocumentExtractorService $extractor): void
     {
+        $this->configureAiForUser($this->user, AiPurpose::ResumeParsing);
         $path = Storage::disk($this->document->disk)->path($this->document->path);
         $text = $extractor->extract($path);
 
@@ -50,6 +53,8 @@ class ParseResumeJob implements ShouldQueue
                 'text_length' => mb_strlen($text),
             ]),
         ]);
+
+        $this->chargeAiUsage($this->user, AiPurpose::ResumeParsing);
     }
 
     public function failed(\Throwable $exception): void

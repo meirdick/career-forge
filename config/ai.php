@@ -13,6 +13,44 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | AI Access Gating
+    |--------------------------------------------------------------------------
+    |
+    | Controls how AI features are gated for users. In 'selfhosted' mode,
+    | all AI features work using server-configured API keys with no billing.
+    | In 'gated' mode, users must bring their own key (BYOK), purchase
+    | credits, or use limited free tier access.
+    |
+    */
+
+    'gating' => [
+        'mode' => env('AI_GATING_MODE', 'selfhosted'),
+        'free_tier' => [
+            'job_postings' => 1,
+            'document_uploads' => 3,
+        ],
+        'credits_per_purchase' => 500,
+        'purchase_price_cents' => 500,
+        'signup_bonus' => (int) env('AI_SIGNUP_BONUS', 250),
+        'promo_code' => env('AI_PROMO_CODE', null),
+        'promo_code_credits' => (int) env('AI_PROMO_CODE_CREDITS', 0),
+        'costs' => [
+            'resume_parsing' => 50,
+            'job_analysis' => 50,
+            'gap_analysis' => 50,
+            'resume_generation' => 100,
+            'cover_letter' => 25,
+            'chat_message' => 2,
+            'content_enhance' => 2,
+            'gap_reframe' => 15,
+            'experience_extract' => 15,
+            'transparency_page' => 100,
+            'link_indexing' => 15,
+        ],
+    ],
+
     'default' => 'anthropic',
     'default_for_images' => 'gemini',
     'default_for_audio' => 'openai',

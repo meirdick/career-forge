@@ -10,6 +10,14 @@
         "nightwatch": {
             "type": "http",
             "url": "https://nightwatch.laravel.com/mcp"
+        },
+        "Polar-Sandbox": {
+            "type": "http",
+            "url": "https://mcp.polar.sh/mcp/polar-sandbox"
+        },
+        "Polar-Production": {
+            "type": "http",
+            "url": "https://mcp.polar.sh/mcp/polar-mcp"
         }
     }
 }

@@ -3,6 +3,8 @@
 namespace App\Jobs;
 
 use App\Ai\Agents\ResumeGenerator;
+use App\Concerns\ConfiguresAiForUser;
+use App\Enums\AiPurpose;
 use App\Enums\EducationType;
 use App\Enums\ResumeSectionType;
 use App\Models\Resume;
@@ -11,7 +13,7 @@ use Illuminate\Foundation\Queue\Queueable;
 
 class GenerateResumeJob implements ShouldQueue
 {
-    use Queueable;
+    use ConfiguresAiForUser, Queueable;
 
     public int $timeout = 300;
 
@@ -27,6 +29,8 @@ class GenerateResumeJob implements ShouldQueue
         $profile = $gapAnalysis->idealCandidateProfile;
         $jobPosting = $profile->jobPosting;
         $user = $this->resume->user;
+
+        $this->configureAiForUser($user, AiPurpose::ResumeGeneration);
 
         $library = [
             'experiences' => $user->experiences()->with(['accomplishments', 'projects', 'skills'])->get()->toArray(),
@@ -109,5 +113,7 @@ class GenerateResumeJob implements ShouldQueue
         }
 
         $this->resume->update(['section_order' => $sectionOrder]);
+
+        $this->chargeAiUsage($user, AiPurpose::ResumeGeneration);
     }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PolarWebhookController;
 use App\Http\Controllers\TransparencyPageController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
@@ -8,6 +9,9 @@ use Laravel\Fortify\Features;
 Route::inertia('/', 'welcome', [
     'canRegister' => Features::enabled(Features::registration()),
 ])->name('home');
+
+// Polar webhook (no CSRF)
+Route::post('polar/webhook', [PolarWebhookController::class, 'handle'])->name('polar.webhook');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
