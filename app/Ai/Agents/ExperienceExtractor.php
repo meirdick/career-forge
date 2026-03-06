@@ -25,9 +25,6 @@ class ExperienceExtractor implements Agent, HasStructuredOutput
 
     public function schema(JsonSchema $schema): array
     {
-        $extractionType = $schema->string()->enum(['new', 'enhancement'])->required();
-        $enhancesField = $schema->string()->nullable();
-
         $experienceSchema = $schema->object([
             'company' => $schema->string()->required(),
             'title' => $schema->string()->required(),
@@ -36,8 +33,8 @@ class ExperienceExtractor implements Agent, HasStructuredOutput
             'ended_at' => $schema->string(),
             'is_current' => $schema->boolean()->required(),
             'description' => $schema->string(),
-            'extraction_type' => $extractionType,
-            'enhances' => $enhancesField,
+            'extraction_type' => $schema->string()->enum(['new', 'enhancement'])->required(),
+            'enhances' => $schema->string(),
         ]);
 
         $accomplishmentSchema = $schema->object([
@@ -46,14 +43,14 @@ class ExperienceExtractor implements Agent, HasStructuredOutput
             'impact' => $schema->string(),
             'experience_index' => $schema->integer(),
             'extraction_type' => $schema->string()->enum(['new', 'enhancement'])->required(),
-            'enhances' => $schema->string()->nullable(),
+            'enhances' => $schema->string(),
         ]);
 
         $skillSchema = $schema->object([
             'name' => $schema->string()->required(),
             'category' => $schema->string()->required(),
             'extraction_type' => $schema->string()->enum(['new', 'enhancement'])->required(),
-            'enhances' => $schema->string()->nullable(),
+            'enhances' => $schema->string(),
         ]);
 
         $educationSchema = $schema->object([
@@ -63,7 +60,7 @@ class ExperienceExtractor implements Agent, HasStructuredOutput
             'field' => $schema->string(),
             'completed_at' => $schema->string(),
             'extraction_type' => $schema->string()->enum(['new', 'enhancement'])->required(),
-            'enhances' => $schema->string()->nullable(),
+            'enhances' => $schema->string(),
         ]);
 
         $projectSchema = $schema->object([
@@ -73,7 +70,7 @@ class ExperienceExtractor implements Agent, HasStructuredOutput
             'outcome' => $schema->string(),
             'experience_index' => $schema->integer(),
             'extraction_type' => $schema->string()->enum(['new', 'enhancement'])->required(),
-            'enhances' => $schema->string()->nullable(),
+            'enhances' => $schema->string(),
         ]);
 
         return [
