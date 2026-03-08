@@ -231,6 +231,23 @@ test('import skips duplicate skills case-insensitively', function () {
     expect($stats['skipped'])->toBe(2);
 });
 
+test('import falls back to domain category for invalid skill categories', function () {
+    $stats = $this->service->import($this->user, [
+        'skills' => [
+            ['name' => 'Product Management', 'category' => 'Product Management'],
+            ['name' => 'PHP', 'category' => 'technical'],
+        ],
+    ]);
+
+    expect($stats['created'])->toBe(2);
+
+    $skill = $this->user->skills()->where('name', 'Product Management')->first();
+    expect($skill->category->value)->toBe('domain');
+
+    $phpSkill = $this->user->skills()->where('name', 'PHP')->first();
+    expect($phpSkill->category->value)->toBe('technical');
+});
+
 test('import merges accomplishment by title and experience', function () {
     $experience = Experience::factory()->create([
         'user_id' => $this->user->id,

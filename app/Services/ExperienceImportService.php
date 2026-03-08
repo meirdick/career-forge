@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\SkillCategory;
 use App\Models\User;
 use Carbon\Carbon;
 
@@ -71,9 +72,11 @@ class ExperienceImportService
             if ($existing) {
                 $stats['skipped']++;
             } else {
+                $category = SkillCategory::tryFrom($skillData['category']) ?? SkillCategory::Domain;
+
                 $user->skills()->create([
                     'name' => $skillData['name'],
-                    'category' => $skillData['category'],
+                    'category' => $category,
                 ]);
                 $stats['created']++;
             }
