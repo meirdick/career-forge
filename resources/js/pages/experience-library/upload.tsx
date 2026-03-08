@@ -136,7 +136,7 @@ export default function UploadResume({ documents = [] }: { documents?: UploadedD
                                 <p className="font-medium">
                                     {isDragging ? 'Drop files here' : 'Click to select or drag & drop files'}
                                 </p>
-                                <p className="text-muted-foreground text-sm">PDF, DOCX, TXT, or JSON up to 10MB each</p>
+                                <p className="text-muted-foreground text-sm">PDF, DOCX, TXT, or JSON up to 20MB each</p>
                                 <input
                                     ref={fileInputRef}
                                     type="file"

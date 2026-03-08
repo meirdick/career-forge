@@ -69,6 +69,35 @@ test('store validates file type', function () {
         ->assertSessionHasErrors('files.0');
 });
 
+test('store rejects files exceeding 20MB', function () {
+    $file = UploadedFile::fake()->create('huge.pdf', 20481, 'application/pdf');
+
+    $this->actingAs($this->user)
+        ->post('/resume-upload', ['files' => [$file]])
+        ->assertSessionHasErrors('files.0');
+});
+
+test('store accepts files up to 20MB', function () {
+    $file = UploadedFile::fake()->create('large.pdf', 20480, 'application/pdf');
+
+    $this->actingAs($this->user)
+        ->post('/resume-upload', ['files' => [$file]])
+        ->assertRedirect('/resume-upload');
+
+    expect(Document::count())->toBe(1);
+});
+
+test('store sanitizes filenames with non-ASCII characters', function () {
+    $file = UploadedFile::fake()->create('résumé—2024.pdf', 1024, 'application/pdf');
+
+    $this->actingAs($this->user)
+        ->post('/resume-upload', ['files' => [$file]])
+        ->assertRedirect('/resume-upload');
+
+    $document = Document::first();
+    expect($document->filename)->toBe('resume-2024.pdf');
+});
+
 test('upload page shows previously uploaded documents', function () {
     Document::factory()->create([
         'user_id' => $this->user->id,
