@@ -7,5 +7,4 @@ enum AiAccessMode: string
     case Selfhosted = 'selfhosted';
     case Byok = 'byok';
     case Credits = 'credits';
-    case FreeTier = 'free_tier';
 }

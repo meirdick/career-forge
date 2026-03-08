@@ -33,7 +33,6 @@ class BillingController extends Controller
                 ->get(),
             'creditsPerPurchase' => config('ai.gating.credits_per_purchase'),
             'purchasePriceCents' => config('ai.gating.purchase_price_cents'),
-            'freeTierUsage' => $this->gatingService->getFreeTierUsage($user),
             'accessMode' => $this->gatingService->resolveAccessMode($user)->value,
         ]);
     }
@@ -59,7 +58,6 @@ class BillingController extends Controller
                 ->get(),
             'creditsPerPurchase' => config('ai.gating.credits_per_purchase'),
             'purchasePriceCents' => config('ai.gating.purchase_price_cents'),
-            'freeTierUsage' => $this->gatingService->getFreeTierUsage($user),
             'accessMode' => $this->gatingService->resolveAccessMode($user)->value,
             'purchaseSuccess' => $request->has('checkout_id'),
         ]);

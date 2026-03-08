@@ -58,7 +58,6 @@ class HandleInertiaRequests extends Middleware
                 'mode' => app(AiGatingService::class)->resolveAccessMode($user)->value,
                 'credits' => app(CreditService::class)->getBalance($user),
                 'gatingEnabled' => true,
-                'freeTierUsage' => app(AiGatingService::class)->getFreeTierUsage($user),
                 'hasApiKey' => (bool) $user->activeApiKey,
             ] : [
                 'gatingEnabled' => false,

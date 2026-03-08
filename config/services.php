@@ -47,6 +47,7 @@ return [
     'polar' => [
         'access_token' => env('POLAR_API_KEY'),
         'webhook_secret' => env('POLAR_WEBHOOK_SECRET'),
+        'webhook_verify' => env('POLAR_WEBHOOK_VERIFY', true),
         'credit_pack_product_id' => env('POLAR_CREDIT_PACK_PRODUCT_ID'),
         'sandbox' => env('POLAR_SANDBOX', false),
     ],

@@ -20,17 +20,13 @@ return [
     |
     | Controls how AI features are gated for users. In 'selfhosted' mode,
     | all AI features work using server-configured API keys with no billing.
-    | In 'gated' mode, users must bring their own key (BYOK), purchase
-    | credits, or use limited free tier access.
+    | In 'gated' mode, users must bring their own key (BYOK) or purchase
+    | credits. Users receive a signup bonus of credits to get started.
     |
     */
 
     'gating' => [
         'mode' => env('AI_GATING_MODE', 'selfhosted'),
-        'free_tier' => [
-            'job_postings' => 1,
-            'document_uploads' => 3,
-        ],
         'credits_per_purchase' => 500,
         'purchase_price_cents' => 500,
         'signup_bonus' => (int) env('AI_SIGNUP_BONUS', 250),

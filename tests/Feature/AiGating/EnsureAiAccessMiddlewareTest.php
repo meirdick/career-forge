@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\CreditBalance;
-use App\Models\UsageLimit;
 use App\Models\User;
 use App\Models\UserApiKey;
 
@@ -19,14 +18,10 @@ test('selfhosted mode passes through all requests', function () {
     expect($response->status())->not->toBe(402);
 });
 
-test('gated mode returns 402 for free tier user exceeding limits', function () {
+test('gated mode returns 402 for user with zero credits', function () {
     config(['ai.gating.mode' => 'gated']);
 
     $user = User::factory()->create();
-    UsageLimit::factory()->create([
-        'user_id' => $user->id,
-        'job_postings_used' => 1,
-    ]);
 
     $response = $this->actingAs($user)
         ->postJson(route('job-postings.store'), [
@@ -36,7 +31,7 @@ test('gated mode returns 402 for free tier user exceeding limits', function () {
     $response->assertStatus(402);
     $response->assertJson([
         'message' => 'AI access limit reached',
-        'access_mode' => 'free_tier',
+        'access_mode' => 'credits',
         'purpose' => 'job_analysis',
     ]);
 });
@@ -84,27 +79,10 @@ test('gated mode returns 402 for credits users with insufficient balance', funct
     $response->assertStatus(402);
 });
 
-test('gated mode allows free tier user within limits', function () {
-    config(['ai.gating.mode' => 'gated']);
-
-    $user = User::factory()->create();
-
-    $response = $this->actingAs($user)
-        ->post(route('job-postings.store'), [
-            'raw_text' => 'Test job posting',
-        ]);
-
-    expect($response->status())->not->toBe(402);
-});
-
 test('inertia request redirects back with flash on access denied', function () {
     config(['ai.gating.mode' => 'gated']);
 
     $user = User::factory()->create();
-    UsageLimit::factory()->create([
-        'user_id' => $user->id,
-        'job_postings_used' => 1,
-    ]);
 
     $response = $this->actingAs($user)
         ->post(route('job-postings.store'), [
@@ -117,7 +95,7 @@ test('inertia request redirects back with flash on access denied', function () {
     $response->assertRedirect();
     $response->assertSessionHas('ai_access_denied', function (array $data) {
         return $data['message'] === 'AI access limit reached'
-            && $data['access_mode'] === 'free_tier'
+            && $data['access_mode'] === 'credits'
             && $data['purpose'] === 'job_analysis';
     });
 });
@@ -127,7 +105,7 @@ test('chat route is gated', function () {
 
     $user = User::factory()->create();
 
-    // Free tier users cannot use chat
+    // Users with 0 credits cannot use chat
     $chatSession = \App\Models\ChatSession::factory()->create(['user_id' => $user->id]);
 
     $response = $this->actingAs($user)

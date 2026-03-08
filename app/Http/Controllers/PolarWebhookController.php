@@ -20,9 +20,16 @@ class PolarWebhookController extends Controller
     {
         $payload = $request->getContent();
 
-        // Verify Standard Webhooks signature when a secret is configured
-        $webhookSecret = config('services.polar.webhook_secret');
-        if ($webhookSecret) {
+        // Verify Standard Webhooks signature (required by default, disable via POLAR_WEBHOOK_VERIFY=false for local dev)
+        if (config('services.polar.webhook_verify', true)) {
+            $webhookSecret = config('services.polar.webhook_secret');
+
+            if (! $webhookSecret) {
+                Log::error('Polar webhook: POLAR_WEBHOOK_SECRET is not configured');
+
+                return response('Webhook secret not configured', 500);
+            }
+
             $webhookId = $request->header('webhook-id', '');
             $timestamp = $request->header('webhook-timestamp', '');
             $signature = $request->header('webhook-signature', '');

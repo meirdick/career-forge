@@ -62,6 +62,7 @@ trait FailsOverOnBillingErrors
     private function withBillingFailover(Closure $callback, Lab|array|string|null $provider, ?string $model): mixed
     {
         $providers = $this->getProvidersAndModels($provider, $model);
+        $lastException = null;
 
         foreach ($providers as $provider => $model) {
             $provider = Ai::textProviderFor($this, $provider);
@@ -71,10 +72,13 @@ trait FailsOverOnBillingErrors
             try {
                 return $callback($provider, $model);
             } catch (FailoverableException $e) {
+                $lastException = $e;
                 event(new AgentFailedOver($this, $provider, $model, $e));
 
                 continue;
             } catch (AiException $e) {
+                $lastException = $e;
+
                 if ($this->isBillingError($e)) {
                     event(new AgentFailedOver($this, $provider, $model, $e));
 
@@ -85,7 +89,7 @@ trait FailsOverOnBillingErrors
             }
         }
 
-        throw $e;
+        throw $lastException ?? new AiException('No providers available for failover.');
     }
 
     private function isBillingError(AiException $e): bool

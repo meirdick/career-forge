@@ -3,7 +3,6 @@
 use App\Enums\AiAccessMode;
 use App\Enums\AiPurpose;
 use App\Models\CreditBalance;
-use App\Models\UsageLimit;
 use App\Models\User;
 use App\Models\UserApiKey;
 use App\Services\AiGatingService;
@@ -39,12 +38,12 @@ test('resolves credits mode when user has positive balance', function () {
     expect($service->resolveAccessMode($user))->toBe(AiAccessMode::Credits);
 });
 
-test('resolves free tier when user has no key and no credits', function () {
+test('resolves credits mode when user has no key and no credits', function () {
     $user = User::factory()->create();
 
     $service = app(AiGatingService::class);
 
-    expect($service->resolveAccessMode($user))->toBe(AiAccessMode::FreeTier);
+    expect($service->resolveAccessMode($user))->toBe(AiAccessMode::Credits);
 });
 
 test('selfhosted mode always allows actions', function () {
@@ -87,55 +86,13 @@ test('credits mode denies actions when insufficient balance', function () {
     expect($service->canPerformAction($user, AiPurpose::ResumeGeneration))->toBeFalse();
 });
 
-test('free tier allows first job posting analysis', function () {
+test('user with zero credits is denied all actions', function () {
     $user = User::factory()->create();
-
-    $service = app(AiGatingService::class);
-
-    expect($service->canPerformAction($user, AiPurpose::JobAnalysis))->toBeTrue();
-});
-
-test('free tier denies job posting analysis after limit', function () {
-    $user = User::factory()->create();
-    UsageLimit::factory()->create([
-        'user_id' => $user->id,
-        'job_postings_used' => 1,
-    ]);
 
     $service = app(AiGatingService::class);
 
     expect($service->canPerformAction($user, AiPurpose::JobAnalysis))->toBeFalse();
-});
-
-test('free tier allows document uploads within limit', function () {
-    $user = User::factory()->create();
-    UsageLimit::factory()->create([
-        'user_id' => $user->id,
-        'documents_used' => 2,
-    ]);
-
-    $service = app(AiGatingService::class);
-
-    expect($service->canPerformAction($user, AiPurpose::ResumeParsing))->toBeTrue();
-});
-
-test('free tier denies document uploads after limit', function () {
-    $user = User::factory()->create();
-    UsageLimit::factory()->create([
-        'user_id' => $user->id,
-        'documents_used' => 3,
-    ]);
-
-    $service = app(AiGatingService::class);
-
     expect($service->canPerformAction($user, AiPurpose::ResumeParsing))->toBeFalse();
-});
-
-test('free tier denies non-free-tier actions', function () {
-    $user = User::factory()->create();
-
-    $service = app(AiGatingService::class);
-
     expect($service->canPerformAction($user, AiPurpose::ChatMessage))->toBeFalse();
     expect($service->canPerformAction($user, AiPurpose::ResumeGeneration))->toBeFalse();
 });
@@ -187,43 +144,4 @@ test('chargeCredits does nothing in selfhosted mode', function () {
 
     $user->refresh();
     expect($user->creditBalance->balance)->toBe(100);
-});
-
-test('incrementFreeTierUsage tracks job postings', function () {
-    $user = User::factory()->create();
-
-    $service = app(AiGatingService::class);
-    $service->incrementFreeTierUsage($user, AiPurpose::JobAnalysis);
-
-    $user->refresh();
-    expect($user->usageLimit->job_postings_used)->toBe(1);
-});
-
-test('incrementFreeTierUsage tracks documents', function () {
-    $user = User::factory()->create();
-
-    $service = app(AiGatingService::class);
-    $service->incrementFreeTierUsage($user, AiPurpose::ResumeParsing);
-
-    $user->refresh();
-    expect($user->usageLimit->documents_used)->toBe(1);
-});
-
-test('getFreeTierUsage returns correct counts', function () {
-    $user = User::factory()->create();
-    UsageLimit::factory()->create([
-        'user_id' => $user->id,
-        'job_postings_used' => 1,
-        'documents_used' => 2,
-    ]);
-
-    $service = app(AiGatingService::class);
-    $usage = $service->getFreeTierUsage($user);
-
-    expect($usage)->toBe([
-        'job_postings_used' => 1,
-        'job_postings_limit' => 1,
-        'documents_used' => 2,
-        'documents_limit' => 3,
-    ]);
 });

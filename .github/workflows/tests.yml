@@ -43,6 +43,9 @@ jobs:
       - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
+      - name: Audit Dependencies
+        run: composer audit
+
       - name: Copy Environment File
         run: cp .env.example .env
 
@@ -51,6 +54,9 @@ jobs:
 
       - name: Build Assets
         run: npm run build
+
+      - name: Static Analysis
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=512M
 
       - name: Tests
         run: ./vendor/bin/pest

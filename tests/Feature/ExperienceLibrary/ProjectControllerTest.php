@@ -46,7 +46,7 @@ test('store validates url format', function () {
         ->post('/projects', [
             'name' => 'Test',
             'description' => 'Test',
-            'url' => 'not-a-url',
+            'url' => 'https://not a url with spaces',
             'sort_order' => 0,
         ])
         ->assertSessionHasErrors('url');

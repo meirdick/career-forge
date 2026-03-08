@@ -24,6 +24,5 @@ trait ConfiguresAiForUser
         $gatingService = app(AiGatingService::class);
 
         $gatingService->chargeCredits($user, $purpose, $aiInteractionId);
-        $gatingService->incrementFreeTierUsage($user, $purpose);
     }
 }

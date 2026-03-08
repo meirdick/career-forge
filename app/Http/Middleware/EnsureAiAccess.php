@@ -51,7 +51,6 @@ class EnsureAiAccess
                     'purpose' => $purpose,
                     'cost' => $cost,
                     'balance' => $balance,
-                    'free_tier_usage' => $this->gatingService->getFreeTierUsage($user),
                 ], 402);
             }
 

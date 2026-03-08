@@ -28,7 +28,6 @@ export default function Billing({
     transactions,
     creditsPerPurchase,
     purchasePriceCents,
-    freeTierUsage,
     accessMode,
     purchaseSuccess,
 }: {
@@ -36,12 +35,6 @@ export default function Billing({
     transactions: CreditTransaction[];
     creditsPerPurchase: number;
     purchasePriceCents: number;
-    freeTierUsage: {
-        job_postings_used: number;
-        job_postings_limit: number;
-        documents_used: number;
-        documents_limit: number;
-    };
     accessMode: string;
     purchaseSuccess?: boolean;
 }) {
@@ -86,42 +79,6 @@ export default function Billing({
                                 Buy {creditsPerPurchase} credits ({priceDisplay}
                                 )
                             </Button>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="space-y-6">
-                    <Heading
-                        variant="small"
-                        title="Free tier usage"
-                        description="Your current free tier consumption"
-                    />
-
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between rounded-lg border p-4">
-                            <div>
-                                <p className="font-medium">Job postings analyzed</p>
-                                <p className="text-sm text-muted-foreground">
-                                    Free tier limit
-                                </p>
-                            </div>
-                            <p className="text-sm font-medium">
-                                {freeTierUsage.job_postings_used} /{' '}
-                                {freeTierUsage.job_postings_limit}
-                            </p>
-                        </div>
-
-                        <div className="flex items-center justify-between rounded-lg border p-4">
-                            <div>
-                                <p className="font-medium">Documents uploaded</p>
-                                <p className="text-sm text-muted-foreground">
-                                    Free tier limit
-                                </p>
-                            </div>
-                            <p className="text-sm font-medium">
-                                {freeTierUsage.documents_used} /{' '}
-                                {freeTierUsage.documents_limit}
-                            </p>
                         </div>
                     </div>
                 </div>

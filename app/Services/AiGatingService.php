@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\AiAccessMode;
 use App\Enums\AiPurpose;
-use App\Models\UsageLimit;
 use App\Models\User;
 
 class AiGatingService
@@ -23,11 +22,7 @@ class AiGatingService
             return AiAccessMode::Byok;
         }
 
-        if ($this->creditService->getBalance($user) > 0) {
-            return AiAccessMode::Credits;
-        }
-
-        return AiAccessMode::FreeTier;
+        return AiAccessMode::Credits;
     }
 
     public function canPerformAction(User $user, AiPurpose $purpose): bool
@@ -38,7 +33,6 @@ class AiGatingService
             AiAccessMode::Selfhosted => true,
             AiAccessMode::Byok => true,
             AiAccessMode::Credits => $this->hasEnoughCredits($user, $purpose),
-            AiAccessMode::FreeTier => $this->isWithinFreeTierLimits($user, $purpose),
         };
     }
 
@@ -87,53 +81,10 @@ class AiGatingService
         );
     }
 
-    public function incrementFreeTierUsage(User $user, AiPurpose $purpose): void
-    {
-        $mode = $this->resolveAccessMode($user);
-
-        if ($mode !== AiAccessMode::FreeTier) {
-            return;
-        }
-
-        $usageLimit = $user->usageLimit ?? UsageLimit::create(['user_id' => $user->id]);
-
-        match ($purpose) {
-            AiPurpose::JobAnalysis => $usageLimit->increment('job_postings_used'),
-            AiPurpose::ResumeParsing => $usageLimit->increment('documents_used'),
-            default => null,
-        };
-    }
-
-    /**
-     * @return array{job_postings_used: int, job_postings_limit: int, documents_used: int, documents_limit: int}
-     */
-    public function getFreeTierUsage(User $user): array
-    {
-        $usageLimit = $user->usageLimit;
-
-        return [
-            'job_postings_used' => $usageLimit?->job_postings_used ?? 0,
-            'job_postings_limit' => config('ai.gating.free_tier.job_postings'),
-            'documents_used' => $usageLimit?->documents_used ?? 0,
-            'documents_limit' => config('ai.gating.free_tier.document_uploads'),
-        ];
-    }
-
     protected function hasEnoughCredits(User $user, AiPurpose $purpose): bool
     {
         $cost = $this->creditService->getCostForPurpose($purpose);
 
         return $this->creditService->getBalance($user) >= $cost;
-    }
-
-    protected function isWithinFreeTierLimits(User $user, AiPurpose $purpose): bool
-    {
-        $usageLimit = $user->usageLimit;
-
-        return match ($purpose) {
-            AiPurpose::JobAnalysis => ($usageLimit?->job_postings_used ?? 0) < config('ai.gating.free_tier.job_postings'),
-            AiPurpose::ResumeParsing => ($usageLimit?->documents_used ?? 0) < config('ai.gating.free_tier.document_uploads'),
-            default => false,
-        };
     }
 }

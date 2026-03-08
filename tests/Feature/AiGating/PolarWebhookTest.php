@@ -58,6 +58,7 @@ test('polar webhook handles order.created event', function () {
 });
 
 test('polar webhook rejects invalid signature', function () {
+    config(['services.polar.webhook_verify' => true]);
     config(['services.polar.webhook_secret' => 'whsec_'.base64_encode(random_bytes(32))]);
 
     $payload = json_encode([
@@ -75,9 +76,25 @@ test('polar webhook rejects invalid signature', function () {
     $response->assertStatus(403);
 });
 
-test('polar webhook skips verification when no secret configured', function () {
+test('polar webhook returns 500 when verify enabled but no secret configured', function () {
+    config(['services.polar.webhook_verify' => true]);
+    config(['services.polar.webhook_secret' => '']);
+
+    $response = $this->postJson(route('polar.webhook'), [
+        'type' => 'order.created',
+        'data' => [
+            'id' => 'polar-order-abc',
+            'metadata' => ['user_id' => '1'],
+        ],
+    ]);
+
+    $response->assertStatus(500);
+});
+
+test('polar webhook skips verification when verify is disabled', function () {
     $user = User::factory()->create();
 
+    config(['services.polar.webhook_verify' => false]);
     config(['services.polar.webhook_secret' => '']);
 
     $response = $this->postJson(route('polar.webhook'), [
@@ -96,7 +113,7 @@ test('polar webhook skips verification when no secret configured', function () {
 });
 
 test('polar webhook ignores non-order events', function () {
-    config(['services.polar.webhook_secret' => '']);
+    config(['services.polar.webhook_verify' => false]);
 
     $response = $this->postJson(route('polar.webhook'), [
         'type' => 'subscription.created',
@@ -107,7 +124,7 @@ test('polar webhook ignores non-order events', function () {
 });
 
 test('polar webhook handles missing user gracefully', function () {
-    config(['services.polar.webhook_secret' => '']);
+    config(['services.polar.webhook_verify' => false]);
 
     $response = $this->postJson(route('polar.webhook'), [
         'type' => 'order.created',
@@ -123,7 +140,7 @@ test('polar webhook handles missing user gracefully', function () {
 });
 
 test('polar webhook handles missing metadata gracefully', function () {
-    config(['services.polar.webhook_secret' => '']);
+    config(['services.polar.webhook_verify' => false]);
 
     $response = $this->postJson(route('polar.webhook'), [
         'type' => 'order.created',

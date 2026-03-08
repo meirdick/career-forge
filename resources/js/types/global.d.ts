@@ -1,15 +1,9 @@
 import type { Auth } from '@/types/auth';
 
 export type AiAccessProps = {
-    mode?: 'selfhosted' | 'byok' | 'credits' | 'free_tier';
+    mode?: 'selfhosted' | 'byok' | 'credits';
     credits?: number;
     gatingEnabled: boolean;
-    freeTierUsage?: {
-        job_postings_used: number;
-        job_postings_limit: number;
-        documents_used: number;
-        documents_limit: number;
-    };
     hasApiKey?: boolean;
 };
 

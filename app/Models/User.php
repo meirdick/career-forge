@@ -172,11 +172,6 @@ class User extends Authenticatable
         return $this->hasMany(CreditTransaction::class);
     }
 
-    public function usageLimit(): HasOne
-    {
-        return $this->hasOne(UsageLimit::class);
-    }
-
     public function hasAiAccess(): bool
     {
         if (config('ai.gating.mode') === 'selfhosted') {
@@ -189,10 +184,6 @@ class User extends Authenticatable
 
         $balance = $this->creditBalance;
 
-        if ($balance && $balance->balance > 0) {
-            return true;
-        }
-
-        return true; // Free tier always has some access
+        return $balance && $balance->balance > 0;
     }
 }
