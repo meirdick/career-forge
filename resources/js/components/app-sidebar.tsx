@@ -48,50 +48,7 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
-const experienceLibraryItems: NavItem[] = [
-    {
-        title: 'Timeline',
-        href: experienceLibraryIndex(),
-        icon: Library,
-    },
-    {
-        title: 'Skills',
-        href: skillsIndex(),
-        icon: Sparkles,
-    },
-    {
-        title: 'Identity',
-        href: identityEdit(),
-        icon: User,
-    },
-    {
-        title: 'Education',
-        href: educationIndex(),
-        icon: GraduationCap,
-    },
-    {
-        title: 'Tags',
-        href: tagsIndex(),
-        icon: Tag,
-    },
-    {
-        title: 'Links',
-        href: evidenceIndex(),
-        icon: LinkIcon,
-    },
-    {
-        title: 'Career Chat',
-        href: careerChatIndex(),
-        icon: MessageCircle,
-    },
-    {
-        title: 'Upload',
-        href: resumeUploadCreate(),
-        icon: Upload,
-    },
-];
-
-const applicationsItems: NavItem[] = [
+const pipelineItems: NavItem[] = [
     {
         title: 'Job Postings',
         href: jobPostingsIndex(),
@@ -106,6 +63,52 @@ const applicationsItems: NavItem[] = [
         title: 'Applications',
         href: applicationsIndex(),
         icon: Briefcase,
+    },
+];
+
+const experienceLibraryItems: NavItem[] = [
+    {
+        title: 'Upload Resume',
+        href: resumeUploadCreate(),
+        icon: Upload,
+    },
+    {
+        title: 'Links',
+        href: evidenceIndex(),
+        icon: LinkIcon,
+    },
+    {
+        title: 'Work History',
+        href: experienceLibraryIndex(),
+        icon: Library,
+    },
+    {
+        title: 'Skills',
+        href: skillsIndex(),
+        icon: Sparkles,
+    },
+    {
+        title: 'Education',
+        href: educationIndex(),
+        icon: GraduationCap,
+    },
+    {
+        title: 'Identity',
+        href: identityEdit(),
+        icon: User,
+    },
+];
+
+const toolsItems: NavItem[] = [
+    {
+        title: 'Career Chat',
+        href: careerChatIndex(),
+        icon: MessageCircle,
+    },
+    {
+        title: 'Tags',
+        href: tagsIndex(),
+        icon: Tag,
     },
 ];
 
@@ -130,8 +133,9 @@ export function AppSidebar() {
 
             <SidebarContent>
                 <NavMain items={mainNavItems} />
-                <NavMain items={applicationsItems} label="Applications" />
+                <NavMain items={pipelineItems} label="Pipeline" />
                 <NavMain items={experienceLibraryItems} label="Experience Library" />
+                <NavMain items={toolsItems} label="Tools" />
             </SidebarContent>
 
             <SidebarFooter>

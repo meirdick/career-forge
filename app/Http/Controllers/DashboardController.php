@@ -19,6 +19,12 @@ class DashboardController extends Controller
             'applications' => $user->applications()->count(),
         ];
 
+        $isNewUser = $stats['experiences'] === 0
+            && $stats['skills'] === 0
+            && $stats['accomplishments'] === 0
+            && $stats['applications'] === 0
+            && $user->jobPostings()->count() === 0;
+
         $recentApplications = $user->applications()
             ->with('jobPosting:id,title')
             ->latest()
@@ -30,10 +36,77 @@ class DashboardController extends Controller
             ->limit(3)
             ->get(['id', 'company', 'title', 'started_at', 'is_current']);
 
+        $pipelineContinuation = null;
+        if (! $isNewUser) {
+            $pipelineContinuation = $this->getPipelineContinuation($user);
+        }
+
         return Inertia::render('dashboard', [
             'stats' => $stats,
+            'isNewUser' => $isNewUser,
             'recentApplications' => $recentApplications,
             'recentExperiences' => $recentExperiences,
+            'pipelineContinuation' => $pipelineContinuation,
         ]);
+    }
+
+    /**
+     * @return array{jobPosting: array{id: int, title: string|null, company: string|null}, nextStep: string, nextStepLabel: string, nextStepUrl: string}|null
+     */
+    private function getPipelineContinuation($user): ?array
+    {
+        $jobPosting = $user->jobPostings()
+            ->whereDoesntHave('applications')
+            ->latest()
+            ->first(['id', 'title', 'company']);
+
+        if (! $jobPosting) {
+            return null;
+        }
+
+        $hasGapAnalysis = $user->gapAnalyses()
+            ->whereHas('idealCandidateProfile', fn ($q) => $q->where('job_posting_id', $jobPosting->id))
+            ->exists();
+
+        $hasResume = $user->resumes()
+            ->where('job_posting_id', $jobPosting->id)
+            ->exists();
+
+        if (! $hasGapAnalysis) {
+            return [
+                'jobPosting' => [
+                    'id' => $jobPosting->id,
+                    'title' => $jobPosting->title,
+                    'company' => $jobPosting->company,
+                ],
+                'nextStep' => 'gap_analysis',
+                'nextStepLabel' => 'Run Gap Analysis',
+                'nextStepUrl' => "/job-postings/{$jobPosting->id}",
+            ];
+        }
+
+        if (! $hasResume) {
+            return [
+                'jobPosting' => [
+                    'id' => $jobPosting->id,
+                    'title' => $jobPosting->title,
+                    'company' => $jobPosting->company,
+                ],
+                'nextStep' => 'resume',
+                'nextStepLabel' => 'Generate Resume',
+                'nextStepUrl' => "/job-postings/{$jobPosting->id}",
+            ];
+        }
+
+        return [
+            'jobPosting' => [
+                'id' => $jobPosting->id,
+                'title' => $jobPosting->title,
+                'company' => $jobPosting->company,
+            ],
+            'nextStep' => 'application',
+            'nextStepLabel' => 'Create Application',
+            'nextStepUrl' => '/applications/create',
+        ];
     }
 }

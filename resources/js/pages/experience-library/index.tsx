@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Library, Plus, Search, X } from 'lucide-react';
+import { Library, Plus, Search, Upload, X } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,7 @@ import EmptyState from '@/components/empty-state';
 import AppLayout from '@/layouts/app-layout';
 import { index as experienceLibraryIndex } from '@/routes/experience-library';
 import { create as experienceCreate, show as experienceShow } from '@/routes/experiences';
+import { create as resumeUploadCreate } from '@/routes/resume-upload';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -164,11 +165,16 @@ export default function ExperienceLibraryIndex({ experiences, skills = [], tags 
                         title="No experiences yet"
                         description="Add your first role to start building your professional timeline."
                         action={
-                            <Button asChild>
-                                <Link href={experienceCreate()}>
-                                    <Plus className="mr-2 h-4 w-4" />Add Experience
+                            <div className="flex flex-col items-center gap-2">
+                                <Button asChild>
+                                    <Link href={experienceCreate()}>
+                                        <Plus className="mr-2 h-4 w-4" />Add Experience
+                                    </Link>
+                                </Button>
+                                <Link href={resumeUploadCreate()} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                    <Upload className="size-3" /> Or upload a resume to auto-import
                                 </Link>
-                            </Button>
+                            </div>
                         }
                     />
                 ) : (

@@ -1,11 +1,12 @@
 import { Head, Link } from '@inertiajs/react';
-import { Download, FileText, Upload } from 'lucide-react';
+import { Download, FileText, Target, Upload } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import EmptyState from '@/components/empty-state';
 import AppLayout from '@/layouts/app-layout';
+import { index as jobPostingsIndex } from '@/routes/job-postings';
 import { create as resumeUploadCreate } from '@/routes/resume-upload';
 import type { BreadcrumbItem } from '@/types';
 
@@ -56,13 +57,18 @@ export default function ResumesIndex({ resumes, uploadedDocuments }: { resumes: 
                     <EmptyState
                         icon={FileText}
                         title="No resumes yet"
-                        description="Upload an existing resume or generate a tailored resume from a gap analysis to get started."
+                        description="Tailored resumes are generated after analyzing a job posting and running a gap analysis."
                         action={
-                            <Link href={resumeUploadCreate()}>
-                                <Button>
-                                    <Upload className="mr-2 h-4 w-4" /> Upload Resume
-                                </Button>
-                            </Link>
+                            <div className="flex flex-col items-center gap-2">
+                                <Link href={jobPostingsIndex()}>
+                                    <Button>
+                                        <Target className="mr-2 h-4 w-4" /> Go to Job Postings
+                                    </Button>
+                                </Link>
+                                <Link href={resumeUploadCreate()} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                    Or upload an existing resume
+                                </Link>
+                            </div>
                         }
                     />
                 ) : (

@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Briefcase, Plus } from 'lucide-react';
+import { Briefcase, Plus, Target } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import EmptyState from '@/components/empty-state';
@@ -7,6 +7,7 @@ import StatusBadge from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
+import { index as jobPostingsIndex } from '@/routes/job-postings';
 import type { BreadcrumbItem } from '@/types';
 
 type ApplicationData = {
@@ -74,11 +75,18 @@ export default function ApplicationsIndex({ applications }: { applications: Appl
                     <EmptyState
                         icon={Briefcase}
                         title="No applications yet"
-                        description="Create your first application to start tracking your job search."
+                        description="Applications track your full pipeline — start by analyzing a job posting, then generate a resume and apply."
                         action={
-                            <Link href="/applications/create">
-                                <Button><Plus className="mr-1 h-4 w-4" /> New Application</Button>
-                            </Link>
+                            <div className="flex flex-col items-center gap-2">
+                                <Link href={jobPostingsIndex()}>
+                                    <Button>
+                                        <Target className="mr-1 h-4 w-4" /> Go to Job Postings
+                                    </Button>
+                                </Link>
+                                <Link href="/applications/create" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                    Or create an application manually
+                                </Link>
+                            </div>
                         }
                     />
                 ) : (

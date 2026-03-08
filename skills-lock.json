@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "growth-product-context": {
+      "source": "meirdick/growth-product-context",
+      "sourceType": "github",
+      "computedHash": "4c7a9d0a66aafeb8c5762e0f8760b4cedb18ffcaa321ff62266706fe49f82a2f"
+    },
+    "laravel-prod-ready": {
+      "source": "meirdick/laravel-prod-ready",
+      "sourceType": "github",
+      "computedHash": "dcdeb6f6fbbfc77516b34cab40e5c205cc4a9aad786de4ee888574184afd74a1"
+    }
+  }
+}

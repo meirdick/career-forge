@@ -1,16 +1,17 @@
 import { router, usePage } from '@inertiajs/react';
-import { Check, Copy, Gift, Sparkles } from 'lucide-react';
+import { Check, Copy, FileText, Gift, Sparkles, Target } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
     DialogDescription,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { create as resumeUploadCreate } from '@/routes/resume-upload';
+import { create as jobPostingsCreate } from '@/routes/job-postings';
 
 export default function WelcomeModal() {
     const { showWelcome, referralCode } = usePage().props;
@@ -25,9 +26,16 @@ export default function WelcomeModal() {
         ? `${window.location.origin}/register?ref=${referralCode}`
         : '';
 
-    function dismiss() {
+    function dismiss(navigateTo?: string) {
         setOpen(false);
-        router.post('/welcome/dismiss', {}, { preserveScroll: true });
+        router.post('/welcome/dismiss', {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                if (navigateTo) {
+                    router.visit(navigateTo);
+                }
+            },
+        });
     }
 
     function copyLink() {
@@ -38,25 +46,57 @@ export default function WelcomeModal() {
 
     return (
         <Dialog open={open} onOpenChange={(isOpen) => !isOpen && dismiss()}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Sparkles className="size-5 text-yellow-500" />
                         Welcome to CareerForge!
                     </DialogTitle>
                     <DialogDescription>
-                        You have <strong className="text-foreground">250 credits</strong> to get started. Use them to parse resumes, analyze job postings, generate tailored resumes, and more.
+                        You have <strong className="text-foreground">250 credits</strong> to get started. How would you like to begin?
                     </DialogDescription>
                 </DialogHeader>
 
+                <div className="grid gap-3 sm:grid-cols-2">
+                    <button
+                        onClick={() => dismiss(resumeUploadCreate().url)}
+                        className="group flex flex-col items-center gap-3 rounded-lg border p-5 text-center transition-colors hover:border-primary hover:bg-primary/5"
+                    >
+                        <div className="rounded-full bg-primary/10 p-3 transition-colors group-hover:bg-primary/20">
+                            <FileText className="size-6 text-primary" />
+                        </div>
+                        <div>
+                            <p className="font-medium">Upload Resume</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Import your existing resume to auto-fill your library
+                            </p>
+                        </div>
+                    </button>
+
+                    <button
+                        onClick={() => dismiss(jobPostingsCreate().url)}
+                        className="group flex flex-col items-center gap-3 rounded-lg border p-5 text-center transition-colors hover:border-primary hover:bg-primary/5"
+                    >
+                        <div className="rounded-full bg-primary/10 p-3 transition-colors group-hover:bg-primary/20">
+                            <Target className="size-6 text-primary" />
+                        </div>
+                        <div>
+                            <p className="font-medium">Analyze a Job</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Paste a job URL to see how you match instantly
+                            </p>
+                        </div>
+                    </button>
+                </div>
+
                 {referralCode && (
-                    <div className="rounded-lg border bg-muted/50 p-4">
-                        <div className="mb-2 flex items-center gap-2 text-sm font-medium">
-                            <Gift className="size-4 text-primary" />
+                    <div className="rounded-lg border bg-muted/50 p-3">
+                        <div className="mb-1.5 flex items-center gap-2 text-xs font-medium">
+                            <Gift className="size-3.5 text-primary" />
                             Earn 250 more credits
                         </div>
-                        <p className="mb-3 text-sm text-muted-foreground">
-                            Share your referral link with a friend. When they sign up, you both earn 250 bonus credits.
+                        <p className="mb-2 text-xs text-muted-foreground">
+                            Share your referral link — you both earn 250 bonus credits.
                         </p>
                         <div className="flex gap-2">
                             <Input
@@ -80,12 +120,6 @@ export default function WelcomeModal() {
                         </div>
                     </div>
                 )}
-
-                <DialogFooter>
-                    <Button onClick={dismiss} className="w-full sm:w-auto">
-                        Get Started
-                    </Button>
-                </DialogFooter>
             </DialogContent>
         </Dialog>
     );
