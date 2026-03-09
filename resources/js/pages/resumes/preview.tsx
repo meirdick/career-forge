@@ -15,7 +15,7 @@ type Contact = {
     phone?: string;
     location?: string;
     linkedin_url?: string;
-    portfolio_url?: string;
+    portfolio_links?: { url: string; label: string }[];
 };
 type ResumeData = {
     id: number;

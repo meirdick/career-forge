@@ -3,6 +3,7 @@
 use App\Models\ProfessionalIdentity;
 use App\Models\Resume;
 use App\Models\User;
+use App\Models\UserLink;
 use App\Services\ResumeHeaderService;
 
 beforeEach(function () {
@@ -16,7 +17,12 @@ test('resolves defaults when no config exists', function () {
         'phone' => '555-1234',
         'location' => 'NYC',
         'linkedin_url' => 'https://linkedin.com/in/jane',
-        'portfolio_url' => 'https://jane.dev',
+    ]);
+    UserLink::factory()->create([
+        'user_id' => $user->id,
+        'url' => 'https://jane.dev',
+        'label' => null,
+        'type' => 'portfolio',
     ]);
     $resume = Resume::factory()->create(['user_id' => $user->id]);
 
@@ -29,8 +35,49 @@ test('resolves defaults when no config exists', function () {
             'phone' => '555-1234',
             'location' => 'NYC',
             'linkedin_url' => 'https://linkedin.com/in/jane',
-            'portfolio_url' => 'https://jane.dev',
         ]);
+    expect($header['portfolio_links'])->toHaveCount(1);
+    expect($header['portfolio_links'][0]['url'])->toBe('https://jane.dev');
+    expect($header['portfolio_links'][0]['label'])->toBe('jane.dev');
+});
+
+test('resolves multiple portfolio links', function () {
+    $user = User::factory()->create(['name' => 'Jane Doe']);
+    UserLink::factory()->create([
+        'user_id' => $user->id,
+        'url' => 'https://jane.dev',
+        'label' => 'Portfolio',
+        'type' => 'portfolio',
+        'sort_order' => 0,
+    ]);
+    UserLink::factory()->create([
+        'user_id' => $user->id,
+        'url' => 'https://github.com/jane',
+        'label' => null,
+        'type' => 'github',
+        'sort_order' => 1,
+    ]);
+    $resume = Resume::factory()->create(['user_id' => $user->id]);
+
+    $header = $this->service->resolveHeader($resume);
+
+    expect($header['portfolio_links'])->toHaveCount(2);
+    expect($header['portfolio_links'][0]['label'])->toBe('Portfolio');
+    expect($header['portfolio_links'][1]['label'])->toBe('github.com');
+});
+
+test('hides portfolio links when show_portfolio is false', function () {
+    $user = User::factory()->create();
+    UserLink::factory()->create(['user_id' => $user->id]);
+    ProfessionalIdentity::factory()->create([
+        'user_id' => $user->id,
+        'resume_header_config' => ['show_portfolio' => false],
+    ]);
+    $resume = Resume::factory()->create(['user_id' => $user->id]);
+
+    $header = $this->service->resolveHeader($resume);
+
+    expect($header['portfolio_links'])->toBeEmpty();
 });
 
 test('resolves global config from professional identity', function () {
@@ -107,4 +154,13 @@ test('falls back to display name when legal name is null', function () {
     $header = $this->service->resolveHeader($resume);
 
     expect($header['name'])->toBe('Jane Doe');
+});
+
+test('returns empty portfolio links when user has no links', function () {
+    $user = User::factory()->create();
+    $resume = Resume::factory()->create(['user_id' => $user->id]);
+
+    $header = $this->service->resolveHeader($resume);
+
+    expect($header['portfolio_links'])->toBeEmpty();
 });

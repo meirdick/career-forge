@@ -5,6 +5,7 @@ namespace App\Http\Controllers\ExperienceLibrary;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ExperienceLibrary\StoreEvidenceEntryRequest;
 use App\Http\Requests\ExperienceLibrary\UpdateEvidenceEntryRequest;
+use App\Jobs\DiscoverPortfolioLinksJob;
 use App\Jobs\IndexLinkJob;
 use App\Models\EvidenceEntry;
 use App\Services\ExperienceImportService;
@@ -24,11 +25,16 @@ class EvidenceEntryController extends Controller
             ->get();
 
         $indexResults = [];
+        $discoverResults = [];
         foreach ($entries as $entry) {
             if ($entry->url) {
                 $cached = Cache::get("evidence-index:{$entry->id}");
                 if ($cached) {
                     $indexResults[$entry->id] = $cached;
+                }
+                $discoverCached = Cache::get("evidence-discover:{$entry->id}");
+                if ($discoverCached) {
+                    $discoverResults[$entry->id] = $discoverCached;
                 }
             }
         }
@@ -36,6 +42,7 @@ class EvidenceEntryController extends Controller
         return Inertia::render('experience-library/evidence', [
             'entries' => $entries,
             'indexResults' => $indexResults,
+            'discoverResults' => $discoverResults,
         ]);
     }
 
@@ -86,6 +93,56 @@ class EvidenceEntryController extends Controller
         ], now()->addYear());
 
         return back()->with('success', ExperienceImportService::buildImportMessage($stats));
+    }
+
+    public function discoverLinks(Request $request, EvidenceEntry $evidenceEntry): RedirectResponse
+    {
+        abort_unless($evidenceEntry->user_id === $request->user()->id, 403);
+        abort_unless($evidenceEntry->url, 422, 'Link has no URL.');
+
+        Cache::put("evidence-discover:{$evidenceEntry->id}", [
+            'status' => 'processing',
+        ], now()->addHour());
+
+        DiscoverPortfolioLinksJob::dispatch($evidenceEntry);
+
+        return back();
+    }
+
+    public function importDiscoveredLinks(Request $request, EvidenceEntry $evidenceEntry): RedirectResponse
+    {
+        abort_unless($evidenceEntry->user_id === $request->user()->id, 403);
+
+        $validated = $request->validate([
+            'urls' => ['required', 'array', 'min:1'],
+            'urls.*' => ['required', 'url'],
+        ]);
+
+        $count = 0;
+        foreach ($validated['urls'] as $url) {
+            $request->user()->evidenceEntries()->create([
+                'type' => $evidenceEntry->type,
+                'title' => $this->titleFromUrl($url),
+                'url' => $url,
+            ]);
+            $count++;
+        }
+
+        return back()->with('success', "{$count} page(s) added as evidence entries.");
+    }
+
+    private function titleFromUrl(string $url): string
+    {
+        $path = parse_url($url, PHP_URL_PATH) ?? '/';
+        $path = trim($path, '/');
+
+        if (! $path) {
+            return parse_url($url, PHP_URL_HOST) ?? 'Page';
+        }
+
+        $segment = basename($path);
+
+        return str_replace(['-', '_'], ' ', $segment);
     }
 
     public function destroy(Request $request, EvidenceEntry $evidenceEntry): RedirectResponse

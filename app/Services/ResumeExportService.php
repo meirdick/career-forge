@@ -62,7 +62,7 @@ class ResumeExportService
             $header['phone'],
             $header['location'],
             $header['linkedin_url'],
-            $header['portfolio_url'],
+            ...array_map(fn ($link) => $link['label'], $header['portfolio_links']),
         ]);
 
         if (! empty($contactParts)) {

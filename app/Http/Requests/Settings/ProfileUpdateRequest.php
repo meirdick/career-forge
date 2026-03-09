@@ -14,7 +14,7 @@ class ProfileUpdateRequest extends FormRequest
 
     protected function urlFields(): array
     {
-        return ['linkedin_url', 'portfolio_url'];
+        return ['linkedin_url'];
     }
 
     /**

@@ -105,8 +105,8 @@ class RenderCvService
             $cv['phone'] = $header['phone'];
         }
 
-        if ($header['portfolio_url']) {
-            $cv['website'] = $header['portfolio_url'];
+        if (! empty($header['portfolio_links'])) {
+            $cv['website'] = $header['portfolio_links'][0]['url'];
         }
 
         if ($header['linkedin_url']) {

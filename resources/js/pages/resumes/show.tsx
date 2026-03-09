@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, Bot, Check, ChevronDown, Download, Eye, EyeOff, Loa
 import { useEffect, useState } from 'react';
 import Heading from '@/components/heading';
 import PipelineAssistantPanel from '@/components/pipeline-assistant-panel';
+import PipelineNextAction from '@/components/pipeline-next-action';
 import PipelineSteps from '@/components/pipeline-steps';
 import TemplatePicker from '@/components/resume-templates/template-picker';
 import { Badge } from '@/components/ui/badge';
@@ -43,7 +44,7 @@ const headerToggleFields = [
     { key: 'show_phone' as const, label: 'Phone' },
     { key: 'show_location' as const, label: 'Location' },
     { key: 'show_linkedin' as const, label: 'LinkedIn' },
-    { key: 'show_portfolio' as const, label: 'Portfolio' },
+    { key: 'show_portfolio' as const, label: 'Portfolio Links' },
 ];
 
 export default function ShowResume({ resume, globalHeaderConfig }: { resume: ResumeData; globalHeaderConfig: HeaderConfig }) {
@@ -119,7 +120,7 @@ export default function ShowResume({ resume, globalHeaderConfig }: { resume: Res
                             { label: 'Ideal Candidate', status: 'completed' },
                             { label: 'Gap Analysis', status: 'completed' },
                             { label: 'Resume', href: `/resumes/${resume.id}`, status: 'active' },
-                            { label: 'Application', status: 'upcoming' },
+                            { label: 'Application', href: `/applications/create?job_posting_id=${resume.job_posting.id}`, status: 'upcoming' },
                         ]}
                     />
                 )}
@@ -387,6 +388,14 @@ export default function ShowResume({ resume, globalHeaderConfig }: { resume: Res
                             )}
                         </div>
                     ))}
+
+                {resume.job_posting && !isGenerating && (
+                    <PipelineNextAction
+                        label="Create Application"
+                        description="Finalize your resume and create an application"
+                        href={`/applications/create?job_posting_id=${resume.job_posting.id}`}
+                    />
+                )}
             </div>
 
             {resume.job_posting && !isGenerating && (

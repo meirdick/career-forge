@@ -5,6 +5,7 @@ import GapActionCard from '@/components/gap-resolution/gap-action-card';
 import Heading from '@/components/heading';
 import MatchScoreRing from '@/components/match-score-ring';
 import PipelineAssistantPanel, { type PipelineAssistantHandle } from '@/components/pipeline-assistant-panel';
+import PipelineNextAction from '@/components/pipeline-next-action';
 import PipelineSteps from '@/components/pipeline-steps';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -99,7 +100,7 @@ export default function ShowGapAnalysis({ gapAnalysis, experiences, latestResume
                         { label: 'Ideal Candidate', href: `/job-postings/${posting.id}`, status: 'completed' },
                         { label: 'Gap Analysis', href: `/gap-analyses/${gapAnalysis.id}`, status: latestResume ? 'completed' : 'active' },
                         { label: 'Resume', href: latestResume ? `/resumes/${latestResume.id}` : undefined, status: latestResume ? 'active' : 'upcoming' },
-                        { label: 'Application', status: 'upcoming' },
+                        { label: 'Application', href: latestResume ? '/applications/create' : undefined, status: 'upcoming' },
                     ]}
                 />
                 <div className="flex items-start justify-between">
@@ -225,6 +226,21 @@ export default function ShowGapAnalysis({ gapAnalysis, experiences, latestResume
                     </>
                 )}
 
+                {!isAnalyzing && (
+                    latestResume ? (
+                        <PipelineNextAction
+                            label="View Resume"
+                            description="Continue to your generated resume"
+                            href={`/resumes/${latestResume.id}`}
+                        />
+                    ) : (
+                        <PipelineNextAction
+                            label="Generate Resume"
+                            description="Create a tailored resume based on this analysis"
+                            onClick={() => router.post(`/gap-analyses/${gapAnalysis.id}/resume`)}
+                        />
+                    )
+                )}
             </div>
 
             {!isAnalyzing && (
