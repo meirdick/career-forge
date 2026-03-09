@@ -1,7 +1,5 @@
 import { router } from '@inertiajs/react';
-import { X } from 'lucide-react';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { commit } from '@/routes/career-chat';
 import ExtractionReviewContent from './extraction-review/extraction-review-content';

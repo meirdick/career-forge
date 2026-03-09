@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Check, ChevronDown, ChevronUp, Loader2, MessageCircle, RotateCcw, Sparkles, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Loader2, MessageCircle, Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
