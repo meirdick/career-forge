@@ -14,7 +14,9 @@ class DiscoverPortfolioLinksJob implements ShouldQueue
 
     public int $timeout = 30;
 
-    public int $tries = 1;
+    public int $tries = 3;
+
+    public int $backoff = 15;
 
     public function __construct(
         public EvidenceEntry $evidenceEntry,

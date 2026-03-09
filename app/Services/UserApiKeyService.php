@@ -51,7 +51,7 @@ class UserApiKeyService
 
     protected function validateAnthropic(string $key): bool
     {
-        $response = Http::withHeaders([
+        $response = Http::timeout(60)->withHeaders([
             'x-api-key' => $key,
             'anthropic-version' => '2023-06-01',
         ])->post('https://api.anthropic.com/v1/messages', [
@@ -65,7 +65,7 @@ class UserApiKeyService
 
     protected function validateOpenAi(string $key): bool
     {
-        $response = Http::withToken($key)
+        $response = Http::timeout(60)->withToken($key)
             ->get('https://api.openai.com/v1/models');
 
         return $response->successful();
@@ -73,14 +73,15 @@ class UserApiKeyService
 
     protected function validateGemini(string $key): bool
     {
-        $response = Http::get("https://generativelanguage.googleapis.com/v1beta/models?key={$key}");
+        $response = Http::timeout(60)
+            ->get("https://generativelanguage.googleapis.com/v1beta/models?key={$key}");
 
         return $response->successful();
     }
 
     protected function validateGroq(string $key): bool
     {
-        $response = Http::withToken($key)
+        $response = Http::timeout(60)->withToken($key)
             ->get('https://api.groq.com/openai/v1/models');
 
         return $response->successful();

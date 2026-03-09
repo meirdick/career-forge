@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Str;
 use Laravel\Scout\Searchable;
 
 class Experience extends Model
@@ -39,6 +41,17 @@ class Experience extends Model
             'team_size' => 'integer',
             'sort_order' => 'integer',
         ];
+    }
+
+    protected $appends = ['formatted_description'];
+
+    protected function formattedDescription(): Attribute
+    {
+        return Attribute::get(function () {
+            $html = Str::markdown($this->description ?? '');
+
+            return strip_tags($html, '<p><br><strong><b><em><i><ul><ol><li><a>');
+        });
     }
 
     /**

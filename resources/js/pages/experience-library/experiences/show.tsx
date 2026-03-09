@@ -98,8 +98,8 @@ export default function ShowExperience({ experience, tags: availableTags }: { ex
                     </div>
                 </div>
 
-                {experience.description && (
-                    <div className="prose prose-sm text-muted-foreground max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4" dangerouslySetInnerHTML={{ __html: experience.description }} />
+                {experience.formatted_description && (
+                    <div className="prose prose-sm text-muted-foreground max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4" dangerouslySetInnerHTML={{ __html: experience.formatted_description }} />
                 )}
 
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
@@ -207,7 +207,7 @@ export default function ShowExperience({ experience, tags: availableTags }: { ex
                                     </Button>
                                 </CardHeader>
                                 <CardContent className="space-y-2 pt-0">
-                                    <div className="prose prose-sm text-muted-foreground max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4" dangerouslySetInnerHTML={{ __html: acc.description }} />
+                                    <div className="prose prose-sm text-muted-foreground max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4" dangerouslySetInnerHTML={{ __html: acc.formatted_description }} />
                                     {acc.impact && <p className="text-sm font-medium">{acc.impact}</p>}
                                     {acc.skills.length > 0 && (
                                         <div className="flex flex-wrap gap-1">
@@ -290,7 +290,7 @@ export default function ShowExperience({ experience, tags: availableTags }: { ex
                                     </Button>
                                 </CardHeader>
                                 <CardContent className="space-y-2 pt-0">
-                                    <div className="prose prose-sm text-muted-foreground max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4" dangerouslySetInnerHTML={{ __html: proj.description }} />
+                                    <div className="prose prose-sm text-muted-foreground max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4" dangerouslySetInnerHTML={{ __html: proj.formatted_description }} />
                                     {proj.skills.length > 0 && (
                                         <div className="flex flex-wrap gap-1">
                                             {proj.skills.map((s) => <Badge key={s.id} variant="secondary" className="text-xs">{s.name}</Badge>)}
