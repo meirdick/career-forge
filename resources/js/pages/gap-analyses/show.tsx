@@ -1,13 +1,13 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowRight, CheckCircle, FileText, Loader2, RefreshCw, Target, TrendingUp } from 'lucide-react';
+import { ArrowRight, CheckCircle, FileText, Loader2, RefreshCw } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import GapActionCard from '@/components/gap-resolution/gap-action-card';
 import Heading from '@/components/heading';
 import MatchScoreRing from '@/components/match-score-ring';
-import PipelineAssistantPanel, { type PipelineAssistantHandle } from '@/components/pipeline-assistant-panel';
+import PipelineAssistantPanel from '@/components/pipeline-assistant-panel';
+import type {PipelineAssistantHandle} from '@/components/pipeline-assistant-panel';
 import PipelineNextAction from '@/components/pipeline-next-action';
 import PipelineSteps from '@/components/pipeline-steps';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';

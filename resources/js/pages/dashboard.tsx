@@ -1,9 +1,9 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowRight, Briefcase, CheckCircle2, Circle, FileText, LayoutGrid, Plus, Sparkles, Target, Trophy, Upload } from 'lucide-react';
+import { ArrowRight, Briefcase, CheckCircle2, Circle, FileText, Plus, Sparkles, Target, Trophy, Upload } from 'lucide-react';
 import EmptyState from '@/components/empty-state';
 import StatusBadge from '@/components/status-badge';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
