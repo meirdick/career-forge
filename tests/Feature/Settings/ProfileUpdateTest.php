@@ -78,7 +78,6 @@ test('profile contact information can be updated', function () {
             'phone' => '555-123-4567',
             'location' => 'Portland, OR',
             'linkedin_url' => 'https://linkedin.com/in/testuser',
-            'portfolio_url' => 'https://testuser.dev',
         ]);
 
     $response
@@ -90,7 +89,6 @@ test('profile contact information can be updated', function () {
     expect($user->phone)->toBe('555-123-4567');
     expect($user->location)->toBe('Portland, OR');
     expect($user->linkedin_url)->toBe('https://linkedin.com/in/testuser');
-    expect($user->portfolio_url)->toBe('https://testuser.dev');
 });
 
 test('contact fields are optional when updating profile', function () {
@@ -112,7 +110,6 @@ test('contact fields are optional when updating profile', function () {
     expect($user->phone)->toBeNull();
     expect($user->location)->toBeNull();
     expect($user->linkedin_url)->toBeNull();
-    expect($user->portfolio_url)->toBeNull();
 });
 
 test('profile normalizes urls without protocol', function () {
@@ -123,7 +120,6 @@ test('profile normalizes urls without protocol', function () {
             'name' => 'Test User',
             'email' => $user->email,
             'linkedin_url' => 'www.linkedin.com/in/testuser',
-            'portfolio_url' => 'mysite.com',
         ])
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('profile.edit'));
@@ -131,7 +127,6 @@ test('profile normalizes urls without protocol', function () {
     $user->refresh();
 
     expect($user->linkedin_url)->toBe('https://www.linkedin.com/in/testuser');
-    expect($user->portfolio_url)->toBe('https://mysite.com');
 });
 
 test('correct password must be provided to delete account', function () {

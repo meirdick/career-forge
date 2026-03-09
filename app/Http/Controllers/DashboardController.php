@@ -51,7 +51,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * @return array{jobPosting: array{id: int, title: string|null, company: string|null}, nextStep: string, nextStepLabel: string, nextStepUrl: string}|null
+     * @return array{jobPosting: array{id: int, title: string|null, company: string|null}, nextStep: string, nextStepLabel: string, nextStepUrl: string, currentStepLabel: string|null, currentStepUrl: string|null}|null
      */
     private function getPipelineContinuation($user): ?array
     {
@@ -64,15 +64,17 @@ class DashboardController extends Controller
             return null;
         }
 
-        $hasGapAnalysis = $user->gapAnalyses()
+        $gapAnalysis = $user->gapAnalyses()
             ->whereHas('idealCandidateProfile', fn ($q) => $q->where('job_posting_id', $jobPosting->id))
-            ->exists();
+            ->latest()
+            ->first(['id']);
 
-        $hasResume = $user->resumes()
+        $resume = $user->resumes()
             ->where('job_posting_id', $jobPosting->id)
-            ->exists();
+            ->latest()
+            ->first(['id']);
 
-        if (! $hasGapAnalysis) {
+        if (! $gapAnalysis) {
             return [
                 'jobPosting' => [
                     'id' => $jobPosting->id,
@@ -82,10 +84,12 @@ class DashboardController extends Controller
                 'nextStep' => 'gap_analysis',
                 'nextStepLabel' => 'Run Gap Analysis',
                 'nextStepUrl' => "/job-postings/{$jobPosting->id}",
+                'currentStepLabel' => 'View Job Posting',
+                'currentStepUrl' => "/job-postings/{$jobPosting->id}",
             ];
         }
 
-        if (! $hasResume) {
+        if (! $resume) {
             return [
                 'jobPosting' => [
                     'id' => $jobPosting->id,
@@ -94,7 +98,9 @@ class DashboardController extends Controller
                 ],
                 'nextStep' => 'resume',
                 'nextStepLabel' => 'Generate Resume',
-                'nextStepUrl' => "/job-postings/{$jobPosting->id}",
+                'nextStepUrl' => "/gap-analyses/{$gapAnalysis->id}",
+                'currentStepLabel' => 'View Gap Analysis',
+                'currentStepUrl' => "/gap-analyses/{$gapAnalysis->id}",
             ];
         }
 
@@ -107,6 +113,8 @@ class DashboardController extends Controller
             'nextStep' => 'application',
             'nextStepLabel' => 'Create Application',
             'nextStepUrl' => '/applications/create',
+            'currentStepLabel' => 'View Resume',
+            'currentStepUrl' => "/resumes/{$resume->id}",
         ];
     }
 }

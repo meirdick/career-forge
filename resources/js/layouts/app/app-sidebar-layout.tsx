@@ -1,24 +1,24 @@
+import { usePage } from '@inertiajs/react';
+import { useCallback, useState } from 'react';
+import AiUpgradePrompt from '@/components/ai-upgrade-prompt';
 import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
-import AiUpgradePrompt from '@/components/ai-upgrade-prompt';
 import WelcomeModal from '@/components/welcome-modal';
 import type { AppLayoutProps } from '@/types';
-import { usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
 
 export default function AppSidebarLayout({
     children,
     breadcrumbs = [],
 }: AppLayoutProps) {
     const { flash } = usePage().props;
-    const [showUpgrade, setShowUpgrade] = useState(false);
+    const [dismissedFlash, setDismissedFlash] = useState<unknown>(null);
 
-    useEffect(() => {
-        if (flash.ai_access_denied) {
-            setShowUpgrade(true);
-        }
+    const showUpgrade = !!flash.ai_access_denied && flash.ai_access_denied !== dismissedFlash;
+
+    const handleClose = useCallback(() => {
+        setDismissedFlash(flash.ai_access_denied);
     }, [flash.ai_access_denied]);
 
     return (
@@ -28,7 +28,7 @@ export default function AppSidebarLayout({
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 {children}
             </AppContent>
-            <AiUpgradePrompt open={showUpgrade} onClose={() => setShowUpgrade(false)} />
+            <AiUpgradePrompt open={showUpgrade} onClose={handleClose} />
             <WelcomeModal />
         </AppShell>
     );

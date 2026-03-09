@@ -11,6 +11,9 @@ type Step = {
 export default function PipelineSteps({ steps }: { steps: Step[] }) {
     const activeIndex = steps.findIndex((s) => s.status === 'active');
 
+    // The first upcoming step after the active one is the "next" step
+    const firstUpcomingIndex = steps.findIndex((s, i) => i > activeIndex && s.status === 'upcoming');
+
     return (
         <>
             {/* Desktop stepper */}
@@ -18,7 +21,7 @@ export default function PipelineSteps({ steps }: { steps: Step[] }) {
                 <ol className="flex items-center">
                     {steps.map((step, i) => (
                         <li key={i} className={cn('relative flex items-center', i < steps.length - 1 && 'flex-1')}>
-                            <StepIndicator step={step} index={i} />
+                            <StepIndicator step={step} index={i} isNextStep={i === firstUpcomingIndex} />
                             {i < steps.length - 1 && <StepConnector nextStatus={steps[i + 1].status} />}
                         </li>
                     ))}
@@ -64,7 +67,7 @@ function StepConnector({ nextStatus }: { nextStatus: Step['status'] }) {
     );
 }
 
-function StepIndicator({ step, index }: { step: Step; index: number }) {
+function StepIndicator({ step, index, isNextStep }: { step: Step; index: number; isNextStep: boolean }) {
     const indicator = (
         <span className="group relative flex flex-col items-center">
             <span
@@ -74,6 +77,7 @@ function StepIndicator({ step, index }: { step: Step; index: number }) {
                     step.status === 'active' &&
                         'bg-primary/10 text-primary ring-2 ring-primary shadow-[0_0_0_4px_rgba(var(--color-primary)/0.1)]',
                     step.status === 'upcoming' && 'bg-muted text-muted-foreground',
+                    isNextStep && step.href && 'animate-pulse ring-1 ring-primary/30',
                 )}
             >
                 {step.status === 'completed' ? <Check className="h-4 w-4" strokeWidth={2.5} /> : index + 1}
@@ -84,6 +88,7 @@ function StepIndicator({ step, index }: { step: Step; index: number }) {
                     step.status === 'active' && 'text-primary',
                     step.status === 'completed' && 'text-foreground',
                     step.status === 'upcoming' && 'text-muted-foreground',
+                    isNextStep && step.href && 'text-primary',
                 )}
             >
                 {step.label}
@@ -91,7 +96,8 @@ function StepIndicator({ step, index }: { step: Step; index: number }) {
         </span>
     );
 
-    if (step.href && step.status !== 'upcoming') {
+    // Allow clicking on completed, active, OR upcoming steps that have an href
+    if (step.href && (step.status !== 'upcoming' || isNextStep)) {
         return (
             <Link href={step.href} className="transition-opacity hover:opacity-75">
                 {indicator}

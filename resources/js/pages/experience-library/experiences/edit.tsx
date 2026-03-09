@@ -1,14 +1,14 @@
 import { Form, Head } from '@inertiajs/react';
+import ExperienceController from '@/actions/App/Http/Controllers/ExperienceLibrary/ExperienceController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import RichTextEditor from '@/components/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import RichTextEditor from '@/components/rich-text-editor';
 import AppLayout from '@/layouts/app-layout';
-import ExperienceController from '@/actions/App/Http/Controllers/ExperienceLibrary/ExperienceController';
 import { edit as experienceEdit } from '@/routes/experiences';
 import type { BreadcrumbItem } from '@/types';
 
@@ -29,7 +29,7 @@ type Experience = {
     skills: Skill[];
 };
 
-export default function EditExperience({ experience, skills }: { experience: Experience; skills: Skill[] }) {
+export default function EditExperience({ experience }: { experience: Experience }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Experience Library', href: '/experience-library' },
         { title: experience.company, href: `/experiences/${experience.id}` },

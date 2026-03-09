@@ -26,11 +26,11 @@ class ResumeHeaderService
     /**
      * Resolve the header for a resume by merging defaults → global config → per-resume config.
      *
-     * @return array{name: string, email: ?string, phone: ?string, location: ?string, linkedin_url: ?string, portfolio_url: ?string}
+     * @return array{name: string, email: ?string, phone: ?string, location: ?string, linkedin_url: ?string, portfolio_links: list<array{url: string, label: string}>}
      */
     public function resolveHeader(Resume $resume): array
     {
-        $resume->loadMissing('user.professionalIdentity');
+        $resume->loadMissing('user.professionalIdentity', 'user.links');
         $user = $resume->user;
 
         $globalConfig = $user->professionalIdentity?->resume_header_config ?? [];
@@ -42,13 +42,21 @@ class ResumeHeaderService
             ? $user->legal_name
             : ($user->name ?? 'Candidate');
 
+        $portfolioLinks = [];
+        if ($config['show_portfolio']) {
+            $portfolioLinks = $user->links->map(fn ($link) => [
+                'url' => $link->url,
+                'label' => $link->displayUrl(),
+            ])->values()->all();
+        }
+
         return [
             'name' => $name,
             'email' => $config['show_email'] ? $user->email : null,
             'phone' => $config['show_phone'] ? $user->phone : null,
             'location' => $config['show_location'] ? $user->location : null,
             'linkedin_url' => $config['show_linkedin'] ? $user->linkedin_url : null,
-            'portfolio_url' => $config['show_portfolio'] ? $user->portfolio_url : null,
+            'portfolio_links' => $portfolioLinks,
         ];
     }
 }

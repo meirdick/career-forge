@@ -58,7 +58,7 @@ const toggleFields = [
     { key: 'show_phone', label: 'Phone' },
     { key: 'show_location', label: 'Location' },
     { key: 'show_linkedin', label: 'LinkedIn' },
-    { key: 'show_portfolio', label: 'Portfolio' },
+    { key: 'show_portfolio', label: 'Portfolio Links' },
 ] as const;
 
 export default function Identity({ identity, user, resumeHeaderConfig }: { identity: Identity; user: UserInfo; resumeHeaderConfig: ResumeHeaderConfig }) {

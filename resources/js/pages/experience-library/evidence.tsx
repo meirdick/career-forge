@@ -1,11 +1,12 @@
 import { Form, Head, router } from '@inertiajs/react';
-import { CheckCircle, ExternalLink, Import, LinkIcon, Loader2, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { CheckCircle, ExternalLink, Globe, Import, LinkIcon, Loader2, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -53,9 +54,16 @@ type IndexStatus = {
     error?: string;
 };
 
+type DiscoverStatus = {
+    status: 'processing' | 'completed' | 'failed';
+    links?: { url: string }[];
+    error?: string;
+};
+
 type Props = {
     entries: EvidenceEntry[];
     indexResults: Record<number, IndexStatus>;
+    discoverResults: Record<number, DiscoverStatus>;
 };
 
 function IndexResultsDisplay({ data, imported, onImport }: { data: IndexResult; imported: boolean; onImport: () => void }) {
@@ -106,16 +114,99 @@ function IndexResultsDisplay({ data, imported, onImport }: { data: IndexResult; 
     );
 }
 
-export default function Evidence({ entries, indexResults }: Props) {
+function DiscoverLinksDisplay({ entryId, discoverStatus }: { entryId: number; discoverStatus: DiscoverStatus }) {
+    const [selected, setSelected] = useState<Set<string>>(new Set());
+    const [importing, setImporting] = useState(false);
+
+    if (discoverStatus.status === 'processing') {
+        return (
+            <div className="flex items-center gap-2 rounded-md bg-muted/50 p-3">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <p className="text-xs text-muted-foreground">Discovering pages...</p>
+            </div>
+        );
+    }
+
+    if (discoverStatus.status === 'failed') {
+        return (
+            <p className="text-xs text-destructive">{discoverStatus.error || 'Discovery failed.'}</p>
+        );
+    }
+
+    if (!discoverStatus.links || discoverStatus.links.length === 0) {
+        return (
+            <p className="text-xs text-muted-foreground">No additional pages found.</p>
+        );
+    }
+
+    function toggleUrl(url: string) {
+        setSelected((prev) => {
+            const next = new Set(prev);
+            if (next.has(url)) {
+                next.delete(url);
+            } else {
+                next.add(url);
+            }
+            return next;
+        });
+    }
+
+    function selectAll() {
+        setSelected(new Set(discoverStatus.links!.map((l) => l.url)));
+    }
+
+    function importSelected() {
+        if (selected.size === 0) return;
+        setImporting(true);
+        router.post(
+            EvidenceEntryController.importDiscoveredLinks(entryId).url,
+            { urls: [...selected] },
+            { preserveScroll: true, onFinish: () => setImporting(false) },
+        );
+    }
+
+    return (
+        <div className="space-y-2 rounded-md border p-3">
+            <div className="flex items-center justify-between">
+                <p className="text-xs font-medium">Discovered Pages ({discoverStatus.links.length})</p>
+                <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={selectAll}>
+                        Select All
+                    </Button>
+                </div>
+            </div>
+            <div className="max-h-48 space-y-1 overflow-y-auto">
+                {discoverStatus.links.map((link) => (
+                    <label key={link.url} className="flex items-center gap-2 rounded px-1 py-0.5 text-xs hover:bg-muted/50">
+                        <Checkbox
+                            checked={selected.has(link.url)}
+                            onCheckedChange={() => toggleUrl(link.url)}
+                        />
+                        <span className="truncate">{link.url}</span>
+                    </label>
+                ))}
+            </div>
+            {selected.size > 0 && (
+                <Button size="sm" onClick={importSelected} disabled={importing}>
+                    {importing ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Plus className="mr-1 h-3 w-3" />}
+                    Add {selected.size} Page{selected.size !== 1 ? 's' : ''}
+                </Button>
+            )}
+        </div>
+    );
+}
+
+export default function Evidence({ entries, indexResults, discoverResults }: Props) {
     const [showForm, setShowForm] = useState(false);
     const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const hasProcessing = Object.values(indexResults).some((r) => r.status === 'processing');
+    const hasProcessing = Object.values(indexResults).some((r) => r.status === 'processing')
+        || Object.values(discoverResults).some((r) => r.status === 'processing');
 
     useEffect(() => {
         if (hasProcessing && !pollingRef.current) {
             pollingRef.current = setInterval(() => {
-                router.reload({ only: ['indexResults'] });
+                router.reload({ only: ['indexResults', 'discoverResults'] });
             }, 3000);
         }
 
@@ -138,6 +229,10 @@ export default function Evidence({ entries, indexResults }: Props) {
 
     function importResults(entryId: number) {
         router.post(EvidenceEntryController.importResults(entryId).url, {}, { preserveScroll: true });
+    }
+
+    function discoverLinks(entryId: number) {
+        router.post(EvidenceEntryController.discoverLinks(entryId).url, {}, { preserveScroll: true });
     }
 
     return (
@@ -227,15 +322,27 @@ export default function Evidence({ entries, indexResults }: Props) {
                                     <div className="flex items-center gap-2">
                                         <Badge variant="outline">{typeLabels[entry.type] ?? entry.type}</Badge>
                                         {entry.url && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => indexLink(entry.id)}
-                                                disabled={indexResults[entry.id]?.status === 'processing'}
-                                            >
-                                                {indexResults[entry.id]?.status === 'processing' ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
-                                                {indexResults[entry.id]?.status === 'processing' ? 'Indexing...' : 'Index'}
-                                            </Button>
+                                            <>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => discoverLinks(entry.id)}
+                                                    disabled={discoverResults[entry.id]?.status === 'processing'}
+                                                    title="Discover child pages"
+                                                >
+                                                    {discoverResults[entry.id]?.status === 'processing' ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Globe className="mr-1 h-3 w-3" />}
+                                                    Discover
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => indexLink(entry.id)}
+                                                    disabled={indexResults[entry.id]?.status === 'processing'}
+                                                >
+                                                    {indexResults[entry.id]?.status === 'processing' ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+                                                    {indexResults[entry.id]?.status === 'processing' ? 'Indexing...' : 'Index'}
+                                                </Button>
+                                            </>
                                         )}
                                         <Button
                                             variant="ghost"
@@ -250,6 +357,9 @@ export default function Evidence({ entries, indexResults }: Props) {
                                 <CardContent className="space-y-2 pt-0">
                                     {entry.description && (
                                         <p className="text-sm text-muted-foreground">{entry.description}</p>
+                                    )}
+                                    {discoverResults[entry.id] && discoverResults[entry.id].status !== 'processing' && (
+                                        <DiscoverLinksDisplay entryId={entry.id} discoverStatus={discoverResults[entry.id]} />
                                     )}
                                     {indexResults[entry.id]?.status === 'failed' && (
                                         <p className="text-sm text-destructive">{indexResults[entry.id].error || 'Indexing failed.'}</p>

@@ -28,14 +28,12 @@ export default function Billing({
     transactions,
     creditsPerPurchase,
     purchasePriceCents,
-    accessMode,
     purchaseSuccess,
 }: {
     balance: number;
     transactions: CreditTransaction[];
     creditsPerPurchase: number;
     purchasePriceCents: number;
-    accessMode: string;
     purchaseSuccess?: boolean;
 }) {
     const priceDisplay = `$${(purchasePriceCents / 100).toFixed(2)}`;

@@ -199,8 +199,11 @@ class ExperienceImportService
                     $user->update(['linkedin_url' => $url]);
                 }
 
-                if (in_array($urlData['type'] ?? '', ['portfolio', 'personal']) && ! $user->portfolio_url) {
-                    $user->update(['portfolio_url' => $url]);
+                if (in_array($urlData['type'] ?? '', ['portfolio', 'personal'])) {
+                    $user->links()->firstOrCreate(
+                        ['url' => $url],
+                        ['type' => 'portfolio'],
+                    );
                 }
             }
         }

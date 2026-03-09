@@ -6,6 +6,7 @@ use App\Http\Controllers\Settings\DataExportController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\TwoFactorAuthenticationController;
+use App\Http\Controllers\Settings\UserLinkController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->group(function () {
@@ -17,6 +18,12 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // User Links
+    Route::post('settings/links', [UserLinkController::class, 'store'])->name('user-links.store');
+    Route::put('settings/links/{userLink}', [UserLinkController::class, 'update'])->name('user-links.update');
+    Route::delete('settings/links/{userLink}', [UserLinkController::class, 'destroy'])->name('user-links.destroy');
+    Route::post('settings/links/reorder', [UserLinkController::class, 'reorder'])->name('user-links.reorder');
 
     Route::get('settings/password', [PasswordController::class, 'edit'])->name('user-password.edit');
 

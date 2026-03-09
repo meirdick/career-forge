@@ -55,14 +55,21 @@ class GenerateCoverLetter implements Tool
     {
         $this->application->load(['jobPosting', 'resume.sections.variants']);
 
+        $this->user->loadMissing('links');
+
         $contactInfo = collect([
             'Name' => $this->user->name,
             'Email' => $this->user->email,
             'Phone' => $this->user->phone,
             'Location' => $this->user->location,
             'LinkedIn' => $this->user->linkedin_url,
-            'Portfolio' => $this->user->portfolio_url,
-        ])->filter()->map(fn ($value, $label) => "{$label}: {$value}")->join("\n");
+        ])->filter()->map(fn ($value, $label) => "{$label}: {$value}");
+
+        foreach ($this->user->links as $link) {
+            $contactInfo->push(ucfirst($link->type).': '.$link->url);
+        }
+
+        $contactInfo = $contactInfo->join("\n");
 
         $parts = ["Candidate Contact Information:\n{$contactInfo}"];
         $parts[] = "Company: {$this->application->company}";

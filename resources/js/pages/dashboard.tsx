@@ -1,9 +1,9 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowRight, Briefcase, CheckCircle2, Circle, FileText, LayoutGrid, Plus, Sparkles, Target, Trophy, Upload } from 'lucide-react';
+import { ArrowRight, Briefcase, CheckCircle2, Circle, FileText, Plus, Sparkles, Target, Trophy, Upload } from 'lucide-react';
 import EmptyState from '@/components/empty-state';
 import StatusBadge from '@/components/status-badge';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
@@ -48,6 +48,8 @@ type PipelineContinuation = {
     nextStep: string;
     nextStepLabel: string;
     nextStepUrl: string;
+    currentStepLabel: string | null;
+    currentStepUrl: string | null;
 };
 
 const pipelineSteps = [
@@ -139,8 +141,15 @@ function PipelineContinuationCard({ continuation }: { continuation: PipelineCont
                         ))}
                     </div>
                     <div>
-                        <p className="text-sm font-medium">Continue: {continuation.jobPosting.title ?? 'Untitled'}</p>
-                        <p className="text-xs text-muted-foreground">{continuation.jobPosting.company ?? 'Unknown company'}</p>
+                        <p className="text-sm font-medium">Continue: {continuation.jobPosting.title ?? 'New Job Posting'}</p>
+                        {continuation.jobPosting.company && (
+                            <p className="text-xs text-muted-foreground">{continuation.jobPosting.company}</p>
+                        )}
+                        {continuation.currentStepLabel && continuation.currentStepUrl && (
+                            <Link href={continuation.currentStepUrl} className="text-xs text-primary hover:underline">
+                                {continuation.currentStepLabel} &rarr;
+                            </Link>
+                        )}
                     </div>
                 </div>
                 <Button asChild size="sm">

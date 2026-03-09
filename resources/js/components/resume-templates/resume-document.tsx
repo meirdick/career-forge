@@ -1,13 +1,18 @@
 import { cn } from '@/lib/utils';
 import { getTemplateConfig } from './template-config';
 
+type PortfolioLink = {
+    url: string;
+    label: string;
+};
+
 type ContactInfo = {
     name?: string;
     email?: string;
     phone?: string;
     location?: string;
     linkedin_url?: string;
-    portfolio_url?: string;
+    portfolio_links?: PortfolioLink[];
 };
 
 type Section = {
@@ -27,7 +32,7 @@ type ResumeDocumentProps = {
 export default function ResumeDocument({ template, contact, sections, className }: ResumeDocumentProps) {
     const config = getTemplateConfig(template);
 
-    const contactParts = [contact.email, contact.phone, contact.location, contact.linkedin_url, contact.portfolio_url].filter(Boolean);
+    const contactParts = [contact.email, contact.phone, contact.location, contact.linkedin_url, ...(contact.portfolio_links ?? []).map((l) => l.label)].filter(Boolean);
 
     const sortedSections = [...sections].sort((a, b) => a.sort_order - b.sort_order);
 

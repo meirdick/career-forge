@@ -52,6 +52,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('evidence/{evidenceEntry}', [EvidenceEntryController::class, 'destroy'])->name('evidence.destroy');
     Route::post('evidence/{evidenceEntry}/index-link', [EvidenceEntryController::class, 'indexLink'])->middleware('ai.access:link_indexing')->name('evidence.index-link');
     Route::post('evidence/{evidenceEntry}/import-results', [EvidenceEntryController::class, 'importResults'])->name('evidence.import-results');
+    Route::post('evidence/{evidenceEntry}/discover-links', [EvidenceEntryController::class, 'discoverLinks'])->name('evidence.discover-links');
+    Route::post('evidence/{evidenceEntry}/import-discovered', [EvidenceEntryController::class, 'importDiscoveredLinks'])->name('evidence.import-discovered');
 
     // Tags
     Route::get('tags', [TagController::class, 'index'])->name('tags.index');

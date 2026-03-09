@@ -29,7 +29,6 @@ class User extends Authenticatable
         'phone',
         'location',
         'linkedin_url',
-        'portfolio_url',
         'referral_code',
         'referred_by',
         'welcome_dismissed_at',
@@ -100,6 +99,11 @@ class User extends Authenticatable
     public function educationEntries(): HasMany
     {
         return $this->hasMany(EducationEntry::class);
+    }
+
+    public function links(): HasMany
+    {
+        return $this->hasMany(UserLink::class)->orderBy('sort_order');
     }
 
     public function evidenceEntries(): HasMany

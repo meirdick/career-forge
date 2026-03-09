@@ -3,6 +3,7 @@ import { ArrowRight, Check, Edit, Loader2, Pencil, Plus, RefreshCw, Target, Tras
 import { useEffect, useState } from 'react';
 import Heading from '@/components/heading';
 import PipelineAssistantPanel from '@/components/pipeline-assistant-panel';
+import PipelineNextAction from '@/components/pipeline-next-action';
 import PipelineSteps from '@/components/pipeline-steps';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -310,15 +311,32 @@ export default function ShowJobPosting({ posting, latestGapAnalysis }: { posting
 
             <div className="mx-auto max-w-4xl space-y-6 p-4">
                 {posting.analyzed_at && (
-                    <PipelineSteps
-                        steps={[
-                            { label: 'Job Posting', href: `/job-postings/${posting.id}`, status: 'active' },
-                            { label: 'Ideal Candidate', status: profile ? 'completed' : 'upcoming' },
-                            { label: 'Gap Analysis', href: latestGapAnalysis ? `/gap-analyses/${latestGapAnalysis.id}` : undefined, status: latestGapAnalysis ? 'completed' : 'upcoming' },
-                            { label: 'Resume', status: 'upcoming' },
-                            { label: 'Application', status: 'upcoming' },
-                        ]}
-                    />
+                    <>
+                        <PipelineSteps
+                            steps={[
+                                { label: 'Job Posting', href: `/job-postings/${posting.id}`, status: 'active' },
+                                { label: 'Ideal Candidate', status: profile ? 'completed' : 'upcoming' },
+                                { label: 'Gap Analysis', href: latestGapAnalysis ? `/gap-analyses/${latestGapAnalysis.id}` : undefined, status: latestGapAnalysis ? 'completed' : 'upcoming' },
+                                { label: 'Resume', status: 'upcoming' },
+                                { label: 'Application', status: 'upcoming' },
+                            ]}
+                        />
+                        {profile && (
+                            latestGapAnalysis ? (
+                                <PipelineNextAction
+                                    label="View Gap Analysis"
+                                    description="Your gap analysis is ready"
+                                    href={`/gap-analyses/${latestGapAnalysis.id}`}
+                                />
+                            ) : (
+                                <PipelineNextAction
+                                    label="Run Gap Analysis"
+                                    description="Compare your profile against this role"
+                                    onClick={() => router.post(`/job-postings/${posting.id}/gap-analysis`)}
+                                />
+                            )
+                        )}
+                    </>
                 )}
                 <div className="flex items-start justify-between">
                     <div>

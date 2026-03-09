@@ -1,14 +1,21 @@
 import { Transition } from '@headlessui/react';
-import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { Form, Head, Link, router, usePage } from '@inertiajs/react';
+import { ExternalLink, GripVertical, Plus, Trash2, X } from 'lucide-react';
+import { useState } from 'react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
+import UserLinkController from '@/actions/App/Http/Controllers/Settings/UserLinkController';
 import DeleteUser from '@/components/delete-user';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import { displayUrl } from '@/lib/utils';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
 import type { BreadcrumbItem } from '@/types';
@@ -20,12 +27,122 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+type UserLink = {
+    id: number;
+    url: string;
+    label: string | null;
+    type: string;
+    sort_order: number;
+};
+
+const linkTypeLabels: Record<string, string> = {
+    portfolio: 'Portfolio',
+    github: 'GitHub',
+    website: 'Website',
+    other: 'Other',
+};
+
+function UserLinksSection({ links }: { links: UserLink[] }) {
+    const [showForm, setShowForm] = useState(false);
+
+    return (
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <Heading
+                    variant="small"
+                    title="Links"
+                    description="Add portfolio, GitHub, and other links to include on resumes"
+                />
+                <Button variant="outline" size="sm" onClick={() => setShowForm(!showForm)}>
+                    {showForm ? <X className="mr-1 h-4 w-4" /> : <Plus className="mr-1 h-4 w-4" />}
+                    {showForm ? 'Cancel' : 'Add Link'}
+                </Button>
+            </div>
+
+            {showForm && (
+                <Card>
+                    <CardContent className="pt-4">
+                        <Form
+                            {...UserLinkController.store.form()}
+                            options={{ preserveScroll: true, onSuccess: () => setShowForm(false) }}
+                            className="grid gap-3 sm:grid-cols-2"
+                        >
+                            {({ processing, errors }) => (
+                                <>
+                                    <div className="sm:col-span-2">
+                                        <Label htmlFor="link_url">URL</Label>
+                                        <Input id="link_url" name="url" type="url" required placeholder="https://..." />
+                                        <InputError message={errors.url} />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="link_label">Label (optional)</Label>
+                                        <Input id="link_label" name="label" placeholder="My Portfolio" />
+                                        <InputError message={errors.label} />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="link_type">Type</Label>
+                                        <Select name="type" defaultValue="portfolio">
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {Object.entries(linkTypeLabels).map(([value, label]) => (
+                                                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError message={errors.type} />
+                                    </div>
+                                    <div className="sm:col-span-2 flex justify-end">
+                                        <Button type="submit" size="sm" disabled={processing}>Save</Button>
+                                    </div>
+                                </>
+                            )}
+                        </Form>
+                    </CardContent>
+                </Card>
+            )}
+
+            {links.length > 0 ? (
+                <div className="space-y-2">
+                    {links.map((link) => (
+                        <div key={link.id} className="flex items-center gap-3 rounded-md border px-3 py-2">
+                            <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/40" />
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="truncate text-sm font-medium">{displayUrl(link.url, link.label)}</span>
+                                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{linkTypeLabels[link.type] ?? link.type}</span>
+                                </div>
+                                <a href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary">
+                                    {link.url} <ExternalLink className="h-3 w-3" />
+                                </a>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0"
+                                onClick={() => router.delete(UserLinkController.destroy(link.id).url, { preserveScroll: true })}
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                !showForm && <p className="text-sm text-muted-foreground">No links added yet.</p>
+            )}
+        </div>
+    );
+}
+
 export default function Profile({
     mustVerifyEmail,
     status,
+    userLinks,
 }: {
     mustVerifyEmail: boolean;
     status?: string;
+    userLinks: UserLink[];
 }) {
     const { auth } = usePage().props;
 
@@ -161,24 +278,6 @@ export default function Profile({
                                     />
                                 </div>
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="portfolio_url">Portfolio URL</Label>
-
-                                    <Input
-                                        id="portfolio_url"
-                                        type="url"
-                                        className="mt-1 block w-full"
-                                        defaultValue={auth.user.portfolio_url ?? ''}
-                                        name="portfolio_url"
-                                        placeholder="https://yourportfolio.com"
-                                    />
-
-                                    <InputError
-                                        className="mt-2"
-                                        message={errors.portfolio_url}
-                                    />
-                                </div>
-
                                 {mustVerifyEmail &&
                                     auth.user.email_verified_at === null && (
                                         <div>
@@ -229,6 +328,10 @@ export default function Profile({
                             </>
                         )}
                     </Form>
+
+                    <Separator />
+
+                    <UserLinksSection links={userLinks} />
                 </div>
 
                 <DeleteUser />
