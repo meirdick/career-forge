@@ -1,14 +1,14 @@
 import { Form, Head } from '@inertiajs/react';
+import ExperienceController from '@/actions/App/Http/Controllers/ExperienceLibrary/ExperienceController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import RichTextEditor from '@/components/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import RichTextEditor from '@/components/rich-text-editor';
 import AppLayout from '@/layouts/app-layout';
-import ExperienceController from '@/actions/App/Http/Controllers/ExperienceLibrary/ExperienceController';
 import { create as experienceCreate } from '@/routes/experiences';
 import type { BreadcrumbItem } from '@/types';
 
@@ -17,9 +17,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'New Experience', href: experienceCreate() },
 ];
 
-type Skill = { id: number; name: string };
-
-export default function CreateExperience({ skills }: { skills: Skill[] }) {
+export default function CreateExperience() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Add Experience" />

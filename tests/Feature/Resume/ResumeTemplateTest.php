@@ -6,6 +6,7 @@ use App\Models\Resume;
 use App\Models\ResumeSection;
 use App\Models\ResumeSectionVariant;
 use App\Models\User;
+use App\Models\UserLink;
 use App\Services\RenderCvService;
 
 beforeEach(function () {
@@ -15,7 +16,11 @@ beforeEach(function () {
         'phone' => '555-0100',
         'location' => 'San Francisco, CA',
         'linkedin_url' => 'https://linkedin.com/in/janedoe',
-        'portfolio_url' => 'https://janedoe.dev',
+    ]);
+    UserLink::factory()->create([
+        'user_id' => $this->user->id,
+        'url' => 'https://janedoe.dev',
+        'type' => 'portfolio',
     ]);
 });
 

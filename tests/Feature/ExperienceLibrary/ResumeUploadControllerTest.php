@@ -271,7 +271,7 @@ test('commit does not overwrite existing user linkedin_url', function () {
     expect($this->user->fresh()->linkedin_url)->toBe('https://linkedin.com/in/existing');
 });
 
-test('commit auto-populates user portfolio_url from URL when empty', function () {
+test('commit auto-populates user link from portfolio URL', function () {
     $document = Document::factory()->create(['user_id' => $this->user->id]);
 
     $this->actingAs($this->user)
@@ -282,5 +282,5 @@ test('commit auto-populates user portfolio_url from URL when empty', function ()
         ])
         ->assertRedirect('/experience-library');
 
-    expect($this->user->fresh()->portfolio_url)->toBe('https://johndoe.com');
+    expect($this->user->links()->where('url', 'https://johndoe.com')->exists())->toBeTrue();
 });
