@@ -56,3 +56,62 @@ test('job stores failed state in cache on exception', function () {
         ->status->toBe('failed')
         ->error->toBe('AI service unavailable');
 });
+
+test('job scrapes all selected pages and combines content', function () {
+    $this->entry->update([
+        'pages' => [
+            'https://github.com/testuser/project-a',
+            'https://github.com/testuser/project-b',
+        ],
+    ]);
+
+    $mock = $this->mock(WebScraperService::class);
+    $mock->shouldReceive('scrape')
+        ->with('https://github.com/testuser')
+        ->andReturn('# Main Profile');
+    $mock->shouldReceive('scrape')
+        ->with('https://github.com/testuser/project-a')
+        ->andReturn('# Project A');
+    $mock->shouldReceive('scrape')
+        ->with('https://github.com/testuser/project-b')
+        ->andReturn('# Project B');
+
+    LinkIndexer::fake();
+
+    (new IndexLinkJob($this->user, $this->entry))->handle(app(WebScraperService::class));
+
+    $cached = Cache::get("evidence-index:{$this->entry->id}");
+    expect($cached)->status->toBe('completed');
+
+    LinkIndexer::assertPrompted(function ($prompt) {
+        return str_contains($prompt->prompt, '# Main Profile')
+            && str_contains($prompt->prompt, '# Project A')
+            && str_contains($prompt->prompt, '# Project B');
+    });
+});
+
+test('job succeeds when some pages fail to scrape', function () {
+    $this->entry->update([
+        'pages' => ['https://github.com/testuser/project-a'],
+    ]);
+
+    $mock = $this->mock(WebScraperService::class);
+    $mock->shouldReceive('scrape')
+        ->with('https://github.com/testuser')
+        ->andReturn('# Main Profile');
+    $mock->shouldReceive('scrape')
+        ->with('https://github.com/testuser/project-a')
+        ->andReturn(null);
+
+    LinkIndexer::fake();
+
+    (new IndexLinkJob($this->user, $this->entry))->handle(app(WebScraperService::class));
+
+    $cached = Cache::get("evidence-index:{$this->entry->id}");
+    expect($cached)->status->toBe('completed');
+
+    LinkIndexer::assertPrompted(function ($prompt) {
+        return str_contains($prompt->prompt, '# Main Profile')
+            && ! str_contains($prompt->prompt, 'project-a');
+    });
+});

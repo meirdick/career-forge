@@ -38,6 +38,7 @@ type EvidenceEntry = {
     type: string;
     title: string;
     url: string | null;
+    pages: string[] | null;
     description: string | null;
     content: string | null;
 };
@@ -114,9 +115,9 @@ function IndexResultsDisplay({ data, imported, onImport }: { data: IndexResult; 
     );
 }
 
-function DiscoverLinksDisplay({ entryId, discoverStatus }: { entryId: number; discoverStatus: DiscoverStatus }) {
-    const [selected, setSelected] = useState<Set<string>>(new Set());
-    const [importing, setImporting] = useState(false);
+function DiscoverLinksDisplay({ entryId, discoverStatus, savedPages }: { entryId: number; discoverStatus: DiscoverStatus; savedPages: string[] | null }) {
+    const [selected, setSelected] = useState<Set<string>>(() => new Set(savedPages ?? []));
+    const [saving, setSaving] = useState(false);
 
     if (discoverStatus.status === 'processing') {
         return (
@@ -155,23 +156,32 @@ function DiscoverLinksDisplay({ entryId, discoverStatus }: { entryId: number; di
         setSelected(new Set(discoverStatus.links!.map((l) => l.url)));
     }
 
-    function importSelected() {
+    function deselectAll() {
+        setSelected(new Set());
+    }
+
+    const allSelected = discoverStatus.links.length > 0 && selected.size === discoverStatus.links.length;
+
+    function saveSelected() {
         if (selected.size === 0) return;
-        setImporting(true);
+        setSaving(true);
         router.post(
-            EvidenceEntryController.importDiscoveredLinks(entryId).url,
+            EvidenceEntryController.saveSelectedPages(entryId).url,
             { urls: [...selected] },
-            { preserveScroll: true, onFinish: () => setImporting(false) },
+            { preserveScroll: true, onFinish: () => setSaving(false) },
         );
     }
+
+    const savedSet = new Set(savedPages ?? []);
+    const hasChanges = selected.size !== savedSet.size || [...selected].some((u) => !savedSet.has(u));
 
     return (
         <div className="space-y-2 rounded-md border p-3">
             <div className="flex items-center justify-between">
                 <p className="text-xs font-medium">Discovered Pages ({discoverStatus.links.length})</p>
                 <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={selectAll}>
-                        Select All
+                    <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={allSelected ? deselectAll : selectAll}>
+                        {allSelected ? 'Deselect All' : 'Select All'}
                     </Button>
                 </div>
             </div>
@@ -186,12 +196,17 @@ function DiscoverLinksDisplay({ entryId, discoverStatus }: { entryId: number; di
                     </label>
                 ))}
             </div>
-            {selected.size > 0 && (
-                <Button size="sm" onClick={importSelected} disabled={importing}>
-                    {importing ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Plus className="mr-1 h-3 w-3" />}
-                    Add {selected.size} Page{selected.size !== 1 ? 's' : ''}
-                </Button>
-            )}
+            <div className="flex items-center gap-2">
+                {selected.size > 0 && hasChanges && (
+                    <Button size="sm" onClick={saveSelected} disabled={saving}>
+                        {saving ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <CheckCircle className="mr-1 h-3 w-3" />}
+                        Save {selected.size} Page{selected.size !== 1 ? 's' : ''} for Indexing
+                    </Button>
+                )}
+                {savedPages && savedPages.length > 0 && !hasChanges && (
+                    <p className="text-xs text-muted-foreground">{savedPages.length} page{savedPages.length !== 1 ? 's' : ''} selected for indexing</p>
+                )}
+            </div>
         </div>
     );
 }
@@ -321,6 +336,9 @@ export default function Evidence({ entries, indexResults, discoverResults }: Pro
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Badge variant="outline">{typeLabels[entry.type] ?? entry.type}</Badge>
+                                        {entry.pages && entry.pages.length > 0 && (
+                                            <Badge variant="secondary" className="text-xs">{entry.pages.length + 1} pages</Badge>
+                                        )}
                                         {entry.url && (
                                             <>
                                                 <Button
@@ -359,7 +377,7 @@ export default function Evidence({ entries, indexResults, discoverResults }: Pro
                                         <p className="text-sm text-muted-foreground">{entry.description}</p>
                                     )}
                                     {discoverResults[entry.id] && discoverResults[entry.id].status !== 'processing' && (
-                                        <DiscoverLinksDisplay entryId={entry.id} discoverStatus={discoverResults[entry.id]} />
+                                        <DiscoverLinksDisplay entryId={entry.id} discoverStatus={discoverResults[entry.id]} savedPages={entry.pages} />
                                     )}
                                     {indexResults[entry.id]?.status === 'failed' && (
                                         <p className="text-sm text-destructive">{indexResults[entry.id].error || 'Indexing failed.'}</p>

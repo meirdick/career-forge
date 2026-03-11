@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Services\Scrapers\CloudflareScraperDriver;
+use App\Services\Scrapers\FirecrawlScraperDriver;
+use App\Services\WebScraperService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +18,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(WebScraperService::class, fn ($app) => new WebScraperService([
+            $app->make(CloudflareScraperDriver::class),
+            $app->make(FirecrawlScraperDriver::class),
+        ]));
     }
 
     /**

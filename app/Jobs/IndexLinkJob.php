@@ -11,6 +11,7 @@ use App\Services\WebScraperService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class IndexLinkJob implements ShouldQueue
 {
@@ -29,9 +30,20 @@ class IndexLinkJob implements ShouldQueue
 
     public function handle(WebScraperService $scraper): void
     {
-        $content = $scraper->scrape($this->evidenceEntry->url);
+        $urls = $this->urlsToScrape();
+        $allContent = [];
 
-        if (! $content) {
+        foreach ($urls as $url) {
+            $content = $scraper->scrape($url);
+
+            if ($content) {
+                $allContent[] = "## Source: {$url}\n\n{$content}";
+            } else {
+                Log::warning('Failed to scrape page during indexing', ['url' => $url]);
+            }
+        }
+
+        if (empty($allContent)) {
             Cache::put($this->cacheKey(), [
                 'status' => 'failed',
                 'error' => 'Could not fetch URL content.',
@@ -40,9 +52,11 @@ class IndexLinkJob implements ShouldQueue
             return;
         }
 
+        $combined = implode("\n\n---\n\n", $allContent);
+
         $this->configureAiForUser($this->user, AiPurpose::LinkIndexing);
 
-        $response = (new LinkIndexer)->prompt("Analyze this web page content and extract professional information:\n\n{$content}");
+        $response = (new LinkIndexer)->prompt("Analyze this web page content and extract professional information:\n\n{$combined}");
 
         Cache::put($this->cacheKey(), [
             'status' => 'completed',
@@ -54,6 +68,20 @@ class IndexLinkJob implements ShouldQueue
         ], now()->addHour());
 
         $this->chargeAiUsage($this->user, AiPurpose::LinkIndexing);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function urlsToScrape(): array
+    {
+        $urls = [$this->evidenceEntry->url];
+
+        if (! empty($this->evidenceEntry->pages)) {
+            $urls = array_merge($urls, $this->evidenceEntry->pages);
+        }
+
+        return array_values(array_unique($urls));
     }
 
     public function failed(\Throwable $exception): void

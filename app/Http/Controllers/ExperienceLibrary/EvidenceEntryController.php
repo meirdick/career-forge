@@ -109,7 +109,7 @@ class EvidenceEntryController extends Controller
         return back();
     }
 
-    public function importDiscoveredLinks(Request $request, EvidenceEntry $evidenceEntry): RedirectResponse
+    public function saveSelectedPages(Request $request, EvidenceEntry $evidenceEntry): RedirectResponse
     {
         abort_unless($evidenceEntry->user_id === $request->user()->id, 403);
 
@@ -118,31 +118,11 @@ class EvidenceEntryController extends Controller
             'urls.*' => ['required', 'url'],
         ]);
 
-        $count = 0;
-        foreach ($validated['urls'] as $url) {
-            $request->user()->evidenceEntries()->create([
-                'type' => $evidenceEntry->type,
-                'title' => $this->titleFromUrl($url),
-                'url' => $url,
-            ]);
-            $count++;
-        }
+        $evidenceEntry->update(['pages' => $validated['urls']]);
 
-        return back()->with('success', "{$count} page(s) added as evidence entries.");
-    }
+        $count = count($validated['urls']);
 
-    private function titleFromUrl(string $url): string
-    {
-        $path = parse_url($url, PHP_URL_PATH) ?? '/';
-        $path = trim($path, '/');
-
-        if (! $path) {
-            return parse_url($url, PHP_URL_HOST) ?? 'Page';
-        }
-
-        $segment = basename($path);
-
-        return str_replace(['-', '_'], ' ', $segment);
+        return back()->with('success', "{$count} page(s) saved for indexing.");
     }
 
     public function destroy(Request $request, EvidenceEntry $evidenceEntry): RedirectResponse

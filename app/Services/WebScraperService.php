@@ -2,8 +2,7 @@
 
 namespace App\Services;
 
-use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Support\Facades\Http;
+use App\Contracts\WebScraperContract;
 use Illuminate\Support\Facades\Log;
 
 class WebScraperService
@@ -12,6 +11,13 @@ class WebScraperService
     private const array UNSUPPORTED_DOMAINS = [
         'linkedin.com',
     ];
+
+    /**
+     * @param  list<WebScraperContract>  $drivers
+     */
+    public function __construct(
+        private array $drivers,
+    ) {}
 
     public static function isUnsupportedUrl(string $url): bool
     {
@@ -33,98 +39,54 @@ class WebScraperService
     }
 
     /**
-     * Discover child pages from a URL using Firecrawl's /map endpoint.
+     * Discover child pages from a URL, trying each configured driver in order.
      *
      * @return list<array{url: string}>|null
      */
     public function discoverLinks(string $url): ?array
     {
-        $apiKey = config('services.firecrawl.api_key');
-        $baseUrl = config('services.firecrawl.base_url');
-
-        if (! $apiKey) {
-            Log::warning('Firecrawl API key not configured, skipping URL discovery.');
-
-            return null;
-        }
-
-        try {
-            $response = Http::withToken($apiKey)
-                ->timeout(15)
-                ->post("{$baseUrl}/v1/map", [
-                    'url' => $url,
-                ]);
-
-            if (! $response->successful() || ! $response->json('success')) {
-                Log::warning('Firecrawl map failed', [
-                    'url' => $url,
-                    'status' => $response->status(),
-                    'error' => $response->json('error'),
-                ]);
-
-                return null;
+        foreach ($this->drivers as $driver) {
+            if (! $driver->isConfigured()) {
+                continue;
             }
 
-            $links = $response->json('links', []);
-            $sourceHost = parse_url($url, PHP_URL_HOST);
+            $result = $driver->discoverLinks($url);
 
-            // Filter to same-domain links only, exclude the source URL itself
-            return collect($links)
-                ->filter(function (string $link) use ($sourceHost, $url) {
-                    $host = parse_url($link, PHP_URL_HOST);
+            if ($result !== null) {
+                return $result;
+            }
 
-                    return $host === $sourceHost && rtrim($link, '/') !== rtrim($url, '/');
-                })
-                ->map(fn (string $link) => ['url' => $link])
-                ->values()
-                ->all();
-        } catch (ConnectionException $e) {
-            Log::warning('Firecrawl map connection failed', [
+            Log::warning('Scraper driver failed for discoverLinks, trying next driver', [
+                'driver' => $driver::class,
                 'url' => $url,
-                'error' => $e->getMessage(),
             ]);
-
-            return null;
         }
+
+        return null;
     }
 
+    /**
+     * Scrape a URL to markdown, trying each configured driver in order.
+     */
     public function scrape(string $url): ?string
     {
-        $apiKey = config('services.firecrawl.api_key');
-        $baseUrl = config('services.firecrawl.base_url');
-
-        if (! $apiKey) {
-            Log::warning('Firecrawl API key not configured, skipping URL scraping.');
-
-            return null;
-        }
-
-        try {
-            $response = Http::withToken($apiKey)
-                ->timeout(30)
-                ->post("{$baseUrl}/v1/scrape", [
-                    'url' => $url,
-                    'formats' => ['markdown'],
-                ]);
-
-            if ($response->successful() && $response->json('success')) {
-                return $response->json('data.markdown');
+        foreach ($this->drivers as $driver) {
+            if (! $driver->isConfigured()) {
+                continue;
             }
 
-            Log::warning('Firecrawl scrape failed', [
-                'url' => $url,
-                'status' => $response->status(),
-                'error' => $response->json('error'),
-            ]);
+            $result = $driver->scrape($url);
 
-            return null;
-        } catch (ConnectionException $e) {
-            Log::warning('Firecrawl connection failed', [
-                'url' => $url,
-                'error' => $e->getMessage(),
-            ]);
+            if ($result !== null) {
+                return $result;
+            }
 
-            return null;
+            Log::warning('Scraper driver failed for scrape, trying next driver', [
+                'driver' => $driver::class,
+                'url' => $url,
+            ]);
         }
+
+        return null;
     }
 }

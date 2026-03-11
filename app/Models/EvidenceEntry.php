@@ -15,9 +15,20 @@ class EvidenceEntry extends Model
         'type',
         'title',
         'url',
+        'pages',
         'description',
         'content',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'pages' => 'array',
+        ];
+    }
 
     public function user(): BelongsTo
     {

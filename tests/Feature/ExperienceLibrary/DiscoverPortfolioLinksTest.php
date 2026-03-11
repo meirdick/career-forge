@@ -53,7 +53,7 @@ test('discover links returns 422 for entry without url', function () {
         ->assertStatus(422);
 });
 
-test('import discovered links creates evidence entries', function () {
+test('save selected pages stores urls on evidence entry', function () {
     $entry = EvidenceEntry::factory()->create([
         'user_id' => $this->user->id,
         'type' => 'portfolio',
@@ -61,7 +61,7 @@ test('import discovered links creates evidence entries', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->post(route('evidence.import-discovered', $entry), [
+        ->post(route('evidence.save-pages', $entry), [
             'urls' => [
                 'https://example.com/projects/app-one',
                 'https://example.com/projects/app-two',
@@ -69,29 +69,26 @@ test('import discovered links creates evidence entries', function () {
         ])
         ->assertRedirect();
 
-    expect($this->user->evidenceEntries()->count())->toBe(3);
-
-    $imported = $this->user->evidenceEntries()
-        ->where('url', 'https://example.com/projects/app-one')
-        ->first();
-
-    expect($imported)
-        ->type->toBe('portfolio')
-        ->title->toBe('app one');
+    $entry->refresh();
+    expect($entry->pages)->toBe([
+        'https://example.com/projects/app-one',
+        'https://example.com/projects/app-two',
+    ]);
+    expect($this->user->evidenceEntries()->count())->toBe(1);
 });
 
-test('import discovered links validates urls', function () {
+test('save selected pages validates urls', function () {
     $entry = EvidenceEntry::factory()->create([
         'user_id' => $this->user->id,
         'url' => 'https://example.com',
     ]);
 
     $this->actingAs($this->user)
-        ->post(route('evidence.import-discovered', $entry), ['urls' => []])
+        ->post(route('evidence.save-pages', $entry), ['urls' => []])
         ->assertSessionHasErrors(['urls']);
 });
 
-test('import discovered links returns 403 for other users entry', function () {
+test('save selected pages returns 403 for other users entry', function () {
     $other = User::factory()->create();
     $entry = EvidenceEntry::factory()->create([
         'user_id' => $other->id,
@@ -99,7 +96,7 @@ test('import discovered links returns 403 for other users entry', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->post(route('evidence.import-discovered', $entry), [
+        ->post(route('evidence.save-pages', $entry), [
             'urls' => ['https://example.com/page'],
         ])
         ->assertForbidden();

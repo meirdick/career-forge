@@ -35,6 +35,12 @@ return [
         ],
     ],
 
+    'cloudflare_browser' => [
+        'account_id' => env('CLOUDFLARE_ACCOUNT_ID'),
+        'api_token' => env('CLOUDFLARE_BR_API_TOKEN'),
+        'base_url' => env('CLOUDFLARE_BR_BASE_URL', 'https://api.cloudflare.com/client/v4'),
+    ],
+
     'firecrawl' => [
         'api_key' => env('FIRECRAWL_API_KEY'),
         'base_url' => env('FIRECRAWL_BASE_URL', 'https://api.firecrawl.dev'),
