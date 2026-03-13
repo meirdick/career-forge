@@ -11,7 +11,7 @@ use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasStructuredOutput;
 use Stringable;
 
-#[MaxTokens(20000)]
+#[MaxTokens(45000)]
 #[Temperature(0.1)]
 #[Timeout(120)]
 class ExperienceExtractor implements Agent, HasStructuredOutput
