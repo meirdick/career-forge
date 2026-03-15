@@ -23,7 +23,11 @@ class Resume extends Model
         'exported_path',
         'exported_format',
         'header_config',
+        'generation_status',
+        'generation_progress',
     ];
+
+    protected $appends = ['is_generating'];
 
     protected function casts(): array
     {
@@ -32,7 +36,15 @@ class Resume extends Model
             'is_finalized' => 'boolean',
             'template' => ResumeTemplate::class,
             'header_config' => 'array',
+            'generation_progress' => 'array',
         ];
+    }
+
+    protected function isGenerating(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::get(
+            fn () => in_array($this->generation_status, ['pending', 'generating'])
+        );
     }
 
     public function user(): BelongsTo

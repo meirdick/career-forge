@@ -22,7 +22,22 @@ class ResumeFactory extends Factory
             'template' => 'classic',
             'exported_path' => null,
             'exported_format' => null,
+            'generation_status' => null,
+            'generation_progress' => null,
         ];
+    }
+
+    public function generating(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'generation_status' => 'generating',
+            'generation_progress' => [
+                'total' => 5,
+                'completed' => 2,
+                'current_section' => 'Skills',
+                'expected_sections' => ['Summary', 'Experience', 'Skills', 'Education', 'Projects'],
+            ],
+        ]);
     }
 
     public function finalized(): static

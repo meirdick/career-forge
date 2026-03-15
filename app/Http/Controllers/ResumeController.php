@@ -58,6 +58,7 @@ class ResumeController extends Controller
             'title' => ($jobPosting->title ?? 'Resume').' - '.now()->format('M j, Y'),
             'section_order' => [],
             'is_finalized' => false,
+            'generation_status' => 'pending',
         ]);
 
         GenerateResumeJob::dispatch($resume);
@@ -174,6 +175,29 @@ class ResumeController extends Controller
 
         $resumeSection->variants()->delete();
         $resumeSection->delete();
+
+        return back();
+    }
+
+    public function updateBlocks(Request $request, Resume $resume, ResumeSectionVariant $resumeSectionVariant): RedirectResponse
+    {
+        abort_unless($resume->user_id === $request->user()->id, 403);
+
+        $request->validate([
+            'blocks' => 'required|array',
+            'blocks.*.key' => 'required|string',
+            'blocks.*.label' => 'required|string',
+            'blocks.*.content' => 'required|string',
+            'blocks.*.is_hidden' => 'required|boolean',
+        ]);
+
+        $resumeSectionVariant->update([
+            'blocks' => $request->input('blocks'),
+            'is_user_edited' => true,
+        ]);
+
+        $resumeSectionVariant->reassembleContent();
+        $resumeSectionVariant->save();
 
         return back();
     }

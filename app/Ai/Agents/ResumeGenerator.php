@@ -27,9 +27,15 @@ class ResumeGenerator implements Agent, HasStructuredOutput
 
     public function schema(JsonSchema $schema): array
     {
-        $variantItem = $schema->object([
+        $blockItem = $schema->object([
             'label' => $schema->string()->required(),
             'content' => $schema->string()->required(),
+        ])->required();
+
+        $variantItem = $schema->object([
+            'label' => $schema->string()->required(),
+            'content' => $schema->string(),
+            'blocks' => $schema->array()->items($blockItem),
             'emphasis' => $schema->string(),
         ])->required();
 

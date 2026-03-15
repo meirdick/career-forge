@@ -20,6 +20,7 @@ class ResumeSectionVariantFactory extends Factory
             'is_ai_generated' => fake()->boolean(70),
             'is_user_edited' => false,
             'sort_order' => 0,
+            'blocks' => null,
         ];
     }
 }

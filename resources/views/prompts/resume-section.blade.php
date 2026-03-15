@@ -48,6 +48,15 @@ Examples: **Languages:** Python, TypeScript, Go | **Frameworks:** React, Laravel
 Write a 3-4 sentence professional summary paragraph. No bullet points. Use strong, confident language highlighting the candidate's value proposition for this specific role.
 
 @elseif($sectionType === 'projects')
+IMPORTANT: Only include independent, personal, or open-source projects that are NOT part of the candidate's employment history.
+Do NOT duplicate projects already covered under work experience entries.
+If no independent projects remain, return variants with minimal/empty content.
+
+@isset($experienceContent)
+## Already covered in Experience section (DO NOT repeat these):
+{!! $experienceContent !!}
+@endisset
+
 Use this format for each project:
 
 **Project Name**
@@ -68,6 +77,17 @@ Use this format:
 *Year*
 - Brief description of contribution
 
+@endif
+
+@if(in_array($sectionType, ['experience', 'education', 'projects']))
+## Block Structure
+
+For this section, return each entry (role, degree, or project) as a separate block in a `blocks` array within each variant.
+Each block should have:
+- `label`: A short identifier (e.g., "Software Engineer at Google", "BS Computer Science at MIT", "Open Source CLI Tool")
+- `content`: The full markdown content for just that entry
+
+Do NOT include a top-level `content` field for this section — the system will assemble it from blocks automatically.
 @endif
 
 ## Instructions
