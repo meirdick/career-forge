@@ -48,7 +48,10 @@ class ResumeExportService
         $phpWord->addTitleStyle(1, ['bold' => true, 'size' => $styles['titleSize'], 'color' => $styles['headingColor']]);
         $phpWord->addTitleStyle(2, ['bold' => true, 'size' => $styles['sectionSize'], 'color' => $styles['headingColor']]);
 
-        $section = $phpWord->addSection();
+        $section = $phpWord->addSection([
+            'pageSizeW' => 12240,
+            'pageSizeH' => 15840,
+        ]);
 
         // Contact header
         $section->addText(
