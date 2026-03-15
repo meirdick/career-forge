@@ -167,13 +167,14 @@ function ChatInput({
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
-                            onSend();
+                            if (!disabled) {
+                                onSend();
+                            }
                         }
                     }}
                     placeholder={placeholder}
-                    disabled={disabled}
                     rows={1}
-                    className="border-input bg-muted/50 placeholder:text-muted-foreground focus:ring-ring w-full resize-none rounded-xl py-3 pr-11 pl-3.5 text-sm focus:ring-1 focus:outline-none disabled:opacity-50"
+                    className="border-input bg-muted/50 placeholder:text-muted-foreground focus:ring-ring w-full resize-none rounded-xl py-3 pr-11 pl-3.5 text-sm focus:ring-1 focus:outline-none"
                 />
                 <button
                     onClick={onSend}
@@ -218,14 +219,6 @@ export default function PipelineAssistantPanel({ context, ref }: { context: Pipe
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, sending]);
 
-    useEffect(() => {
-        if (pendingMessage && sessionId && !sending) {
-            const msg = pendingMessage;
-            setPendingMessage(null);
-            sendMessage(msg);
-        }
-    }, [pendingMessage, sessionId, sending]);
-
     async function resolveSession() {
         if (resolved || resolving) return;
         setResolving(true);
@@ -261,25 +254,104 @@ export default function PipelineAssistantPanel({ context, ref }: { context: Pipe
             setSending(true);
 
             try {
-                const response = await axios.post(`/pipeline-chat/${sessionId}/chat`, {
-                    message: userMessage,
+                const csrfToken = document.cookie
+                    .split('; ')
+                    .find((row) => row.startsWith('XSRF-TOKEN='))
+                    ?.split('=')[1];
+
+                const response = await fetch(`/pipeline-chat/${sessionId}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'text/event-stream',
+                        'X-XSRF-TOKEN': csrfToken ? decodeURIComponent(csrfToken) : '',
+                    },
+                    body: JSON.stringify({ message: userMessage }),
                 });
 
-                const toolActions: string[] = response.data.tool_actions ?? [];
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
 
-                setMessages((prev) => [...prev, { role: 'assistant', content: response.data.message, toolActions }]);
+                const reader = response.body!.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let assistantAdded = false;
 
-                if (toolActions.length > 0) {
-                    router.reload();
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const parts = buffer.split('\n\n');
+                    buffer = parts.pop() ?? '';
+
+                    for (const part of parts) {
+                        if (!part.startsWith('data: ')) continue;
+
+                        let data;
+                        try {
+                            data = JSON.parse(part.slice(6));
+                        } catch {
+                            continue;
+                        }
+
+                        if (data.type === 'text') {
+                            if (!assistantAdded) {
+                                setMessages((prev) => [...prev, { role: 'assistant', content: data.delta }]);
+                                assistantAdded = true;
+                            } else {
+                                setMessages((prev) => {
+                                    const updated = [...prev];
+                                    const last = updated[updated.length - 1];
+                                    if (last.role === 'assistant') {
+                                        updated[updated.length - 1] = { ...last, content: last.content + data.delta };
+                                    }
+                                    return updated;
+                                });
+                            }
+                        } else if (data.type === 'done') {
+                            const toolActions: string[] = data.tool_actions ?? [];
+                            if (toolActions.length > 0) {
+                                setMessages((prev) => {
+                                    const updated = [...prev];
+                                    const last = updated[updated.length - 1];
+                                    if (last.role === 'assistant') {
+                                        updated[updated.length - 1] = { ...last, toolActions };
+                                    }
+                                    return updated;
+                                });
+                                router.reload();
+                            }
+                        }
+                    }
+                }
+
+                if (!assistantAdded) {
+                    setMessages((prev) => [...prev, { role: 'assistant', content: 'No response received. Please try again.' }]);
                 }
             } catch {
-                setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, there was an error. Please try again.' }]);
+                setMessages((prev) => {
+                    const last = prev[prev.length - 1];
+                    if (last?.role === 'assistant') {
+                        return prev;
+                    }
+                    return [...prev, { role: 'assistant', content: 'Sorry, there was an error. Please try again.' }];
+                });
             } finally {
                 setSending(false);
             }
         },
         [input, sending, sessionId],
     );
+
+    useEffect(() => {
+        if (pendingMessage && sessionId && !sending) {
+            const msg = pendingMessage;
+            setPendingMessage(null);
+            sendMessage(msg);
+        }
+    }, [pendingMessage, sessionId, sending, sendMessage]);
 
     function handlePromptClick(prompt: string) {
         sendMessage(prompt);
@@ -355,7 +427,7 @@ export default function PipelineAssistantPanel({ context, ref }: { context: Pipe
                                     </div>
                                 ))}
 
-                                {sending && <ThinkingIndicator />}
+                                {sending && messages[messages.length - 1]?.role !== 'assistant' && <ThinkingIndicator />}
                                 <div ref={chatEndRef} />
                             </div>
                         )}

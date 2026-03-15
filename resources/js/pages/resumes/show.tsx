@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { AlertTriangle, ArrowDown, ArrowUp, Bot, Check, ChevronsDownUp, ChevronsUpDown, Eye, EyeOff, Loader2, Pencil, Trash2, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { useEffect, useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import PipelineAssistantPanel from '@/components/pipeline-assistant-panel';
 import PipelineNextAction from '@/components/pipeline-next-action';
@@ -45,7 +45,13 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
     const [editBlockContent, setEditBlockContent] = useState('');
     const [editingTitle, setEditingTitle] = useState<number | null>(null);
     const [editTitleValue, setEditTitleValue] = useState('');
-    const seenSectionIds = useRef(new Set<number>());
+    // Track which sections are new (for fade-in animation) — sections
+    // present at mount are "seen"; anything arriving later animates in.
+    const [initialSectionIds] = useState(() => new Set(resume.sections.map((s) => s.id)));
+    const newSectionIds = useMemo(
+        () => new Set(resume.sections.filter((s) => !initialSectionIds.has(s.id)).map((s) => s.id)),
+        [resume.sections, initialSectionIds],
+    );
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Resumes', href: '/resumes' },
@@ -61,18 +67,8 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
         }
     }, [isGenerating]);
 
-    // Track which sections are new (for fade-in animation)
-    const newSectionIds = new Set<number>();
-    resume.sections.forEach((s) => {
-        if (!seenSectionIds.current.has(s.id)) {
-            newSectionIds.add(s.id);
-            seenSectionIds.current.add(s.id);
-        }
-    });
-
     const sortedSections = [...resume.sections].sort((a, b) => a.sort_order - b.sort_order);
     const progress = resume.generation_progress;
-    const completedSectionNames = progress?.expected_sections?.slice(0, progress.completed) ?? [];
     const pendingSectionNames = progress?.expected_sections?.slice(progress.completed) ?? [];
 
     function moveSection(fromIndex: number, toIndex: number) {
