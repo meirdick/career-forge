@@ -96,6 +96,10 @@ return [
             'provider' => env('AI_LINK_INDEXING_PROVIDER'),
             'model' => env('AI_LINK_INDEXING_MODEL'),
         ],
+        'resume_generation' => [
+            'provider' => env('AI_RESUME_GENERATION_PROVIDER', 'gemini'),
+            'model' => env('AI_RESUME_GENERATION_MODEL'),
+        ],
     ],
 
     'models' => [

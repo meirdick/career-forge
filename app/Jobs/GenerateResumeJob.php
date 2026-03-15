@@ -61,7 +61,6 @@ class GenerateResumeJob implements ShouldQueue
             $library['publications'] = $user->educationEntries()->whereIn('type', $pubTypes)->get()->toArray();
         }
 
-        // Skip Projects section if all user projects belong to an experience
         if ($user->projects()->exists()) {
             $totalProjects = $user->projects()->count();
             $linkedProjects = $user->projects()->whereNotNull('experience_id')->count();
@@ -78,76 +77,81 @@ class GenerateResumeJob implements ShouldQueue
             'generation_progress' => [
                 'total' => count($sectionTypes),
                 'completed' => 0,
-                'current_section' => $expectedSections[0] ?? null,
+                'current_section' => 'All sections',
                 'expected_sections' => $expectedSections,
             ],
         ]);
 
-        $sectionOrder = [];
         $blockTypes = [ResumeSectionType::Experience, ResumeSectionType::Education, ResumeSectionType::Projects];
-        $generatedExperienceContent = null;
 
         try {
-            foreach ($sectionTypes as $index => $type) {
-                $promptData = [
-                    'sectionType' => $type->value,
-                    'jobTitle' => $jobPosting->title ?? 'Target Role',
-                    'company' => $jobPosting->company ?? 'Target Company',
-                    'requirements' => $profile->required_skills ?? [],
-                    'gapInsights' => [
-                        'strengths' => $gapAnalysis->strengths ?? [],
-                        'gaps' => $gapAnalysis->gaps ?? [],
-                    ],
-                    'experience' => $library,
-                    'languageGuidance' => $profile->language_guidance ?? [],
-                ];
+            $prompt = view('prompts.resume-full', [
+                'jobTitle' => $jobPosting->title ?? 'Target Role',
+                'company' => $jobPosting->company ?? 'Target Company',
+                'requirements' => $profile->required_skills ?? [],
+                'gapInsights' => [
+                    'strengths' => $gapAnalysis->strengths ?? [],
+                    'gaps' => $gapAnalysis->gaps ?? [],
+                ],
+                'experience' => $library,
+                'languageGuidance' => $profile->language_guidance ?? [],
+                'sectionTypes' => array_map(fn ($type) => $type->value, $sectionTypes),
+            ])->render();
 
-                if ($type === ResumeSectionType::Projects && $generatedExperienceContent) {
-                    $promptData['experienceContent'] = $generatedExperienceContent;
-                }
+            $response = (new ResumeGenerator)->prompt($prompt);
 
-                $prompt = view('prompts.resume-section', $promptData)->render();
+            $sections = $response['sections'] ?? [];
 
-                $response = (new ResumeGenerator)->prompt($prompt);
+            if (is_string($sections)) {
+                $decoded = json_decode($sections, true);
+                $sections = is_array($decoded) ? $decoded : [];
+            }
 
-                Log::info('ResumeGenerator response debug', [
-                    'section' => $type->value,
+            if (! is_array($sections) || empty($sections)) {
+                Log::error('ResumeGenerator returned invalid sections', [
                     'response_class' => get_class($response),
-                    'response_text' => substr((string) $response, 0, 500),
-                    'variants_type' => gettype($response['variants'] ?? null),
-                    'variants_preview' => is_string($response['variants'] ?? null)
-                        ? substr($response['variants'], 0, 300)
-                        : json_encode(array_slice((array) ($response['variants'] ?? []), 0, 1), JSON_PRETTY_PRINT),
+                    'response_preview' => substr((string) $response, 0, 500),
+                    'sections_type' => gettype($response['sections'] ?? null),
                 ]);
 
+                throw new \RuntimeException(
+                    'Resume generation returned invalid sections: expected array, got '.gettype($response['sections'] ?? null)
+                );
+            }
+
+            $sectionOrder = [];
+            $sectionTypeMap = collect($sectionTypes)->keyBy(fn ($type) => $type->value);
+
+            foreach ($sections as $index => $sectionData) {
+                $typeValue = $sectionData['type'] ?? null;
+                $sectionType = $sectionTypeMap->get($typeValue);
+
+                if (! $sectionType) {
+                    Log::warning("Skipping unknown section type: {$typeValue}");
+
+                    continue;
+                }
+
                 $section = $this->resume->sections()->create([
-                    'type' => $type,
-                    'title' => ucfirst($type->value),
+                    'type' => $sectionType,
+                    'title' => ucfirst($sectionType->value),
                     'sort_order' => $index,
                 ]);
 
-                $variants = $response['variants'] ?? [];
-
+                $variants = $sectionData['variants'] ?? [];
                 if (is_string($variants)) {
                     $decoded = json_decode($variants, true);
                     $variants = is_array($decoded) ? $decoded : [];
                 }
 
-                if (! is_array($variants) || empty($variants)) {
-                    throw new \RuntimeException(
-                        "Resume section [{$type->value}] returned invalid variants: expected array, got ".gettype($response['variants'] ?? null)
-                    );
-                }
-
                 $firstVariant = null;
 
                 foreach ($variants as $vIndex => $variant) {
-                    $blocks = in_array($type, $blockTypes) ? ($variant['blocks'] ?? null) : null;
+                    $blocks = in_array($sectionType, $blockTypes) ? ($variant['blocks'] ?? null) : null;
                     $content = $blocks
                         ? collect($blocks)->pluck('content')->implode("\n\n")
                         : ($variant['content'] ?? '');
 
-                    // Add key and is_hidden to each block
                     if ($blocks) {
                         $blocks = array_map(function ($block, $i) {
                             return [
@@ -179,22 +183,15 @@ class GenerateResumeJob implements ShouldQueue
                     $section->update(['selected_variant_id' => $firstVariant->id]);
                 }
 
-                if ($type === ResumeSectionType::Experience && $firstVariant) {
-                    $generatedExperienceContent = $firstVariant->content;
-                }
-
                 $sectionOrder[] = $section->id;
-
-                // Brief pause between sections to avoid provider rate limits
-                if (isset($sectionTypes[$index + 1])) {
-                    sleep(3);
-                }
 
                 $this->resume->update([
                     'generation_progress' => [
                         'total' => count($sectionTypes),
                         'completed' => $index + 1,
-                        'current_section' => isset($sectionTypes[$index + 1]) ? ucfirst($sectionTypes[$index + 1]->value) : null,
+                        'current_section' => isset($sections[$index + 1])
+                            ? ucfirst($sections[$index + 1]['type'] ?? 'unknown')
+                            : null,
                         'expected_sections' => $expectedSections,
                     ],
                 ]);
@@ -210,7 +207,7 @@ class GenerateResumeJob implements ShouldQueue
         } catch (\Throwable $e) {
             $this->resume->update([
                 'generation_status' => 'failed',
-                'section_order' => $sectionOrder,
+                'section_order' => [],
             ]);
 
             throw $e;

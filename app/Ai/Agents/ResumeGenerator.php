@@ -11,9 +11,9 @@ use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasStructuredOutput;
 use Stringable;
 
-#[MaxTokens(16384)]
+#[MaxTokens(32768)]
 #[Temperature(0.5)]
-#[Timeout(120)]
+#[Timeout(180)]
 class ResumeGenerator implements Agent, HasStructuredOutput
 {
     use FailsOverOnBillingErrors;
@@ -40,8 +40,13 @@ class ResumeGenerator implements Agent, HasStructuredOutput
             'emphasis' => $schema->string(),
         ])->required();
 
-        return [
+        $sectionItem = $schema->object([
+            'type' => $schema->string()->required(),
             'variants' => $schema->array()->items($variantItem)->required(),
+        ])->required();
+
+        return [
+            'sections' => $schema->array()->items($sectionItem)->required(),
         ];
     }
 }
