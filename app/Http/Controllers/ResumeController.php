@@ -67,7 +67,7 @@ class ResumeController extends Controller
             ->with('success', 'Resume generation started...');
     }
 
-    public function show(Request $request, Resume $resume): Response
+    public function show(Request $request, Resume $resume, ResumeHeaderService $headerService): Response
     {
         abort_unless($resume->user_id === $request->user()->id, 403);
 
@@ -78,6 +78,7 @@ class ResumeController extends Controller
         return Inertia::render('resumes/show', [
             'resume' => $resume,
             'globalHeaderConfig' => $globalConfig,
+            'contact' => $headerService->resolveHeader($resume),
         ]);
     }
 

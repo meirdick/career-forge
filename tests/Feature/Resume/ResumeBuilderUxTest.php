@@ -363,18 +363,19 @@ test('display_mode validates allowed values', function () {
         ->assertSessionHasErrors('display_mode');
 });
 
-// Preview page includes header config
+// Header config is on the edit page, not preview
 
-test('preview page includes globalHeaderConfig', function () {
+test('edit page includes globalHeaderConfig and contact', function () {
     $resume = Resume::factory()->create(['user_id' => $this->user->id]);
     ResumeSection::factory()->create(['resume_id' => $resume->id]);
 
     $this->actingAs($this->user)
-        ->get("/resumes/{$resume->id}/preview")
+        ->get("/resumes/{$resume->id}")
         ->assertSuccessful()
         ->assertInertia(
             fn ($page) => $page
-                ->component('resumes/preview')
+                ->component('resumes/show')
                 ->has('globalHeaderConfig')
+                ->has('contact')
         );
 });

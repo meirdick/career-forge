@@ -6,10 +6,13 @@ import Heading from '@/components/heading';
 import PipelineAssistantPanel from '@/components/pipeline-assistant-panel';
 import PipelineNextAction from '@/components/pipeline-next-action';
 import PipelineSteps from '@/components/pipeline-steps';
+import ResumeDocument from '@/components/resume-templates/resume-document';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,6 +24,24 @@ type Variant = { id: number; label: string; content: string; compact_content: st
 type Section = { id: number; type: string; title: string; sort_order: number; selected_variant_id: number | null; is_hidden: boolean; display_mode: 'compact' | 'expanded'; variants: Variant[]; selected_variant: Variant | null };
 type GenerationProgress = { total: number; completed: number; current_section: string | null; expected_sections: string[] };
 
+type Contact = {
+    name?: string;
+    email?: string;
+    phone?: string;
+    location?: string;
+    linkedin_url?: string;
+    portfolio_links?: { url: string; label: string }[];
+};
+
+type HeaderConfig = {
+    name_preference: string;
+    show_email: boolean;
+    show_phone: boolean;
+    show_location: boolean;
+    show_linkedin: boolean;
+    show_portfolio: boolean;
+};
+
 type ResumeData = {
     id: number;
     title: string;
@@ -29,14 +50,26 @@ type ResumeData = {
     is_generating: boolean;
     generation_status: string | null;
     generation_progress: GenerationProgress | null;
-    header_config: Record<string, unknown> | null;
+    header_config: HeaderConfig | null;
+    show_transparency: boolean;
+    transparency_text: string | null;
     sections: Section[];
     job_posting: { id: number; title: string | null; company: string | null } | null;
 };
 
 const BLOCK_SECTION_TYPES = ['experience', 'education', 'projects'];
 
-export default function ShowResume({ resume }: { resume: ResumeData }) {
+const HEADER_TOGGLE_FIELDS = [
+    { key: 'show_email' as const, label: 'Email' },
+    { key: 'show_phone' as const, label: 'Phone' },
+    { key: 'show_location' as const, label: 'Location' },
+    { key: 'show_linkedin' as const, label: 'LinkedIn' },
+    { key: 'show_portfolio' as const, label: 'Portfolio Links' },
+];
+
+const DEFAULT_TRANSPARENCY_TEXT = 'This resume was created with AI assistance. View details at [your-link-here]';
+
+export default function ShowResume({ resume, contact, globalHeaderConfig }: { resume: ResumeData; contact: Contact; globalHeaderConfig: HeaderConfig }) {
     const isGenerating = resume.is_generating;
     const isFailed = resume.generation_status === 'failed';
     const [editingVariant, setEditingVariant] = useState<number | null>(null);
@@ -45,6 +78,8 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
     const [editBlockContent, setEditBlockContent] = useState('');
     const [editingTitle, setEditingTitle] = useState<number | null>(null);
     const [editTitleValue, setEditTitleValue] = useState('');
+    const [transparencyText, setTransparencyText] = useState(resume.transparency_text ?? DEFAULT_TRANSPARENCY_TEXT);
+    const effectiveConfig: HeaderConfig = { ...globalHeaderConfig, ...(resume.header_config ?? {}) };
     // Track which sections are new (for fade-in animation) — sections
     // present at mount are "seen"; anything arriving later animates in.
     const [initialSectionIds] = useState(() => new Set(resume.sections.map((s) => s.id)));
@@ -99,6 +134,11 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
         if (confirm('Delete this section? This cannot be undone.')) {
             router.delete(`/resumes/${resume.id}/sections/${sectionId}`, { preserveScroll: true });
         }
+    }
+
+    function updateHeaderConfig(key: string, value: boolean | string) {
+        const updated = { ...effectiveConfig, [key]: value };
+        router.put(`/resumes/${resume.id}`, { header_config: updated }, { preserveScroll: true });
     }
 
     function toggleDisplayMode(sectionId: number, currentMode: string) {
@@ -306,6 +346,60 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
                 </div>
 
                 {resume.is_finalized && <Badge variant="secondary">Finalized</Badge>}
+
+                {/* Header settings */}
+                {!resume.is_finalized && !isGenerating && !isFailed && (
+                    <div className="space-y-3">
+                        <Separator />
+                        <h2 className="text-lg font-semibold">Contact Header</h2>
+                        <Card>
+                            <CardContent className="space-y-4 pt-4">
+                                <div>
+                                    <Label className="mb-2 block text-sm font-medium">Name Preference</Label>
+                                    <div className="flex items-center gap-4">
+                                        <label className="flex items-center gap-2 text-sm">
+                                            <input
+                                                type="radio"
+                                                name="name_preference"
+                                                value="display_name"
+                                                checked={effectiveConfig.name_preference === 'display_name'}
+                                                onChange={() => updateHeaderConfig('name_preference', 'display_name')}
+                                                className="accent-primary"
+                                            />
+                                            Display Name
+                                        </label>
+                                        <label className="flex items-center gap-2 text-sm">
+                                            <input
+                                                type="radio"
+                                                name="name_preference"
+                                                value="legal_name"
+                                                checked={effectiveConfig.name_preference === 'legal_name'}
+                                                onChange={() => updateHeaderConfig('name_preference', 'legal_name')}
+                                                className="accent-primary"
+                                            />
+                                            Legal Name
+                                        </label>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium">Show on Resume</Label>
+                                    {HEADER_TOGGLE_FIELDS.map((field) => (
+                                        <label key={field.key} className="flex items-center gap-2">
+                                            <Checkbox
+                                                checked={effectiveConfig[field.key]}
+                                                onCheckedChange={(checked) => updateHeaderConfig(field.key, !!checked)}
+                                            />
+                                            <span className="text-sm">{field.label}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                <p className="text-muted-foreground text-xs">
+                                    These override your global defaults from the Identity page.
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
 
                 {/* Generation progress card */}
                 {isGenerating && progress && (
@@ -524,6 +618,54 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
                         </div>
                     );
                 })}
+
+                {/* Transparency statement */}
+                {!resume.is_finalized && !isGenerating && !isFailed && sortedSections.length > 0 && (
+                    <div className="space-y-3">
+                        <Separator />
+                        <h2 className="text-lg font-semibold">AI Transparency</h2>
+                        <Card>
+                            <CardContent className="space-y-3 pt-4">
+                                <label className="flex items-center gap-2">
+                                    <Checkbox
+                                        checked={resume.show_transparency}
+                                        onCheckedChange={(checked) =>
+                                            router.put(`/resumes/${resume.id}`, { show_transparency: !!checked, transparency_text: transparencyText }, { preserveScroll: true })
+                                        }
+                                    />
+                                    <span className="text-sm font-medium">Include AI transparency statement</span>
+                                </label>
+                                {resume.show_transparency && (
+                                    <div className="space-y-2">
+                                        <Input
+                                            value={transparencyText}
+                                            onChange={(e) => setTransparencyText(e.target.value)}
+                                            onBlur={() =>
+                                                router.put(`/resumes/${resume.id}`, { transparency_text: transparencyText, show_transparency: true }, { preserveScroll: true })
+                                            }
+                                            placeholder="e.g. This resume was created with AI assistance."
+                                            className="text-sm"
+                                        />
+                                        <p className="text-muted-foreground text-xs">This text will appear at the bottom of your exported resume.</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
+
+                {/* Document preview */}
+                {!isGenerating && !isFailed && sortedSections.length > 0 && (
+                    <div className="space-y-3">
+                        <Separator />
+                        <h2 className="text-lg font-semibold">Preview</h2>
+                        <ResumeDocument
+                            template={resume.template ?? 'classic'}
+                            contact={contact}
+                            sections={resume.sections.filter((s) => !s.is_hidden)}
+                        />
+                    </div>
+                )}
 
                 {resume.job_posting && !isGenerating && !isFailed && (
                     <PipelineNextAction

@@ -17,14 +17,11 @@ class ResumeExportController extends Controller
     {
         abort_unless($resume->user_id === $request->user()->id, 403);
 
-        $resume->load(['sections.selectedVariant', 'jobPosting', 'user.professionalIdentity']);
-
-        $globalConfig = $request->user()->professionalIdentity?->resume_header_config ?? ResumeHeaderService::defaults();
+        $resume->load(['sections.selectedVariant', 'jobPosting']);
 
         return Inertia::render('resumes/preview', [
             'resume' => $resume,
             'contact' => $headerService->resolveHeader($resume),
-            'globalHeaderConfig' => $globalConfig,
         ]);
     }
 

@@ -5,6 +5,7 @@ use App\Models\Document;
 use App\Models\GapAnalysis;
 use App\Models\IdealCandidateProfile;
 use App\Models\JobPosting;
+use App\Models\ProfessionalIdentity;
 use App\Models\Resume;
 use App\Models\ResumeSection;
 use App\Models\ResumeSectionVariant;
@@ -170,6 +171,29 @@ test('show passes globalHeaderConfig', function () {
         ->get("/resumes/{$resume->id}")
         ->assertSuccessful()
         ->assertInertia(fn ($page) => $page->has('globalHeaderConfig'));
+});
+
+test('show passes contact from ResumeHeaderService', function () {
+    $this->user->update(['legal_name' => 'John Legal Doe']);
+    ProfessionalIdentity::factory()->create([
+        'user_id' => $this->user->id,
+        'resume_header_config' => [
+            'name_preference' => 'legal_name',
+            'show_phone' => false,
+        ],
+    ]);
+
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}")
+        ->assertSuccessful()
+        ->assertInertia(
+            fn ($page) => $page
+                ->has('contact')
+                ->where('contact.name', 'John Legal Doe')
+                ->where('contact.phone', null)
+        );
 });
 
 test('select variant updates section', function () {
