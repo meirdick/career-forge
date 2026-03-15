@@ -69,6 +69,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Resume Generation Strategy
+    |--------------------------------------------------------------------------
+    |
+    | Controls how resume sections are generated:
+    | - "full": Single AI call generates all sections at once (faster, cheaper)
+    | - "per_section": One AI call per section type (better quality per section)
+    |
+    */
+
+    'resume_strategy' => env('AI_RESUME_STRATEGY', 'full'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Per-Purpose Provider Overrides
     |--------------------------------------------------------------------------
     |
