@@ -38,6 +38,9 @@ class AiGatingService
 
     public function configureRuntimeProvider(User $user, ?AiPurpose $purpose = null): void
     {
+        // Always reset to original defaults to prevent config leakage between queue jobs
+        $this->resetToDefaults();
+
         $mode = $this->resolveAccessMode($user);
 
         if ($mode === AiAccessMode::Byok) {
@@ -68,6 +71,22 @@ class AiGatingService
                 }
             }
         }
+    }
+
+    protected function resetToDefaults(): void
+    {
+        static $originalDefault = null;
+        static $originalDefaultModel = null;
+
+        if ($originalDefault === null) {
+            $originalDefault = config('ai.default');
+            $originalDefaultModel = config('ai.default_model');
+        }
+
+        config([
+            'ai.default' => $originalDefault,
+            'ai.default_model' => $originalDefaultModel,
+        ]);
     }
 
     public function chargeCredits(User $user, AiPurpose $purpose, ?int $aiInteractionId = null): void

@@ -185,6 +185,11 @@ class GenerateResumeJob implements ShouldQueue
 
                 $sectionOrder[] = $section->id;
 
+                // Brief pause between sections to avoid provider rate limits
+                if (isset($sectionTypes[$index + 1])) {
+                    sleep(3);
+                }
+
                 $this->resume->update([
                     'generation_progress' => [
                         'total' => count($sectionTypes),
