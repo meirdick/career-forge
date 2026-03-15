@@ -177,7 +177,7 @@ return [
         'workers-ai' => [
             'driver' => 'openai',
             'key' => env('CLOUDFLARE_AI_API_KEY'),
-            'url' => env('WORKERS_AI_URL', 'https://gateway.ai.cloudflare.com/v1/5759bb6ef591b078e5480bfd5a767856/laravel-ai/workers-ai/v1'),
+            'url' => env('WORKERS_AI_URL'),
         ],
     ],
 
