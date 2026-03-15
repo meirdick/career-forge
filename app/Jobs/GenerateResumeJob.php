@@ -116,7 +116,7 @@ class GenerateResumeJob implements ShouldQueue
 
         return [
             'user' => $user,
-            'library' => $library,
+            'library' => $this->trimLibraryData($library),
             'sectionTypes' => $sectionTypes,
             'expectedSections' => array_map(fn ($type) => ucfirst($type->value), $sectionTypes),
             'blockTypes' => [ResumeSectionType::Experience, ResumeSectionType::Education, ResumeSectionType::Projects],
@@ -225,7 +225,7 @@ class GenerateResumeJob implements ShouldQueue
                     'strengths' => $context['gapAnalysis']->strengths ?? [],
                     'gaps' => $context['gapAnalysis']->gaps ?? [],
                 ],
-                'experience' => $context['library'],
+                'experience' => $this->libraryForSection($type, $context['library']),
                 'languageGuidance' => $context['profile']->language_guidance ?? [],
             ];
 
@@ -282,6 +282,51 @@ class GenerateResumeJob implements ShouldQueue
         }
 
         return $sectionOrder;
+    }
+
+    /**
+     * Strip DB metadata fields from library data to reduce prompt token usage.
+     */
+    private function trimLibraryData(array $library): array
+    {
+        $stripKeys = ['id', 'user_id', 'experience_id', 'skill_id', 'project_id', 'created_at', 'updated_at', 'pivot', 'formatted_description'];
+
+        $stripRecursive = function (array $data) use (&$stripRecursive, $stripKeys): array {
+            $result = [];
+            foreach ($data as $key => $value) {
+                if (in_array($key, $stripKeys, true)) {
+                    continue;
+                }
+                $result[$key] = is_array($value) ? $stripRecursive($value) : $value;
+            }
+
+            return $result;
+        };
+
+        return $stripRecursive($library);
+    }
+
+    /**
+     * Return only the library data relevant to a given section type.
+     */
+    private function libraryForSection(ResumeSectionType $type, array $library): array
+    {
+        return match ($type) {
+            ResumeSectionType::Summary => $library,
+            ResumeSectionType::Experience => array_intersect_key($library, array_flip(['experiences', 'identity'])),
+            ResumeSectionType::Skills => [
+                'skills' => $library['skills'] ?? [],
+                'experiences' => array_map(fn ($exp) => [
+                    'company' => $exp['company'] ?? null,
+                    'title' => $exp['title'] ?? null,
+                    'skills' => $exp['skills'] ?? [],
+                ], $library['experiences'] ?? []),
+            ],
+            ResumeSectionType::Education => array_intersect_key($library, array_flip(['education'])),
+            ResumeSectionType::Certifications => array_intersect_key($library, array_flip(['certifications'])),
+            ResumeSectionType::Publications => array_intersect_key($library, array_flip(['publications'])),
+            ResumeSectionType::Projects => array_intersect_key($library, array_flip(['projects', 'experiences'])),
+        };
     }
 
     /**
