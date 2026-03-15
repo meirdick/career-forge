@@ -11,7 +11,7 @@ use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasStructuredOutput;
 use Stringable;
 
-#[MaxTokens(4096)]
+#[MaxTokens(16384)]
 #[Temperature(0.3)]
 #[Timeout(120)]
 class LinkIndexer implements Agent, HasStructuredOutput
