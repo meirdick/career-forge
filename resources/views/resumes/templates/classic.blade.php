@@ -78,7 +78,7 @@
                 <h2>{{ $section->title }}</h2>
                 @if($section->selectedVariant)
                     <div class="section-content">
-                        {!! Str::markdown($section->selectedVariant->content) !!}
+                        {!! Str::markdown(str_replace(['\\n', '\\r'], ["\n", "\r"], $section->selectedVariant->content)) !!}
                     </div>
                 @endif
             </div>

@@ -151,6 +151,8 @@ class RenderCvService
      */
     public function parseVariantContent(string $content, ?ResumeSectionType $sectionType): array
     {
+        $content = str_replace(['\\n', '\\r'], ["\n", "\r"], $content);
+
         return match ($sectionType) {
             ResumeSectionType::Experience => $this->parseExperienceContent($content),
             ResumeSectionType::Education => $this->parseEducationContent($content),

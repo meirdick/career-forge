@@ -124,6 +124,7 @@ class ResumeExportService
 
     private function addMarkdownContent(\PhpOffice\PhpWord\Element\Section $section, string $content, array $styles): void
     {
+        $content = str_replace(['\\n', '\\r'], ["\n", "\r"], $content);
         $content = $this->sanitizeForXml($content);
         $lines = explode("\n", $content);
 
