@@ -104,3 +104,21 @@ Each variant should:
 - Be professional and concise
 - Avoid fabricating experience or skills the candidate doesn't have
 - Follow the markdown format specified above exactly
+
+## Compact Version
+
+For each variant, also generate a `compact_content` field: a condensed version of the entire section in 1-2 lines maximum. No bullet points, no markdown formatting. Just the essential facts.
+
+@if($sectionType === 'experience')
+Example compact: "Head of Product at Payquad (2021–Present) | Co-Founder/CEO at Bridge7 Oncology (2017–2021) | VP Operations at META (2012–2015)"
+@elseif($sectionType === 'education')
+Example compact: "MBA, Rotman School of Management (2017) | BASc Materials Engineering, University of Toronto (2010)"
+@elseif($sectionType === 'skills')
+Example compact: "Product Strategy, AI/ML, Python, TypeScript, Agile/Scrum, GTM, SaaS Metrics, Figma, PostHog"
+@elseif($sectionType === 'summary')
+Example compact: "Senior PM and AI founder with 10+ years shipping products across healthcare AI, B2C, and B2B SaaS."
+@elseif($sectionType === 'projects')
+Example compact: "Bridge7 AI Medical Device (12 hospital deployments) | Payquad SaaS Platform ($500M+ payments) | VISR Wellness App (20K users)"
+@else
+Condense all entries to a single line of key facts separated by pipes.
+@endif

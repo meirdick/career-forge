@@ -125,11 +125,18 @@ class RenderCvService
                 continue;
             }
 
-            $content = $section->selectedVariant->content;
+            $variant = $section->selectedVariant;
+            $content = ($section->display_mode === 'compact' && $variant->compact_content)
+                ? $variant->compact_content
+                : $variant->content;
             $type = $section->type;
             $sectionKey = $section->title;
 
             $sections[$sectionKey] = $this->parseVariantContent($content, $type);
+        }
+
+        if ($resume->show_transparency && $resume->transparency_text) {
+            $sections[''] = [$resume->transparency_text];
         }
 
         if (! empty($sections)) {

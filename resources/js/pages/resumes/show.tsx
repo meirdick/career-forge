@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { AlertTriangle, ArrowDown, ArrowUp, Bot, Check, Eye, EyeOff, Loader2, Pencil, Trash2, X } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, Bot, Check, ChevronsDownUp, ChevronsUpDown, Eye, EyeOff, Loader2, Pencil, Trash2, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useEffect, useRef, useState } from 'react';
 import Heading from '@/components/heading';
@@ -17,8 +17,8 @@ import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 
 type Block = { key: string; label: string; content: string; is_hidden: boolean };
-type Variant = { id: number; label: string; content: string; formatted_content: string; blocks: Block[] | null; emphasis: string | null; is_ai_generated: boolean; is_user_edited: boolean };
-type Section = { id: number; type: string; title: string; sort_order: number; selected_variant_id: number | null; is_hidden: boolean; variants: Variant[]; selected_variant: Variant | null };
+type Variant = { id: number; label: string; content: string; compact_content: string | null; formatted_content: string; blocks: Block[] | null; emphasis: string | null; is_ai_generated: boolean; is_user_edited: boolean };
+type Section = { id: number; type: string; title: string; sort_order: number; selected_variant_id: number | null; is_hidden: boolean; display_mode: 'compact' | 'expanded'; variants: Variant[]; selected_variant: Variant | null };
 type GenerationProgress = { total: number; completed: number; current_section: string | null; expected_sections: string[] };
 
 type ResumeData = {
@@ -103,6 +103,11 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
         if (confirm('Delete this section? This cannot be undone.')) {
             router.delete(`/resumes/${resume.id}/sections/${sectionId}`, { preserveScroll: true });
         }
+    }
+
+    function toggleDisplayMode(sectionId: number, currentMode: string) {
+        const newMode = currentMode === 'compact' ? 'expanded' : 'compact';
+        router.patch(`/resumes/${resume.id}/sections/${sectionId}`, { display_mode: newMode }, { preserveScroll: true });
     }
 
     function updateBlocks(variant: Variant, updatedBlocks: Block[]) {
@@ -206,6 +211,15 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
     }
 
     function renderVariantContent(section: Section, variant: Variant) {
+        // Compact mode — show compact_content as plain text
+        if (section.display_mode === 'compact' && variant.compact_content) {
+            return (
+                <div className="text-muted-foreground text-sm italic">
+                    {variant.compact_content}
+                </div>
+            );
+        }
+
         const hasBlocks = BLOCK_SECTION_TYPES.includes(section.type) && variant.blocks && variant.blocks.length > 0;
 
         if (hasBlocks) {
@@ -373,6 +387,7 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
                                     <>
                                         <h2 className={`text-lg font-semibold ${section.is_hidden ? 'line-through' : ''}`}>{section.title}</h2>
                                         {section.is_hidden && <Badge variant="secondary" className="text-xs">Hidden</Badge>}
+                                        {!section.is_hidden && section.display_mode === 'compact' && <Badge variant="outline" className="text-xs">Compact</Badge>}
                                     </>
                                 )}
                             </div>
@@ -386,6 +401,16 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
                                             title="Rename section"
                                         >
                                             <Pencil className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                    {section.selected_variant?.compact_content && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => toggleDisplayMode(section.id, section.display_mode)}
+                                            title={section.display_mode === 'compact' ? 'Expand section' : 'Compact section'}
+                                        >
+                                            {section.display_mode === 'compact' ? <ChevronsUpDown className="h-4 w-4" /> : <ChevronsDownUp className="h-4 w-4" />}
                                         </Button>
                                     )}
                                     <Button

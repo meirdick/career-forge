@@ -19,6 +19,7 @@ class ResumeSection extends Model
         'sort_order',
         'selected_variant_id',
         'is_hidden',
+        'display_mode',
     ];
 
     protected function casts(): array

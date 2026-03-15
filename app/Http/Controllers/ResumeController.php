@@ -98,9 +98,11 @@ class ResumeController extends Controller
             'header_config.show_location' => 'sometimes|boolean',
             'header_config.show_linkedin' => 'sometimes|boolean',
             'header_config.show_portfolio' => 'sometimes|boolean',
+            'transparency_text' => 'sometimes|nullable|string|max:500',
+            'show_transparency' => 'sometimes|boolean',
         ]);
 
-        $resume->update($request->only(['title', 'section_order', 'is_finalized', 'template', 'header_config']));
+        $resume->update($request->only(['title', 'section_order', 'is_finalized', 'template', 'header_config', 'transparency_text', 'show_transparency']));
 
         if ($request->has('section_order')) {
             foreach ($request->input('section_order') as $index => $sectionId) {
@@ -157,9 +159,12 @@ class ResumeController extends Controller
         abort_unless($resume->user_id === $request->user()->id, 403);
         abort_unless($resumeSection->resume_id === $resume->id, 404);
 
-        $request->validate(['title' => 'required|string|max:255']);
+        $request->validate([
+            'title' => 'sometimes|required|string|max:255',
+            'display_mode' => 'sometimes|in:compact,expanded',
+        ]);
 
-        $resumeSection->update(['title' => $request->input('title')]);
+        $resumeSection->update($request->only(['title', 'display_mode']));
 
         return back();
     }

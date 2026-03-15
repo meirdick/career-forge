@@ -275,6 +275,94 @@ test('reassembleContent does nothing when blocks is null', function () {
     expect($variant->content)->toBe('Original content');
 });
 
+// Transparency text
+
+test('update resume saves transparency text and show_transparency', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->put("/resumes/{$resume->id}", [
+            'transparency_text' => 'Created with AI assistance. Details: https://example.com/transparency',
+            'show_transparency' => true,
+        ])
+        ->assertRedirect();
+
+    $resume->refresh();
+    expect($resume->transparency_text)->toBe('Created with AI assistance. Details: https://example.com/transparency');
+    expect($resume->show_transparency)->toBeTrue();
+});
+
+test('transparency can be toggled off', function () {
+    $resume = Resume::factory()->create([
+        'user_id' => $this->user->id,
+        'show_transparency' => true,
+        'transparency_text' => 'Some text',
+    ]);
+
+    $this->actingAs($this->user)
+        ->put("/resumes/{$resume->id}", [
+            'show_transparency' => false,
+        ])
+        ->assertRedirect();
+
+    $resume->refresh();
+    expect($resume->show_transparency)->toBeFalse();
+});
+
+test('transparency_text validates as string with max length', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->put("/resumes/{$resume->id}", [
+            'transparency_text' => str_repeat('a', 501),
+        ])
+        ->assertSessionHasErrors('transparency_text');
+});
+
+// Display mode
+
+test('update section saves display_mode', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create([
+        'resume_id' => $resume->id,
+        'type' => ResumeSectionType::Experience,
+    ]);
+
+    $this->actingAs($this->user)
+        ->patch("/resumes/{$resume->id}/sections/{$section->id}", [
+            'title' => $section->title,
+            'display_mode' => 'compact',
+        ])
+        ->assertRedirect();
+
+    $section->refresh();
+    expect($section->display_mode)->toBe('compact');
+});
+
+test('display_mode defaults to expanded for new sections', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create([
+        'resume_id' => $resume->id,
+    ]);
+
+    $section->refresh();
+    expect($section->display_mode)->toBe('expanded');
+});
+
+test('display_mode validates allowed values', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create([
+        'resume_id' => $resume->id,
+    ]);
+
+    $this->actingAs($this->user)
+        ->patch("/resumes/{$resume->id}/sections/{$section->id}", [
+            'title' => $section->title,
+            'display_mode' => 'invalid',
+        ])
+        ->assertSessionHasErrors('display_mode');
+});
+
 // Preview page includes header config
 
 test('preview page includes globalHeaderConfig', function () {

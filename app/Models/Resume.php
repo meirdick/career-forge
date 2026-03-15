@@ -25,6 +25,8 @@ class Resume extends Model
         'header_config',
         'generation_status',
         'generation_progress',
+        'transparency_text',
+        'show_transparency',
     ];
 
     protected $appends = ['is_generating'];
@@ -37,6 +39,7 @@ class Resume extends Model
             'template' => ResumeTemplate::class,
             'header_config' => 'array',
             'generation_progress' => 'array',
+            'show_transparency' => 'boolean',
         ];
     }
 

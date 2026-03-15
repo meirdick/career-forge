@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
@@ -36,6 +37,8 @@ type ResumeData = {
     template: string;
     is_finalized: boolean;
     header_config: HeaderConfig | null;
+    show_transparency: boolean;
+    transparency_text: string | null;
     sections: Section[];
     job_posting: { title: string | null; company: string | null } | null;
 };
@@ -48,8 +51,11 @@ const headerToggleFields = [
     { key: 'show_portfolio' as const, label: 'Portfolio Links' },
 ];
 
+const DEFAULT_TRANSPARENCY_TEXT = 'This resume was created with AI assistance. View details at [your-link-here]';
+
 export default function PreviewResume({ resume, contact, globalHeaderConfig }: { resume: ResumeData; contact: Contact; globalHeaderConfig: HeaderConfig }) {
     const [headerOpen, setHeaderOpen] = useState(false);
+    const [transparencyText, setTransparencyText] = useState(resume.transparency_text ?? DEFAULT_TRANSPARENCY_TEXT);
 
     const effectiveConfig: HeaderConfig = { ...globalHeaderConfig, ...(resume.header_config ?? {}) };
 
@@ -152,6 +158,37 @@ export default function PreviewResume({ resume, contact, globalHeaderConfig }: {
                             </Card>
                         </CollapsibleContent>
                     </Collapsible>
+                )}
+
+                {/* Transparency Text */}
+                {!resume.is_finalized && (
+                    <Card>
+                        <CardContent className="space-y-3 pt-4">
+                            <label className="flex items-center gap-2">
+                                <Checkbox
+                                    checked={resume.show_transparency}
+                                    onCheckedChange={(checked) =>
+                                        router.put(`/resumes/${resume.id}`, { show_transparency: !!checked, transparency_text: transparencyText }, { preserveScroll: true })
+                                    }
+                                />
+                                <span className="text-sm font-medium">Include AI transparency statement</span>
+                            </label>
+                            {resume.show_transparency && (
+                                <div className="space-y-2">
+                                    <Input
+                                        value={transparencyText}
+                                        onChange={(e) => setTransparencyText(e.target.value)}
+                                        onBlur={() =>
+                                            router.put(`/resumes/${resume.id}`, { transparency_text: transparencyText, show_transparency: true }, { preserveScroll: true })
+                                        }
+                                        placeholder="e.g. This resume was created with AI assistance."
+                                        className="text-sm"
+                                    />
+                                    <p className="text-muted-foreground text-xs">This text will appear at the bottom of your exported resume.</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 )}
 
                 {/* Export Actions */}

@@ -17,6 +17,7 @@ class ResumeSectionVariant extends Model
         'label',
         'content',
         'blocks',
+        'compact_content',
         'emphasis',
         'is_ai_generated',
         'is_user_edited',

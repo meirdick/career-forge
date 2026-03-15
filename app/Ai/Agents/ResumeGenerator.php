@@ -35,6 +35,7 @@ class ResumeGenerator implements Agent, HasStructuredOutput
         $variantItem = $schema->object([
             'label' => $schema->string()->required(),
             'content' => $schema->string(),
+            'compact_content' => $schema->string(),
             'blocks' => $schema->array()->items($blockItem),
             'emphasis' => $schema->string(),
         ])->required();

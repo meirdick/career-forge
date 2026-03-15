@@ -139,6 +139,7 @@ class GenerateResumeJob implements ShouldQueue
                     $created = $section->variants()->create([
                         'label' => $variant['label'] ?? 'Variant '.($vIndex + 1),
                         'content' => $content,
+                        'compact_content' => $variant['compact_content'] ?? null,
                         'blocks' => $blocks,
                         'emphasis' => $variant['emphasis'] ?? null,
                         'is_ai_generated' => true,

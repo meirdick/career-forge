@@ -79,10 +79,23 @@ class ResumeExportService
             $section->addTitle($this->sanitizeForXml($resumeSection->title), 2);
 
             if ($resumeSection->selectedVariant) {
-                $this->addMarkdownContent($section, $resumeSection->selectedVariant->content, $styles);
+                $variant = $resumeSection->selectedVariant;
+                $content = ($resumeSection->display_mode === 'compact' && $variant->compact_content)
+                    ? $variant->compact_content
+                    : $variant->content;
+                $this->addMarkdownContent($section, $content, $styles);
             }
 
             $section->addTextBreak();
+        }
+
+        if ($resume->show_transparency && $resume->transparency_text) {
+            $section->addTextBreak();
+            $section->addText(
+                $this->sanitizeForXml($resume->transparency_text),
+                ['size' => 8, 'color' => '999999', 'italic' => true],
+                ['alignment' => Jc::CENTER]
+            );
         }
 
         $path = 'resumes/'.$resume->id.'.docx';

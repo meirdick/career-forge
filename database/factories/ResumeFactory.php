@@ -24,6 +24,8 @@ class ResumeFactory extends Factory
             'exported_format' => null,
             'generation_status' => null,
             'generation_progress' => null,
+            'transparency_text' => null,
+            'show_transparency' => false,
         ];
     }
 

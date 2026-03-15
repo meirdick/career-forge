@@ -77,12 +77,24 @@
             <div class="section">
                 <h2>{{ $section->title }}</h2>
                 @if($section->selectedVariant)
+                    @php
+                        $variant = $section->selectedVariant;
+                        $sectionContent = ($section->display_mode === 'compact' && $variant->compact_content)
+                            ? $variant->compact_content
+                            : $variant->content;
+                    @endphp
                     <div class="section-content">
-                        {!! Str::markdown(str_replace(['\\n', '\\r'], ["\n", "\r"], $section->selectedVariant->content)) !!}
+                        {!! Str::markdown(str_replace(['\\n', '\\r'], ["\n", "\r"], $sectionContent)) !!}
                     </div>
                 @endif
             </div>
         @endif
     @endforeach
+
+    @if($resume->show_transparency && $resume->transparency_text)
+        <div style="margin-top: 20px; text-align: center; font-size: 8pt; color: #999; font-style: italic;">
+            {{ $resume->transparency_text }}
+        </div>
+    @endif
 </body>
 </html>
