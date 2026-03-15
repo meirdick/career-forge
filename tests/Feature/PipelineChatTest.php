@@ -74,7 +74,7 @@ test('cannot chat on another user session', function () {
     ])->assertForbidden();
 });
 
-test('chat response includes tool_actions for gap analysis step', function () {
+test('chat streams response for gap analysis step', function () {
     GapClosureCoach::fake(['I can help with your gaps.']);
 
     $gapAnalysis = GapAnalysis::factory()->create([
@@ -91,13 +91,17 @@ test('chat response includes tool_actions for gap analysis step', function () {
         'message' => 'Help me with my gaps',
     ]);
 
-    $response->assertOk()
-        ->assertJsonStructure(['message', 'conversation_id', 'tool_actions']);
+    $response->assertOk();
 
-    expect($response->json('tool_actions'))->toBeArray();
+    $content = $response->streamedContent();
+    $events = parseSseEvents($content);
+    $doneEvent = collect($events)->firstWhere('type', 'done');
+
+    expect($doneEvent)->not->toBeNull()
+        ->and($doneEvent['tool_actions'])->toBeArray();
 });
 
-test('chat response includes tool_actions for career coach steps', function () {
+test('chat streams response for career coach steps', function () {
     CareerCoach::fake(['Here is some career advice.']);
 
     $jobPosting = JobPosting::factory()->create(['user_id' => $this->user->id]);
@@ -112,8 +116,37 @@ test('chat response includes tool_actions for career coach steps', function () {
         'message' => 'Tell me about this role',
     ]);
 
-    $response->assertOk()
-        ->assertJsonStructure(['message', 'conversation_id', 'tool_actions']);
+    $response->assertOk();
 
-    expect($response->json('tool_actions'))->toBeArray();
+    $content = $response->streamedContent();
+    $events = parseSseEvents($content);
+    $doneEvent = collect($events)->firstWhere('type', 'done');
+
+    expect($doneEvent)->not->toBeNull()
+        ->and($doneEvent['tool_actions'])->toBeArray();
 });
+
+/**
+ * Parse SSE events from a streamed response body.
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function parseSseEvents(string $content): array
+{
+    $events = [];
+
+    foreach (explode("\n\n", trim($content)) as $block) {
+        if (! str_starts_with($block, 'data: ')) {
+            continue;
+        }
+
+        $json = substr($block, 6);
+        $decoded = json_decode($json, true);
+
+        if (is_array($decoded)) {
+            $events[] = $decoded;
+        }
+    }
+
+    return $events;
+}

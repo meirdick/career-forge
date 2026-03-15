@@ -13,6 +13,9 @@ use App\Services\ExperienceLibraryContextService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Laravel\Ai\Responses\StreamedAgentResponse;
+use Laravel\Ai\Streaming\Events\TextDelta;
+use Symfony\Component\HttpFoundation\Response;
 
 class PipelineChatController extends Controller
 {
@@ -62,7 +65,7 @@ class PipelineChatController extends Controller
         ]);
     }
 
-    public function chat(ChatMessageRequest $request, ChatSession $chatSession): JsonResponse
+    public function chat(ChatMessageRequest $request, ChatSession $chatSession): Response
     {
         abort_unless($chatSession->user_id === $request->user()->id, 403);
 
@@ -71,56 +74,40 @@ class PipelineChatController extends Controller
         $experienceContext = ExperienceLibraryContextService::buildContext($user);
         $actionLog = new ToolActionLog;
 
-        if ($step === PipelineStep::GapAnalysis) {
-            return $this->chatWithGapCoach($request, $chatSession, $user, $experienceContext, $actionLog);
-        }
+        $coach = $step === PipelineStep::GapAnalysis
+            ? $this->buildGapCoach($chatSession, $user, $experienceContext, $actionLog)
+            : $this->buildCareerCoach($chatSession, $user, $experienceContext, $actionLog);
 
-        $jobContext = $this->buildJobContext($chatSession);
-        $gapContext = $this->buildGapContext($chatSession, $user);
+        return $this->streamMessage($coach, $chatSession, $user, $request->input('message'), $actionLog);
+    }
+
+    private function buildGapCoach(ChatSession $chatSession, $user, string $experienceContext, ToolActionLog $actionLog): GapClosureCoach
+    {
+        return new GapClosureCoach(
+            gapContext: $this->buildGapContext($chatSession, $user),
+            experienceContext: $experienceContext,
+            user: $user,
+            gapAnalysis: $this->resolveGapAnalysis($chatSession, $user),
+            actionLog: $actionLog,
+        );
+    }
+
+    private function buildCareerCoach(ChatSession $chatSession, $user, string $experienceContext, ToolActionLog $actionLog): CareerCoach
+    {
         $entities = $this->resolveEntities($chatSession, $user);
 
-        $coach = new CareerCoach(
+        return new CareerCoach(
             experienceContext: $experienceContext,
-            jobContext: $jobContext,
-            gapContext: $gapContext,
+            jobContext: $this->buildJobContext($chatSession),
+            gapContext: $this->buildGapContext($chatSession, $user),
             mode: ChatSessionMode::JobSpecific,
-            stepObjective: self::objectiveForStep($step),
+            stepObjective: self::objectiveForStep($chatSession->step),
             user: $user,
             resume: $entities['resume'] ?? null,
             application: $entities['application'] ?? null,
             profile: $entities['profile'] ?? null,
             actionLog: $actionLog,
         );
-
-        $response = $this->sendMessage($coach, $chatSession, $user, $request->input('message'));
-
-        return response()->json([
-            'message' => $response->text,
-            'conversation_id' => $response->conversationId,
-            'tool_actions' => $actionLog->actions(),
-        ]);
-    }
-
-    private function chatWithGapCoach(ChatMessageRequest $request, ChatSession $chatSession, $user, string $experienceContext, ToolActionLog $actionLog): JsonResponse
-    {
-        $gapContext = $this->buildGapContext($chatSession, $user);
-        $gapAnalysis = $this->resolveGapAnalysis($chatSession, $user);
-
-        $coach = new GapClosureCoach(
-            gapContext: $gapContext,
-            experienceContext: $experienceContext,
-            user: $user,
-            gapAnalysis: $gapAnalysis,
-            actionLog: $actionLog,
-        );
-
-        $response = $this->sendMessage($coach, $chatSession, $user, $request->input('message'));
-
-        return response()->json([
-            'message' => $response->text,
-            'conversation_id' => $response->conversationId,
-            'tool_actions' => $actionLog->actions(),
-        ]);
     }
 
     /**
@@ -187,21 +174,32 @@ class PipelineChatController extends Controller
         return $user->gapAnalyses()->with('idealCandidateProfile.jobPosting')->find($id);
     }
 
-    private function sendMessage($agent, ChatSession $chatSession, $user, string $message): mixed
+    private function streamMessage($agent, ChatSession $chatSession, $user, string $message, ToolActionLog $actionLog): Response
     {
         if ($chatSession->conversation_id) {
-            $response = $agent->continue($chatSession->conversation_id, as: $user)
-                ->prompt($message);
+            $agent->continue($chatSession->conversation_id, as: $user);
         } else {
-            $response = $agent->forUser($user)
-                ->prompt($message);
-
-            $chatSession->update(['conversation_id' => $response->conversationId]);
+            $agent->forUser($user);
         }
 
-        $chatSession->touch();
+        $stream = $agent->stream($message)
+            ->then(function (StreamedAgentResponse $response) use ($chatSession) {
+                if (! $chatSession->conversation_id) {
+                    $chatSession->update(['conversation_id' => $response->conversationId]);
+                }
 
-        return $response;
+                $chatSession->touch();
+            });
+
+        return response()->stream(function () use ($stream, $actionLog) {
+            foreach ($stream as $event) {
+                if ($event instanceof TextDelta) {
+                    yield 'data: '.json_encode(['type' => 'text', 'delta' => $event->delta])."\n\n";
+                }
+            }
+
+            yield 'data: '.json_encode(['type' => 'done', 'tool_actions' => $actionLog->actions()])."\n\n";
+        }, headers: ['Content-Type' => 'text/event-stream', 'Cache-Control' => 'no-cache']);
     }
 
     private function buildJobContext(ChatSession $chatSession): string
