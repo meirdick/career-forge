@@ -17,7 +17,11 @@ class EnsureAiAccess
 
     public function handle(Request $request, Closure $next, string $purpose): Response
     {
+        $aiPurpose = AiPurpose::from($purpose);
+
         if (config('ai.gating.mode') === 'selfhosted') {
+            $this->gatingService->configureRuntimeProvider($request->user(), $aiPurpose);
+
             return $next($request);
         }
 
@@ -26,8 +30,6 @@ class EnsureAiAccess
         if (! $user) {
             abort(401);
         }
-
-        $aiPurpose = AiPurpose::from($purpose);
 
         if (! $this->gatingService->canPerformAction($user, $aiPurpose)) {
             $mode = $this->gatingService->resolveAccessMode($user);
@@ -56,6 +58,8 @@ class EnsureAiAccess
 
             abort(402, 'AI access limit reached. Please add an API key or purchase credits.');
         }
+
+        $this->gatingService->configureRuntimeProvider($user, $aiPurpose);
 
         return $next($request);
     }

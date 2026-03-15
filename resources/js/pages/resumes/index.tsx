@@ -1,10 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
 import { Download, FileText, Target, Upload } from 'lucide-react';
+import EmptyState from '@/components/empty-state';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import EmptyState from '@/components/empty-state';
 import AppLayout from '@/layouts/app-layout';
 import { index as jobPostingsIndex } from '@/routes/job-postings';
 import { create as resumeUploadCreate } from '@/routes/resume-upload';

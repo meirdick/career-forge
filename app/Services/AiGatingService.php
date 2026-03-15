@@ -36,27 +36,38 @@ class AiGatingService
         };
     }
 
-    public function configureRuntimeProvider(User $user): void
+    public function configureRuntimeProvider(User $user, ?AiPurpose $purpose = null): void
     {
         $mode = $this->resolveAccessMode($user);
 
-        if ($mode !== AiAccessMode::Byok) {
+        if ($mode === AiAccessMode::Byok) {
+            $apiKey = $user->activeApiKey;
+
+            if ($apiKey) {
+                config([
+                    'ai.providers.byok' => [
+                        'driver' => $apiKey->provider,
+                        'key' => $apiKey->encrypted_key,
+                    ],
+                    'ai.default' => 'byok',
+                ]);
+            }
+
             return;
         }
 
-        $apiKey = $user->activeApiKey;
+        // For non-BYOK users, apply per-purpose provider/model overrides
+        if ($purpose) {
+            $override = config("ai.purpose_providers.{$purpose->value}");
 
-        if (! $apiKey) {
-            return;
+            if (! empty($override['provider'])) {
+                config(['ai.default' => $override['provider']]);
+
+                if (! empty($override['model'])) {
+                    config(['ai.default_model' => $override['model']]);
+                }
+            }
         }
-
-        config([
-            'ai.providers.byok' => [
-                'driver' => $apiKey->provider,
-                'key' => $apiKey->encrypted_key,
-            ],
-            'ai.default' => 'byok',
-        ]);
     }
 
     public function chargeCredits(User $user, AiPurpose $purpose, ?int $aiInteractionId = null): void

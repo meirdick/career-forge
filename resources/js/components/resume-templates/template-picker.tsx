@@ -1,6 +1,7 @@
-import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
-import { templates, type TemplateConfig } from './template-config';
+import { cn } from '@/lib/utils';
+import { templates  } from './template-config';
+import type {TemplateConfig} from './template-config';
 
 type TemplatePickerProps = {
     selected: string;

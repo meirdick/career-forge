@@ -2,12 +2,12 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Loader2, Plus, Target } from 'lucide-react';
 import { useEffect } from 'react';
 import BulkAddDialog from '@/components/bulk-add-dialog';
+import EmptyState from '@/components/empty-state';
 import Heading from '@/components/heading';
 import QuickAddDialog from '@/components/quick-add-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import EmptyState from '@/components/empty-state';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 

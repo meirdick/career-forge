@@ -1,6 +1,8 @@
 import { Form, Head, router } from '@inertiajs/react';
 import { GraduationCap, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import EducationEntryController from '@/actions/App/Http/Controllers/ExperienceLibrary/EducationEntryController';
+import EmptyState from '@/components/empty-state';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -9,9 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import EmptyState from '@/components/empty-state';
 import AppLayout from '@/layouts/app-layout';
-import EducationEntryController from '@/actions/App/Http/Controllers/ExperienceLibrary/EducationEntryController';
 import { index as educationIndex } from '@/routes/education';
 import type { BreadcrumbItem } from '@/types';
 

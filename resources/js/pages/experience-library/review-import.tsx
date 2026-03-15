@@ -1,13 +1,13 @@
 import { Head, router } from '@inertiajs/react';
 import { Loader2, X } from 'lucide-react';
 import { useEffect } from 'react';
+import ResumeUploadController from '@/actions/App/Http/Controllers/ExperienceLibrary/ResumeUploadController';
 import ExtractionReviewContent from '@/components/extraction-review/extraction-review-content';
 import type { ExtractionData } from '@/components/extraction-review/types';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
-import ResumeUploadController from '@/actions/App/Http/Controllers/ExperienceLibrary/ResumeUploadController';
 import type { BreadcrumbItem } from '@/types';
 
 type ParseResult = {
