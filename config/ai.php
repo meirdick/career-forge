@@ -67,6 +67,37 @@ return [
 
     'default_model' => env('AI_DEFAULT_MODEL', 'claude-sonnet-4-6'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Per-Purpose Provider Overrides
+    |--------------------------------------------------------------------------
+    |
+    | Override the default provider and model for specific AI purposes.
+    | When set, non-BYOK requests for that purpose use this provider
+    | instead of the default. BYOK users always use their own key.
+    | Leave null to use the default provider for that purpose.
+    |
+    */
+
+    'purpose_providers' => [
+        'chat_message' => [
+            'provider' => env('AI_CHAT_PROVIDER'),
+            'model' => env('AI_CHAT_MODEL'),
+        ],
+        'content_enhance' => [
+            'provider' => env('AI_CONTENT_ENHANCE_PROVIDER'),
+            'model' => env('AI_CONTENT_ENHANCE_MODEL'),
+        ],
+        'gap_reframe' => [
+            'provider' => env('AI_GAP_REFRAME_PROVIDER'),
+            'model' => env('AI_GAP_REFRAME_MODEL'),
+        ],
+        'link_indexing' => [
+            'provider' => env('AI_LINK_INDEXING_PROVIDER'),
+            'model' => env('AI_LINK_INDEXING_MODEL'),
+        ],
+    ],
+
     'models' => [
         'resume_parsing' => env('AI_RESUME_PARSING_MODEL'),
         'job_analysis' => env('AI_JOB_ANALYSIS_MODEL'),
@@ -111,21 +142,26 @@ return [
         'gemini' => [
             'driver' => 'gemini',
             'key' => env('GEMINI_API_KEY'),
+            'url' => env('GEMINI_URL', 'https://generativelanguage.googleapis.com/v1beta/models'),
         ],
 
         'anthropic' => [
             'driver' => 'anthropic',
             'key' => env('ANTHROPIC_API_KEY'),
+            'url' => env('ANTHROPIC_URL', 'https://api.anthropic.com/v1'),
+            'version' => env('ANTHROPIC_API_VERSION', '2023-06-01'),
         ],
 
         'openai' => [
             'driver' => 'openai',
             'key' => env('OPENAI_API_KEY'),
+            'url' => env('OPENAI_URL', 'https://api.openai.com/v1'),
         ],
 
         'groq' => [
             'driver' => 'groq',
             'key' => env('GROQ_API_KEY'),
+            'url' => env('GROQ_URL', 'https://api.groq.com/openai/v1'),
         ],
 
         'cohere' => [
@@ -136,6 +172,12 @@ return [
         'jina' => [
             'driver' => 'jina',
             'key' => env('JINA_API_KEY'),
+        ],
+
+        'workers-ai' => [
+            'driver' => 'openai',
+            'key' => env('CLOUDFLARE_AI_API_KEY'),
+            'url' => env('WORKERS_AI_URL', 'https://gateway.ai.cloudflare.com/v1/5759bb6ef591b078e5480bfd5a767856/laravel-ai/workers-ai/v1'),
         ],
     ],
 

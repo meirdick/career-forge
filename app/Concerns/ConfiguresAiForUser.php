@@ -16,7 +16,7 @@ trait ConfiguresAiForUser
             throw new \RuntimeException("User {$user->id} cannot perform AI action: {$purpose->value}");
         }
 
-        $gatingService->configureRuntimeProvider($user);
+        $gatingService->configureRuntimeProvider($user, $purpose);
     }
 
     protected function chargeAiUsage(User $user, AiPurpose $purpose, ?int $aiInteractionId = null): void
