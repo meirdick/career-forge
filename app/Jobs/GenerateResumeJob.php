@@ -10,6 +10,7 @@ use App\Enums\ResumeSectionType;
 use App\Models\Resume;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
 
 class GenerateResumeJob implements ShouldQueue
 {
@@ -108,6 +109,16 @@ class GenerateResumeJob implements ShouldQueue
                 $prompt = view('prompts.resume-section', $promptData)->render();
 
                 $response = (new ResumeGenerator)->prompt($prompt);
+
+                Log::info('ResumeGenerator response debug', [
+                    'section' => $type->value,
+                    'response_class' => get_class($response),
+                    'response_text' => substr((string) $response, 0, 500),
+                    'variants_type' => gettype($response['variants'] ?? null),
+                    'variants_preview' => is_string($response['variants'] ?? null)
+                        ? substr($response['variants'], 0, 300)
+                        : json_encode(array_slice((array) ($response['variants'] ?? []), 0, 1), JSON_PRETTY_PRINT),
+                ]);
 
                 $section = $this->resume->sections()->create([
                     'type' => $type,
