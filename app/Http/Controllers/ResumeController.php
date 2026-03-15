@@ -207,6 +207,27 @@ class ResumeController extends Controller
         return back();
     }
 
+    public function regenerate(Request $request, Resume $resume): RedirectResponse
+    {
+        abort_unless($resume->user_id === $request->user()->id, 403);
+        abort_unless($resume->generation_status === 'failed', 409);
+
+        $resume->sections()->each(function ($section) {
+            $section->variants()->delete();
+            $section->delete();
+        });
+
+        $resume->update([
+            'generation_status' => 'pending',
+            'generation_progress' => null,
+            'section_order' => [],
+        ]);
+
+        GenerateResumeJob::dispatch($resume);
+
+        return back()->with('success', 'Resume generation restarted...');
+    }
+
     public function destroy(Request $request, Resume $resume): RedirectResponse
     {
         abort_unless($resume->user_id === $request->user()->id, 403);

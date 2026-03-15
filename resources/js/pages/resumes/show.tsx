@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { AlertTriangle, ArrowDown, ArrowUp, Bot, Check, ChevronsDownUp, ChevronsUpDown, Eye, EyeOff, Loader2, Pencil, Trash2, X } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, Bot, Check, ChevronsDownUp, ChevronsUpDown, Eye, EyeOff, Loader2, Pencil, RefreshCw, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import Heading from '@/components/heading';
@@ -347,12 +347,21 @@ export default function ShowResume({ resume }: { resume: ResumeData }) {
                 {/* Failed state */}
                 {isFailed && (
                     <Card className="border-destructive">
-                        <CardContent className="flex items-center gap-3 py-6">
-                            <AlertTriangle className="text-destructive h-6 w-6" />
-                            <div>
-                                <p className="font-medium">Generation failed</p>
-                                <p className="text-muted-foreground text-sm">Something went wrong while generating your resume. You can delete this resume and try again.</p>
+                        <CardContent className="flex items-center justify-between py-6">
+                            <div className="flex items-center gap-3">
+                                <AlertTriangle className="text-destructive h-6 w-6 shrink-0" />
+                                <div>
+                                    <p className="font-medium">Generation failed</p>
+                                    <p className="text-muted-foreground text-sm">Something went wrong while generating your resume.</p>
+                                </div>
                             </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => router.post(`/resumes/${resume.id}/regenerate`)}
+                            >
+                                <RefreshCw className="mr-1.5 h-4 w-4" /> Retry
+                            </Button>
                         </CardContent>
                     </Card>
                 )}

@@ -37,6 +37,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Resumes
     Route::post('gap-analyses/{gapAnalysis}/resume', [ResumeController::class, 'generate'])->middleware('ai.access:resume_generation')->name('resumes.generate');
+    Route::post('resumes/{resume}/regenerate', [ResumeController::class, 'regenerate'])->middleware('ai.access:resume_generation')->name('resumes.regenerate');
     Route::get('resumes', [ResumeController::class, 'index'])->name('resumes.index');
     Route::get('resumes/{resume}', [ResumeController::class, 'show'])->name('resumes.show');
     Route::put('resumes/{resume}', [ResumeController::class, 'update'])->name('resumes.update');
