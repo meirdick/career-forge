@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ArrowRight, Check, Edit, Loader2, Pencil, Plus, RefreshCw, Target, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import JobPostingController from '@/actions/App/Http/Controllers/JobPostingController';
 import Heading from '@/components/heading';
 import PipelineAssistantPanel from '@/components/pipeline-assistant-panel';
 import PipelineNextAction from '@/components/pipeline-next-action';
@@ -14,7 +15,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
-import JobPostingController from '@/actions/App/Http/Controllers/JobPostingController';
 import type { BreadcrumbItem } from '@/types';
 
 type SkillItem = { name: string; importance: string; category: string };

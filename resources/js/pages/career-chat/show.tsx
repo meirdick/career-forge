@@ -233,7 +233,6 @@ export default function CareerChatShow({
                                         onChange={(e) => setInput(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
                                         placeholder="Type your response..."
-                                        disabled={loading}
                                         className="flex-1"
                                     />
                                     <Button onClick={() => sendMessage()} disabled={loading || !input.trim()}>

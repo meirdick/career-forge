@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, ChevronDown, Download, Settings } from 'lucide-react';
+import { useState } from 'react';
 import Heading from '@/components/heading';
 import ResumeDocument from '@/components/resume-templates/resume-document';
 import TemplatePicker from '@/components/resume-templates/template-picker';
@@ -11,7 +12,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
-import { useState } from 'react';
 
 type Variant = { id: number; content: string; formatted_content: string };
 type Section = { id: number; title: string; sort_order: number; is_hidden: boolean; selected_variant: Variant | null };

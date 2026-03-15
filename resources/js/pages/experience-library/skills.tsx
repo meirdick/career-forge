@@ -1,6 +1,8 @@
 import { Form, Head, router } from '@inertiajs/react';
 import { Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
+import SkillController from '@/actions/App/Http/Controllers/ExperienceLibrary/SkillController';
+import EmptyState from '@/components/empty-state';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -9,9 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import EmptyState from '@/components/empty-state';
 import AppLayout from '@/layouts/app-layout';
-import SkillController from '@/actions/App/Http/Controllers/ExperienceLibrary/SkillController';
 import { index as skillsIndex } from '@/routes/skills';
 import type { BreadcrumbItem } from '@/types';
 

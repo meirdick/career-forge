@@ -10,8 +10,8 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { create as resumeUploadCreate } from '@/routes/resume-upload';
 import { create as jobPostingsCreate } from '@/routes/job-postings';
+import { create as resumeUploadCreate } from '@/routes/resume-upload';
 
 export default function WelcomeModal() {
     const { showWelcome, referralCode } = usePage().props;

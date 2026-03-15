@@ -1,8 +1,8 @@
 import { Head, Link } from '@inertiajs/react';
 import { Briefcase, Plus, Target } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import Heading from '@/components/heading';
 import EmptyState from '@/components/empty-state';
+import Heading from '@/components/heading';
 import StatusBadge from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

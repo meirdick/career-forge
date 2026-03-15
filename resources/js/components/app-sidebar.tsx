@@ -28,14 +28,14 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { index as applicationsIndex } from '@/routes/applications';
+import { index as careerChatIndex } from '@/routes/career-chat';
 import { index as educationIndex } from '@/routes/education';
 import { index as evidenceIndex } from '@/routes/evidence';
 import { index as experienceLibraryIndex } from '@/routes/experience-library';
 import { edit as identityEdit } from '@/routes/identity';
-import { index as careerChatIndex } from '@/routes/career-chat';
 import { index as jobPostingsIndex } from '@/routes/job-postings';
-import { index as resumesIndex } from '@/routes/resumes';
 import { create as resumeUploadCreate } from '@/routes/resume-upload';
+import { index as resumesIndex } from '@/routes/resumes';
 import { index as skillsIndex } from '@/routes/skills';
 import { index as tagsIndex } from '@/routes/tags';
 import type { NavItem } from '@/types';
