@@ -116,6 +116,18 @@ class GenerateResumeJob implements ShouldQueue
                 ]);
 
                 $variants = $response['variants'] ?? [];
+
+                if (is_string($variants)) {
+                    $decoded = json_decode($variants, true);
+                    $variants = is_array($decoded) ? $decoded : [];
+                }
+
+                if (! is_array($variants) || empty($variants)) {
+                    throw new \RuntimeException(
+                        "Resume section [{$type->value}] returned invalid variants: expected array, got ".gettype($response['variants'] ?? null)
+                    );
+                }
+
                 $firstVariant = null;
 
                 foreach ($variants as $vIndex => $variant) {

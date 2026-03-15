@@ -3,11 +3,13 @@
 namespace App\Ai\Concerns;
 
 use Closure;
+use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Ai;
 use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Events\AgentFailedOver;
 use Laravel\Ai\Exceptions\AiException;
 use Laravel\Ai\Exceptions\FailoverableException;
+use Laravel\Ai\Exceptions\RateLimitedException;
 use Laravel\Ai\Promptable;
 use Laravel\Ai\Prompts\AgentPrompt;
 use Laravel\Ai\Providers\Provider;
@@ -71,8 +73,37 @@ trait FailsOverOnBillingErrors
 
             try {
                 return $callback($provider, $model);
+            } catch (RateLimitedException $e) {
+                Log::warning('AI provider rate limited, retrying with backoff', [
+                    'agent' => static::class,
+                    'provider' => $provider::class,
+                    'model' => $model,
+                    'message' => $e->getMessage(),
+                ]);
+
+                // Retry once after a short backoff before failing over
+                sleep(5);
+
+                try {
+                    return $callback($provider, $model);
+                } catch (\Throwable) {
+                    // Retry failed, fall through to failover
+                }
+
+                $lastException = $e;
+                event(new AgentFailedOver($this, $provider, $model, $e));
+
+                continue;
             } catch (FailoverableException $e) {
                 $lastException = $e;
+
+                Log::warning('AI provider failover triggered', [
+                    'agent' => static::class,
+                    'provider' => $provider::class,
+                    'model' => $model,
+                    'error' => $e->getMessage(),
+                ]);
+
                 event(new AgentFailedOver($this, $provider, $model, $e));
 
                 continue;
@@ -80,6 +111,13 @@ trait FailsOverOnBillingErrors
                 $lastException = $e;
 
                 if ($this->isBillingError($e)) {
+                    Log::warning('AI provider billing error, failing over', [
+                        'agent' => static::class,
+                        'provider' => $provider::class,
+                        'model' => $model,
+                        'error' => $e->getMessage(),
+                    ]);
+
                     event(new AgentFailedOver($this, $provider, $model, $e));
 
                     continue;
