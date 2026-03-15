@@ -219,14 +219,6 @@ export default function PipelineAssistantPanel({ context, ref }: { context: Pipe
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, sending]);
 
-    useEffect(() => {
-        if (pendingMessage && sessionId && !sending) {
-            const msg = pendingMessage;
-            setPendingMessage(null);
-            sendMessage(msg);
-        }
-    }, [pendingMessage, sessionId, sending]);
-
     async function resolveSession() {
         if (resolved || resolving) return;
         setResolving(true);
@@ -352,6 +344,14 @@ export default function PipelineAssistantPanel({ context, ref }: { context: Pipe
         },
         [input, sending, sessionId],
     );
+
+    useEffect(() => {
+        if (pendingMessage && sessionId && !sending) {
+            const msg = pendingMessage;
+            setPendingMessage(null);
+            sendMessage(msg);
+        }
+    }, [pendingMessage, sessionId, sending, sendMessage]);
 
     function handlePromptClick(prompt: string) {
         sendMessage(prompt);
