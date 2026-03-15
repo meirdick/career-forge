@@ -215,18 +215,24 @@ class GenerateResumeJob implements ShouldQueue
         $sectionOrder = [];
         $generatedExperienceContent = null;
 
+        // Render shared context once — goes into the system prompt (cached by Anthropic)
+        $sharedContext = view('prompts.resume-section-context', [
+            'jobTitle' => $context['jobPosting']->title ?? 'Target Role',
+            'company' => $context['jobPosting']->company ?? 'Target Company',
+            'requirements' => $context['profile']->required_skills ?? [],
+            'gapInsights' => [
+                'strengths' => $context['gapAnalysis']->strengths ?? [],
+                'gaps' => $context['gapAnalysis']->gaps ?? [],
+            ],
+            'experience' => $context['library'],
+            'languageGuidance' => $context['profile']->language_guidance ?? [],
+        ])->render();
+
+        $agent = (new SectionResumeGenerator)->withSharedContext($sharedContext);
+
         foreach ($context['sectionTypes'] as $index => $type) {
             $promptData = [
                 'sectionType' => $type->value,
-                'jobTitle' => $context['jobPosting']->title ?? 'Target Role',
-                'company' => $context['jobPosting']->company ?? 'Target Company',
-                'requirements' => $context['profile']->required_skills ?? [],
-                'gapInsights' => [
-                    'strengths' => $context['gapAnalysis']->strengths ?? [],
-                    'gaps' => $context['gapAnalysis']->gaps ?? [],
-                ],
-                'experience' => $this->libraryForSection($type, $context['library']),
-                'languageGuidance' => $context['profile']->language_guidance ?? [],
             ];
 
             if ($type === ResumeSectionType::Projects && $generatedExperienceContent) {
@@ -235,7 +241,7 @@ class GenerateResumeJob implements ShouldQueue
 
             $prompt = view('prompts.resume-section', $promptData)->render();
 
-            $response = (new SectionResumeGenerator)->prompt($prompt);
+            $response = $agent->prompt($prompt);
 
             $section = $this->resume->sections()->create([
                 'type' => $type,
