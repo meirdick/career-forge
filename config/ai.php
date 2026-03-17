@@ -192,9 +192,16 @@ return [
         ],
 
         'workers-ai' => [
-            'driver' => 'openai',
+            'driver' => 'xai',
             'key' => env('CLOUDFLARE_AI_API_KEY'),
-            'url' => env('WORKERS_AI_URL', 'https://gateway.ai.cloudflare.com/v1/5759bb6ef591b078e5480bfd5a767856/laravel-ai/workers-ai/v1'),
+            'url' => env('WORKERS_AI_URL'),
+            'models' => [
+                'text' => [
+                    'default' => 'workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+                    'cheapest' => 'workers-ai/@cf/meta/llama-3.1-8b-instruct',
+                    'smartest' => 'workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+                ],
+            ],
         ],
     ],
 
