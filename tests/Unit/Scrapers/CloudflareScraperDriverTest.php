@@ -76,8 +76,9 @@ test('scrape falls through to Phase 2 when Phase 1 returns short content', funct
     expect($requests[0][0]->data()['gotoOptions']['waitUntil'])->toBe('domcontentloaded');
     expect($requests[0][0]->data()['rejectResourceTypes'])->toBe(['image', 'font', 'media', 'stylesheet']);
 
-    // Phase 2 request — networkidle0, keeps stylesheets
-    expect($requests[1][0]->data()['gotoOptions']['waitUntil'])->toBe('networkidle0');
+    // Phase 2 request — waitForSelector h1, keeps stylesheets
+    expect($requests[1][0]->data()['gotoOptions']['waitUntil'])->toBe('domcontentloaded');
+    expect($requests[1][0]->data()['waitForSelector'])->toBe(['selector' => 'h1', 'timeout' => 30000]);
     expect($requests[1][0]->data()['rejectResourceTypes'])->toBe(['image', 'font', 'media']);
 });
 
