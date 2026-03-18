@@ -29,6 +29,9 @@ class GenerateResumeJob implements ShouldQueue
 
     public function handle(): void
     {
+        // Clean up sections from any previous failed attempt to avoid duplicates
+        $this->resume->sections()->delete();
+
         $context = $this->prepareContext();
 
         $this->resume->update([
@@ -146,26 +149,8 @@ class GenerateResumeJob implements ShouldQueue
             'sectionTypes' => array_map(fn ($type) => $type->value, $context['sectionTypes']),
         ])->render();
 
-        $response = (new ResumeGenerator)->prompt($prompt);
-
-        $sections = $response['sections'] ?? [];
-
-        if (is_string($sections)) {
-            $decoded = json_decode($sections, true);
-            $sections = is_array($decoded) ? $decoded : [];
-        }
-
-        if (! is_array($sections) || empty($sections)) {
-            Log::error('ResumeGenerator full strategy returned invalid sections', [
-                'response_class' => get_class($response),
-                'response_preview' => substr((string) $response, 0, 500),
-                'sections_type' => gettype($response['sections'] ?? null),
-            ]);
-
-            throw new \RuntimeException(
-                'Resume generation returned invalid sections: expected array, got '.gettype($response['sections'] ?? null)
-            );
-        }
+        $generator = new ResumeGenerator;
+        $sections = $this->promptForSections($generator, $prompt);
 
         $sectionOrder = [];
         $sectionTypeMap = collect($context['sectionTypes'])->keyBy(fn ($type) => $type->value);
@@ -241,26 +226,13 @@ class GenerateResumeJob implements ShouldQueue
 
             $prompt = view('prompts.resume-section', $promptData)->render();
 
-            $response = $agent->prompt($prompt);
+            $variants = $this->promptForVariants($agent, $prompt, $type);
 
             $section = $this->resume->sections()->create([
                 'type' => $type,
                 'title' => ucfirst($type->value),
                 'sort_order' => $index,
             ]);
-
-            $variants = $response['variants'] ?? [];
-
-            if (is_string($variants)) {
-                $decoded = json_decode($variants, true);
-                $variants = is_array($decoded) ? $decoded : [];
-            }
-
-            if (! is_array($variants) || empty($variants)) {
-                throw new \RuntimeException(
-                    "Resume section [{$type->value}] returned invalid variants: expected array, got ".gettype($response['variants'] ?? null)
-                );
-            }
 
             $firstVariant = $this->createVariants($section, $type, $variants, $context['blockTypes']);
 
@@ -288,6 +260,92 @@ class GenerateResumeJob implements ShouldQueue
         }
 
         return $sectionOrder;
+    }
+
+    /**
+     * Prompt the AI for full resume sections, retrying once if the response is malformed.
+     *
+     * @return array<int, array>
+     */
+    private function promptForSections(ResumeGenerator $generator, string $prompt): array
+    {
+        $response = $generator->prompt($prompt);
+        $sections = $this->extractSections($response);
+
+        if (empty($sections)) {
+            Log::warning('ResumeGenerator full strategy returned invalid sections, retrying once');
+            sleep(2);
+
+            $response = $generator->prompt($prompt);
+            $sections = $this->extractSections($response);
+        }
+
+        if (empty($sections)) {
+            throw new \RuntimeException(
+                'Resume generation returned invalid sections after retry: expected array, got '.gettype($response['sections'] ?? null)
+            );
+        }
+
+        return $sections;
+    }
+
+    /**
+     * Extract and normalize sections from a full-strategy AI response.
+     *
+     * @return array<int, array>
+     */
+    private function extractSections(\Laravel\Ai\Responses\AgentResponse $response): array
+    {
+        $sections = $response['sections'] ?? [];
+
+        if (is_string($sections)) {
+            $decoded = json_decode($sections, true);
+            $sections = is_array($decoded) ? $decoded : [];
+        }
+
+        return is_array($sections) && ! empty($sections) ? $sections : [];
+    }
+
+    /**
+     * Prompt the AI for variants, retrying once if the response is malformed.
+     */
+    private function promptForVariants(SectionResumeGenerator $agent, string $prompt, ResumeSectionType $type): array
+    {
+        $response = $agent->prompt($prompt);
+        $variants = $this->extractVariants($response);
+
+        if (empty($variants)) {
+            Log::warning("Resume section [{$type->value}] returned invalid variants, retrying once");
+            sleep(2);
+
+            $response = $agent->prompt($prompt);
+            $variants = $this->extractVariants($response);
+        }
+
+        if (empty($variants)) {
+            throw new \RuntimeException(
+                "Resume section [{$type->value}] returned invalid variants after retry: expected array, got ".gettype($response['variants'] ?? null)
+            );
+        }
+
+        return $variants;
+    }
+
+    /**
+     * Extract and normalize variants from an AI response.
+     *
+     * @return array<int, array>
+     */
+    private function extractVariants(\Laravel\Ai\Responses\AgentResponse $response): array
+    {
+        $variants = $response['variants'] ?? [];
+
+        if (is_string($variants)) {
+            $decoded = json_decode($variants, true);
+            $variants = is_array($decoded) ? $decoded : [];
+        }
+
+        return is_array($variants) && ! empty($variants) ? $variants : [];
     }
 
     /**

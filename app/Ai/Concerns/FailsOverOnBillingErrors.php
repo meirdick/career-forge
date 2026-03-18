@@ -67,9 +67,19 @@ trait FailsOverOnBillingErrors
         $lastException = null;
 
         foreach ($providers as $provider => $model) {
+            $providerKey = $provider;
             $provider = Ai::textProviderFor($this, $provider);
 
             $model ??= $this->getDefaultModelFor($provider);
+
+            Log::debug('AI provider call', [
+                'agent' => static::class,
+                'provider_key' => $providerKey,
+                'provider_class' => $provider::class,
+                'driver' => method_exists($provider, 'driver') ? $provider->driver() : 'unknown',
+                'model' => $model,
+                'ai_default' => config('ai.default'),
+            ]);
 
             try {
                 return $callback($provider, $model);
@@ -110,11 +120,12 @@ trait FailsOverOnBillingErrors
             } catch (AiException $e) {
                 $lastException = $e;
 
-                if ($this->isBillingError($e)) {
-                    Log::warning('AI provider billing error, failing over', [
+                if ($this->isBillingError($e) || $this->isTokenLimitError($e) || $this->isTransientServerError($e)) {
+                    Log::warning('AI provider error, failing over', [
                         'agent' => static::class,
                         'provider' => $provider::class,
                         'model' => $model,
+                        'error_type' => $this->isBillingError($e) ? 'billing' : ($this->isTokenLimitError($e) ? 'token_limit' : 'server_error'),
                         'error' => $e->getMessage(),
                     ]);
 
@@ -139,5 +150,20 @@ trait FailsOverOnBillingErrors
             || str_contains($message, 'billing')
             || str_contains($message, 'quota exceeded')
             || str_contains($message, 'exceeded your current quota');
+    }
+
+    private function isTokenLimitError(AiException $e): bool
+    {
+        $message = strtolower($e->getMessage());
+
+        return str_contains($message, 'token limit')
+            || str_contains($message, 'output was truncated')
+            || str_contains($message, 'max_tokens')
+            || str_contains($message, 'maximum.*tokens');
+    }
+
+    private function isTransientServerError(AiException $e): bool
+    {
+        return $e->getCode() >= 500 && $e->getCode() < 600;
     }
 }

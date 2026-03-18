@@ -11,7 +11,7 @@ use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasStructuredOutput;
 use Stringable;
 
-#[MaxTokens(32768)]
+#[MaxTokens(65536)]
 #[Temperature(0.5)]
 #[Timeout(180)]
 class ResumeGenerator implements Agent, HasStructuredOutput

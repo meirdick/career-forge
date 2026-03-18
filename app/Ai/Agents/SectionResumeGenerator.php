@@ -13,7 +13,7 @@ use Laravel\Ai\Contracts\HasStructuredOutput;
 use Laravel\Ai\Enums\Lab;
 use Stringable;
 
-#[MaxTokens(16384)]
+#[MaxTokens(32768)]
 #[Temperature(0.5)]
 #[Timeout(120)]
 class SectionResumeGenerator implements Agent, HasProviderOptions, HasStructuredOutput
