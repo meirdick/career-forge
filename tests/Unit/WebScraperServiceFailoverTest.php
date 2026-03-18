@@ -19,26 +19,31 @@ function mockDriver(bool $configured, ?array $links = null, ?string $markdown = 
 }
 
 test('uses primary driver when it succeeds', function () {
-    $primary = mockDriver(true, [['url' => 'https://example.com/about']], '# Primary');
-    $secondary = mockDriver(true, [['url' => 'https://example.com/fallback']], '# Secondary');
+    $primaryContent = str_repeat('Primary content. ', 20);
+    $secondaryContent = str_repeat('Secondary content. ', 20);
+
+    $primary = mockDriver(true, [['url' => 'https://example.com/about']], $primaryContent);
+    $secondary = mockDriver(true, [['url' => 'https://example.com/fallback']], $secondaryContent);
 
     $service = new WebScraperService([$primary, $secondary]);
 
     expect($service->discoverLinks('https://example.com'))->toBe([['url' => 'https://example.com/about']]);
-    expect($service->scrape('https://example.com'))->toBe('# Primary');
+    expect($service->scrape('https://example.com'))->toBe($primaryContent);
 
     $secondary->shouldNotHaveReceived('discoverLinks');
     $secondary->shouldNotHaveReceived('scrape');
 });
 
 test('falls back to secondary when primary fails', function () {
+    $fallbackContent = str_repeat('Fallback content. ', 20);
+
     $primary = mockDriver(true, null, null);
-    $secondary = mockDriver(true, [['url' => 'https://example.com/fallback']], '# Fallback');
+    $secondary = mockDriver(true, [['url' => 'https://example.com/fallback']], $fallbackContent);
 
     $service = new WebScraperService([$primary, $secondary]);
 
     expect($service->discoverLinks('https://example.com'))->toBe([['url' => 'https://example.com/fallback']]);
-    expect($service->scrape('https://example.com'))->toBe('# Fallback');
+    expect($service->scrape('https://example.com'))->toBe($fallbackContent);
 });
 
 test('returns null when all drivers fail', function () {
@@ -52,13 +57,15 @@ test('returns null when all drivers fail', function () {
 });
 
 test('skips unconfigured drivers', function () {
+    $content = str_repeat('Content here. ', 20);
+
     $unconfigured = mockDriver(false);
-    $configured = mockDriver(true, [['url' => 'https://example.com/page']], '# Content');
+    $configured = mockDriver(true, [['url' => 'https://example.com/page']], $content);
 
     $service = new WebScraperService([$unconfigured, $configured]);
 
     expect($service->discoverLinks('https://example.com'))->toBe([['url' => 'https://example.com/page']]);
-    expect($service->scrape('https://example.com'))->toBe('# Content');
+    expect($service->scrape('https://example.com'))->toBe($content);
 });
 
 test('returns null when no drivers are configured', function () {
@@ -73,11 +80,11 @@ test('returns null when no drivers are configured', function () {
 
 test('falls back when primary returns empty string for scrape', function () {
     $primary = mockDriver(true, null, '');
-    $secondary = mockDriver(true, null, '# Fallback content');
+    $secondary = mockDriver(true, null, str_repeat('x', 200));
 
     $service = new WebScraperService([$primary, $secondary]);
 
-    expect($service->scrape('https://example.com'))->toBe('# Fallback content');
+    expect($service->scrape('https://example.com'))->toBe(str_repeat('x', 200));
 });
 
 test('falls back when primary returns empty array for discoverLinks', function () {
@@ -87,4 +94,39 @@ test('falls back when primary returns empty array for discoverLinks', function (
     $service = new WebScraperService([$primary, $secondary]);
 
     expect($service->discoverLinks('https://example.com'))->toBe([['url' => 'https://example.com/page']]);
+});
+
+test('falls back when primary returns short content below quality threshold', function () {
+    $shortContent = 'nav only - cookie banner';
+    $fullContent = str_repeat('Full job posting content. ', 20);
+
+    $primary = mockDriver(true, null, $shortContent);
+    $secondary = mockDriver(true, null, $fullContent);
+
+    $service = new WebScraperService([$primary, $secondary]);
+
+    expect($service->scrape('https://example.com'))->toBe($fullContent);
+});
+
+test('returns longest short content when all drivers return insufficient content', function () {
+    $short = 'short';
+    $longer = str_repeat('a', 100);
+
+    $primary = mockDriver(true, null, $short);
+    $secondary = mockDriver(true, null, $longer);
+
+    $service = new WebScraperService([$primary, $secondary]);
+
+    expect($service->scrape('https://example.com'))->toBe($longer);
+});
+
+test('returns primary short content when secondary returns null', function () {
+    $shortContent = 'nav only';
+
+    $primary = mockDriver(true, null, $shortContent);
+    $secondary = mockDriver(true, null, null);
+
+    $service = new WebScraperService([$primary, $secondary]);
+
+    expect($service->scrape('https://example.com'))->toBe($shortContent);
 });

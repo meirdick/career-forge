@@ -46,11 +46,11 @@ export default function JobPostingsIndex({ postings }: { postings: JobPosting[] 
                 <div className="flex items-center justify-between">
                     <Heading title="Job Postings" description="Analyze job postings to build ideal candidate profiles." />
                     <div className="flex gap-2">
-                        <QuickAddDialog />
-                        <BulkAddDialog />
-                        <Button asChild>
+                        <Button variant="outline" asChild>
                             <Link href="/job-postings/create"><Plus className="mr-1 h-4 w-4" /> New Posting</Link>
                         </Button>
+                        <BulkAddDialog />
+                        <QuickAddDialog />
                     </div>
                 </div>
 
@@ -59,11 +59,7 @@ export default function JobPostingsIndex({ postings }: { postings: JobPosting[] 
                         icon={Target}
                         title="No job postings yet"
                         description="Paste a job posting to analyze it and build an ideal candidate profile."
-                        action={
-                            <Button asChild>
-                                <Link href="/job-postings/create"><Plus className="mr-1 h-4 w-4" /> New Posting</Link>
-                            </Button>
-                        }
+                        action={<QuickAddDialog />}
                     />
                 ) : (
                     postings.map((posting) => (

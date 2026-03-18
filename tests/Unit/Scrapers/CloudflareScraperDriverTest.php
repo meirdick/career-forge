@@ -33,22 +33,82 @@ test('isConfigured returns false when api_token is missing', function () {
     expect($driver->isConfigured())->toBeFalse();
 });
 
-test('scrape returns markdown from result field', function () {
+test('scrape returns immediately when Phase 1 returns sufficient content', function () {
+    $sufficientContent = str_repeat('a', 200);
+
     Http::fake([
         'api.cloudflare.com/*' => Http::response([
-            'result' => '# Hello World',
+            'result' => $sufficientContent,
         ]),
     ]);
 
     $driver = new CloudflareScraperDriver;
 
-    expect($driver->scrape('https://example.com'))->toBe('# Hello World');
+    expect($driver->scrape('https://example.com'))->toBe($sufficientContent);
+
+    Http::assertSentCount(1);
+
+    Http::assertSent(function ($request) {
+        $body = $request->data();
+
+        return $body['gotoOptions']['waitUntil'] === 'domcontentloaded'
+            && $body['rejectResourceTypes'] === ['image', 'font', 'media', 'stylesheet'];
+    });
 });
 
-test('scrape returns null on HTTP failure', function () {
-    Http::fake([
-        'api.cloudflare.com/*' => Http::response([], 500),
-    ]);
+test('scrape falls through to Phase 2 when Phase 1 returns short content', function () {
+    $shortContent = 'nav only';
+    $fullContent = str_repeat('b', 300);
+
+    Http::fakeSequence('api.cloudflare.com/*')
+        ->push(['result' => $shortContent])
+        ->push(['result' => $fullContent]);
+
+    $driver = new CloudflareScraperDriver;
+
+    expect($driver->scrape('https://example.com'))->toBe($fullContent);
+
+    Http::assertSentCount(2);
+
+    $requests = Http::recorded();
+
+    // Phase 1 request
+    expect($requests[0][0]->data()['gotoOptions']['waitUntil'])->toBe('domcontentloaded');
+    expect($requests[0][0]->data()['rejectResourceTypes'])->toBe(['image', 'font', 'media', 'stylesheet']);
+
+    // Phase 2 request
+    expect($requests[1][0]->data()['gotoOptions']['waitUntil'])->toBe('networkidle2');
+    expect($requests[1][0]->data()['rejectResourceTypes'])->toBe(['image', 'font', 'media']);
+});
+
+test('scrape returns null when both phases return empty', function () {
+    Http::fakeSequence('api.cloudflare.com/*')
+        ->push(['result' => ''])
+        ->push(['result' => '']);
+
+    $driver = new CloudflareScraperDriver;
+
+    expect($driver->scrape('https://example.com'))->toBeNull();
+
+    Http::assertSentCount(2);
+});
+
+test('scrape returns Phase 2 short content when Phase 1 is empty and Phase 2 is short', function () {
+    $shortContent = 'short';
+
+    Http::fakeSequence('api.cloudflare.com/*')
+        ->push(['result' => ''])
+        ->push(['result' => $shortContent]);
+
+    $driver = new CloudflareScraperDriver;
+
+    expect($driver->scrape('https://example.com'))->toBe($shortContent);
+});
+
+test('scrape returns null on HTTP failure in both phases', function () {
+    Http::fakeSequence('api.cloudflare.com/*')
+        ->push([], 500)
+        ->push([], 500);
 
     $driver = new CloudflareScraperDriver;
 
@@ -74,6 +134,22 @@ test('discoverLinks returns filtered same-domain links', function () {
         ['url' => 'https://example.com/about'],
         ['url' => 'https://example.com/projects'],
     ]);
+});
+
+test('discoverLinks uses networkidle2 wait strategy', function () {
+    Http::fake([
+        'api.cloudflare.com/*' => Http::response(['result' => []]),
+    ]);
+
+    $driver = new CloudflareScraperDriver;
+    $driver->discoverLinks('https://example.com');
+
+    Http::assertSent(function ($request) {
+        $body = $request->data();
+
+        return $body['gotoOptions']['waitUntil'] === 'networkidle2'
+            && $body['rejectResourceTypes'] === ['image', 'font', 'media'];
+    });
 });
 
 test('discoverLinks returns null on HTTP failure', function () {

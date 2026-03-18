@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Log;
 
 class CloudflareScraperDriver implements WebScraperContract
 {
+    private const int MIN_CONTENT_LENGTH = 200;
+
     public function isConfigured(): bool
     {
         return filled(config('services.cloudflare_browser.account_id'))
@@ -25,9 +27,11 @@ class CloudflareScraperDriver implements WebScraperContract
 
         try {
             $response = Http::withToken(config('services.cloudflare_browser.api_token'))
-                ->timeout(15)
+                ->timeout(50)
                 ->post("{$baseUrl}/accounts/{$accountId}/browser-rendering/links", [
                     'url' => $url,
+                    'gotoOptions' => ['waitUntil' => 'networkidle2', 'timeout' => 45000],
+                    'rejectResourceTypes' => ['image', 'font', 'media'],
                 ]);
 
             if (! $response->successful()) {
@@ -63,15 +67,46 @@ class CloudflareScraperDriver implements WebScraperContract
 
     public function scrape(string $url): ?string
     {
+        // Phase 1: Fast scrape for static pages
+        $result = $this->requestMarkdown($url, [
+            'gotoOptions' => ['waitUntil' => 'domcontentloaded', 'timeout' => 10000],
+            'rejectResourceTypes' => ['image', 'font', 'media', 'stylesheet'],
+        ], 15);
+
+        if ($this->isContentSufficient($result)) {
+            return $result;
+        }
+
+        // Phase 2: Thorough scrape for SPAs that need JS to render
+        Log::info('Cloudflare scrape Phase 1 insufficient, trying Phase 2 with networkidle2', [
+            'url' => $url,
+            'phase1_length' => $result ? mb_strlen(trim($result)) : 0,
+        ]);
+
+        $result = $this->requestMarkdown($url, [
+            'gotoOptions' => ['waitUntil' => 'networkidle2', 'timeout' => 45000],
+            'rejectResourceTypes' => ['image', 'font', 'media'],
+        ], 50);
+
+        if (filled($result)) {
+            return $result;
+        }
+
+        return null;
+    }
+
+    private function requestMarkdown(string $url, array $options, int $timeout): ?string
+    {
         $accountId = config('services.cloudflare_browser.account_id');
         $baseUrl = config('services.cloudflare_browser.base_url');
 
         try {
             $response = Http::withToken(config('services.cloudflare_browser.api_token'))
-                ->timeout(30)
-                ->post("{$baseUrl}/accounts/{$accountId}/browser-rendering/markdown", [
-                    'url' => $url,
-                ]);
+                ->timeout($timeout)
+                ->post("{$baseUrl}/accounts/{$accountId}/browser-rendering/markdown", array_merge(
+                    ['url' => $url],
+                    $options,
+                ));
 
             if ($response->successful() && filled($response->json('result'))) {
                 return $response->json('result');
@@ -91,5 +126,10 @@ class CloudflareScraperDriver implements WebScraperContract
 
             return null;
         }
+    }
+
+    private function isContentSufficient(?string $content): bool
+    {
+        return filled($content) && mb_strlen(trim($content)) >= self::MIN_CONTENT_LENGTH;
     }
 }
