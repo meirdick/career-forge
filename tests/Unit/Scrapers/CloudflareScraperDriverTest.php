@@ -76,8 +76,8 @@ test('scrape falls through to Phase 2 when Phase 1 returns short content', funct
     expect($requests[0][0]->data()['gotoOptions']['waitUntil'])->toBe('domcontentloaded');
     expect($requests[0][0]->data()['rejectResourceTypes'])->toBe(['image', 'font', 'media', 'stylesheet']);
 
-    // Phase 2 request
-    expect($requests[1][0]->data()['gotoOptions']['waitUntil'])->toBe('networkidle2');
+    // Phase 2 request — networkidle0, keeps stylesheets
+    expect($requests[1][0]->data()['gotoOptions']['waitUntil'])->toBe('networkidle0');
     expect($requests[1][0]->data()['rejectResourceTypes'])->toBe(['image', 'font', 'media']);
 });
 
@@ -136,7 +136,7 @@ test('discoverLinks returns filtered same-domain links', function () {
     ]);
 });
 
-test('discoverLinks uses networkidle2 wait strategy', function () {
+test('discoverLinks uses networkidle0 wait strategy with no cache', function () {
     Http::fake([
         'api.cloudflare.com/*' => Http::response(['result' => []]),
     ]);
@@ -147,7 +147,7 @@ test('discoverLinks uses networkidle2 wait strategy', function () {
     Http::assertSent(function ($request) {
         $body = $request->data();
 
-        return $body['gotoOptions']['waitUntil'] === 'networkidle2'
+        return $body['gotoOptions']['waitUntil'] === 'networkidle0'
             && $body['rejectResourceTypes'] === ['image', 'font', 'media'];
     });
 });

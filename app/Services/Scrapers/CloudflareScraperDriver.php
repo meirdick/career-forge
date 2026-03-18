@@ -30,7 +30,7 @@ class CloudflareScraperDriver implements WebScraperContract
                 ->timeout(50)
                 ->post("{$baseUrl}/accounts/{$accountId}/browser-rendering/links", [
                     'url' => $url,
-                    'gotoOptions' => ['waitUntil' => 'networkidle2', 'timeout' => 45000],
+                    'gotoOptions' => ['waitUntil' => 'networkidle0', 'timeout' => 45000],
                     'rejectResourceTypes' => ['image', 'font', 'media'],
                 ]);
 
@@ -78,15 +78,15 @@ class CloudflareScraperDriver implements WebScraperContract
         }
 
         // Phase 2: Thorough scrape for SPAs that need JS to render
-        Log::info('Cloudflare scrape Phase 1 insufficient, trying Phase 2 with networkidle2', [
+        Log::info('Cloudflare scrape Phase 1 insufficient, trying Phase 2 with networkidle0', [
             'url' => $url,
             'phase1_length' => $result ? mb_strlen(trim($result)) : 0,
         ]);
 
         $result = $this->requestMarkdown($url, [
-            'gotoOptions' => ['waitUntil' => 'networkidle2', 'timeout' => 45000],
+            'gotoOptions' => ['waitUntil' => 'networkidle0', 'timeout' => 60000],
             'rejectResourceTypes' => ['image', 'font', 'media'],
-        ], 50);
+        ], 65);
 
         if (filled($result)) {
             return $result;
