@@ -9,6 +9,176 @@ use Carbon\Carbon;
 class ExperienceImportService
 {
     /**
+     * Analyze parsed data against user's existing library without writing.
+     *
+     * @param  array{experiences?: array, skills?: array, accomplishments?: array, education?: array, projects?: array, urls?: array}  $data
+     * @return array{matches: array, overlaps: array}
+     */
+    public function analyze(User $user, array $data): array
+    {
+        $nullish = static fn ($value) => in_array($value, [null, 'null', ''], true) ? null : $value;
+
+        $user->load(['experiences', 'skills', 'accomplishments', 'educationEntries', 'projects', 'evidenceEntries']);
+
+        $matches = [
+            'experiences' => [],
+            'skills' => [],
+            'accomplishments' => [],
+            'education' => [],
+            'projects' => [],
+            'urls' => [],
+        ];
+
+        // Map experience indices to existing models for accomplishment/project matching
+        $experienceMap = [];
+
+        foreach ($data['experiences'] ?? [] as $index => $expData) {
+            $existing = $user->experiences
+                ->first(function ($e) use ($expData) {
+                    $companyMatch = $this->fuzzyMatch($e->company, $expData['company']);
+                    $datesMatch = $this->datesOverlap(
+                        $e->started_at,
+                        $e->ended_at,
+                        $expData['started_at'] ?? null,
+                        $expData['ended_at'] ?? null,
+                    );
+
+                    if (! $companyMatch || ! $datesMatch) {
+                        return false;
+                    }
+
+                    return $this->fuzzyMatch($e->title, $expData['title'], threshold: 60);
+                });
+
+            if ($existing) {
+                $experienceMap[$index] = $existing;
+                $fills = $this->findFillableFields($existing, [
+                    'location' => $nullish($expData['location'] ?? null),
+                    'description' => $nullish($expData['description'] ?? null),
+                ]);
+
+                $matches['experiences'][$index] = [
+                    'status' => $fills ? 'will_update' : 'duplicate',
+                    'existing_summary' => $this->summarizeExisting($existing),
+                    'fills' => $fills,
+                ];
+            } else {
+                $matches['experiences'][$index] = ['status' => 'new'];
+            }
+        }
+
+        foreach ($data['skills'] ?? [] as $index => $skillData) {
+            $existing = $user->skills
+                ->first(fn ($s) => mb_strtolower($s->name) === mb_strtolower($skillData['name']));
+
+            $matches['skills'][$index] = $existing
+                ? ['status' => 'duplicate', 'existing_summary' => $existing->name]
+                : ['status' => 'new'];
+        }
+
+        foreach ($data['accomplishments'] ?? [] as $index => $accData) {
+            $experienceId = isset($accData['experience_index'], $experienceMap[$accData['experience_index']])
+                ? $experienceMap[$accData['experience_index']]->id
+                : null;
+
+            $existing = $user->accomplishments
+                ->first(function ($a) use ($accData, $experienceId) {
+                    if (mb_strtolower($a->title) !== mb_strtolower($accData['title'])) {
+                        return false;
+                    }
+
+                    return $a->experience_id === $experienceId;
+                });
+
+            if ($existing) {
+                $fills = $this->findFillableFields($existing, [
+                    'description' => $accData['description'] ?? null,
+                    'impact' => $nullish($accData['impact'] ?? null),
+                ]);
+
+                $matches['accomplishments'][$index] = [
+                    'status' => $fills ? 'will_update' : 'duplicate',
+                    'existing_summary' => $existing->title,
+                    'fills' => $fills,
+                ];
+            } else {
+                $matches['accomplishments'][$index] = ['status' => 'new'];
+            }
+        }
+
+        foreach ($data['education'] ?? [] as $index => $eduData) {
+            $existing = $user->educationEntries
+                ->first(function ($e) use ($eduData) {
+                    if (! $this->fuzzyMatch($e->institution, $eduData['institution'])) {
+                        return false;
+                    }
+
+                    return $this->fuzzyMatch($e->title, $eduData['title'], threshold: 60);
+                });
+
+            if ($existing) {
+                $fills = $this->findFillableFields($existing, [
+                    'field' => $nullish($eduData['field'] ?? null),
+                    'completed_at' => $nullish($eduData['completed_at'] ?? null),
+                ]);
+
+                $matches['education'][$index] = [
+                    'status' => $fills ? 'will_update' : 'duplicate',
+                    'existing_summary' => "{$existing->title} at {$existing->institution}",
+                    'fills' => $fills,
+                ];
+            } else {
+                $matches['education'][$index] = ['status' => 'new'];
+            }
+        }
+
+        foreach ($data['projects'] ?? [] as $index => $projData) {
+            $existing = $user->projects
+                ->first(fn ($p) => mb_strtolower($p->name) === mb_strtolower($projData['name']));
+
+            if ($existing) {
+                $experienceId = isset($projData['experience_index'], $experienceMap[$projData['experience_index']])
+                    ? $experienceMap[$projData['experience_index']]->id
+                    : null;
+
+                $fills = $this->findFillableFields($existing, [
+                    'description' => $projData['description'] ?? null,
+                    'role' => $nullish($projData['role'] ?? null),
+                    'outcome' => $nullish($projData['outcome'] ?? null),
+                    'experience_id' => $experienceId,
+                ]);
+
+                $matches['projects'][$index] = [
+                    'status' => $fills ? 'will_update' : 'duplicate',
+                    'existing_summary' => $existing->name,
+                    'fills' => $fills,
+                ];
+            } else {
+                $matches['projects'][$index] = ['status' => 'new'];
+            }
+        }
+
+        foreach ($data['urls'] ?? [] as $index => $urlData) {
+            $url = $urlData['url'];
+            if (! preg_match('#^https?://#i', $url)) {
+                $url = 'https://'.$url;
+            }
+
+            $existing = $user->evidenceEntries
+                ->first(fn ($e) => mb_strtolower($e->url ?? '') === mb_strtolower($url));
+
+            $matches['urls'][$index] = $existing
+                ? ['status' => 'duplicate', 'existing_summary' => $existing->title ?? $url]
+                : ['status' => 'new'];
+        }
+
+        return [
+            'matches' => $matches,
+            'overlaps' => $this->detectOverlaps($data),
+        ];
+    }
+
+    /**
      * Import extracted experience data into the user's experience library with intelligent merging.
      *
      * @param  array{experiences?: array, skills?: array, accomplishments?: array, education?: array, projects?: array, urls?: array}  $data
@@ -304,6 +474,88 @@ class ExperienceImportService
         $host = preg_replace('/^www\./', '', $host);
 
         return ucfirst($host);
+    }
+
+    /**
+     * Identify which blank fields on a model would be filled by the given values.
+     *
+     * @return string[]
+     */
+    private function findFillableFields(mixed $model, array $values): array
+    {
+        $fills = [];
+
+        foreach ($values as $field => $value) {
+            if ($value !== null && ($model->{$field} === null || $model->{$field} === '')) {
+                $fills[] = $field;
+            }
+        }
+
+        return $fills;
+    }
+
+    /**
+     * Build a human-readable summary string for a matched existing experience.
+     */
+    private function summarizeExisting(mixed $experience): string
+    {
+        $summary = "{$experience->title} at {$experience->company}";
+
+        $start = $experience->started_at;
+        if ($start) {
+            $startFormatted = Carbon::parse($start)->format('M Y');
+            $end = $experience->ended_at
+                ? Carbon::parse($experience->ended_at)->format('M Y')
+                : 'Present';
+            $summary .= " ({$startFormatted} - {$end})";
+        }
+
+        return $summary;
+    }
+
+    /**
+     * Detect overlapping projects and experiences within the parsed data.
+     *
+     * @return array<int, array{experience_index: int, project_indices: int[], reason: string}>
+     */
+    private function detectOverlaps(array $data): array
+    {
+        $experiences = $data['experiences'] ?? [];
+        $projects = $data['projects'] ?? [];
+        $overlaps = [];
+
+        foreach ($experiences as $expIndex => $exp) {
+            $overlappingProjects = [];
+
+            foreach ($projects as $projIndex => $proj) {
+                // Explicit link
+                if (isset($proj['experience_index']) && $proj['experience_index'] === $expIndex) {
+                    continue; // Linked projects are expected, not overlaps
+                }
+
+                // Fuzzy description match + date overlap
+                $descriptionMatch = isset($proj['description'], $exp['description'])
+                    && $this->fuzzyMatch($proj['description'], $exp['description'], threshold: 70);
+
+                $companyInProject = isset($exp['company'])
+                    && isset($proj['description'])
+                    && str_contains(mb_strtolower($proj['description']), mb_strtolower($exp['company']));
+
+                if ($descriptionMatch || $companyInProject) {
+                    $overlappingProjects[] = $projIndex;
+                }
+            }
+
+            if ($overlappingProjects !== []) {
+                $overlaps[] = [
+                    'experience_index' => $expIndex,
+                    'project_indices' => $overlappingProjects,
+                    'reason' => 'Same company + overlapping dates',
+                ];
+            }
+        }
+
+        return $overlaps;
     }
 
     /**

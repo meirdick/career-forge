@@ -2,7 +2,8 @@ import { Check, Loader2, Pencil, Sparkles, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { ExtractionType, ParsedAccomplishment, ParsedEducation, ParsedExperience, ParsedProject, ParsedSkill, ParsedUrl, SectionKey } from './types';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import type { ExtractionType, ItemMatchInfo, ParsedAccomplishment, ParsedEducation, ParsedExperience, ParsedProject, ParsedSkill, ParsedUrl, SectionKey } from './types';
 
 interface ItemCardProps {
     selected: boolean;
@@ -14,6 +15,7 @@ interface ItemCardProps {
     onAcceptEnhancement?: () => void;
     onRejectEnhancement?: () => void;
     compact?: boolean;
+    matchInfo?: ItemMatchInfo;
 }
 
 function ExtractionTypeBadge({ type, enhances }: { type?: ExtractionType; enhances?: string }) {
@@ -31,6 +33,48 @@ function ExtractionTypeBadge({ type, enhances }: { type?: ExtractionType; enhanc
         <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300">
             New
         </Badge>
+    );
+}
+
+function MatchStatusBadge({ matchInfo }: { matchInfo?: ItemMatchInfo }) {
+    if (!matchInfo) return null;
+
+    if (matchInfo.status === 'new') {
+        return (
+            <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300">
+                New
+            </Badge>
+        );
+    }
+
+    if (matchInfo.status === 'will_update') {
+        const fillsLabel = matchInfo.fills?.join(', ') ?? '';
+        return (
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                        Will Update
+                    </Badge>
+                </TooltipTrigger>
+                {fillsLabel && <TooltipContent>Will fill: {fillsLabel}</TooltipContent>}
+            </Tooltip>
+        );
+    }
+
+    return (
+        <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300">
+            Duplicate
+        </Badge>
+    );
+}
+
+function MatchSummaryLine({ matchInfo, compact }: { matchInfo?: ItemMatchInfo; compact?: boolean }) {
+    if (!matchInfo?.existing_summary || matchInfo.status === 'new') return null;
+
+    return (
+        <p className={`text-muted-foreground/70 italic ${compact ? 'text-xs' : 'text-xs'}`}>
+            Matches: {matchInfo.existing_summary}
+        </p>
     );
 }
 
@@ -140,22 +184,25 @@ export function ExperienceCard({
     onAcceptEnhancement,
     onRejectEnhancement,
     compact,
+    matchInfo,
 }: ItemCardProps & { item: ParsedExperience }) {
     return (
         <Card className={`cursor-pointer ${!selected ? 'opacity-40' : ''} ${compact ? 'py-3 gap-2' : ''}`}>
             <CardHeader className={`pb-2 ${compact ? 'px-4' : ''}`}>
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1 cursor-pointer" onClick={onToggle}>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <CardTitle className={compact ? 'text-sm' : 'text-base'}>
                                 {item.title} at {item.company}
                             </CardTitle>
                             <ExtractionTypeBadge type={item.extraction_type} enhances={item.enhances} />
+                            <MatchStatusBadge matchInfo={matchInfo} />
                         </div>
                         <p className={`text-muted-foreground ${compact ? 'text-xs' : 'text-sm'}`}>
                             {item.started_at} — {item.is_current ? 'Present' : (item.ended_at ?? 'N/A')}
                             {item.location && ` · ${item.location}`}
                         </p>
+                        <MatchSummaryLine matchInfo={matchInfo} compact={compact} />
                     </div>
                     {selected && <CardActions onEdit={onEdit} onEnhance={onEnhance} enhancing={enhancing} />}
                 </div>
@@ -183,16 +230,19 @@ export function AccomplishmentCard({
     onAcceptEnhancement,
     onRejectEnhancement,
     compact,
+    matchInfo,
 }: ItemCardProps & { item: ParsedAccomplishment }) {
     return (
         <Card className={`cursor-pointer ${!selected ? 'opacity-40' : ''} ${compact ? 'py-3 gap-2' : ''}`}>
             <CardHeader className={`pb-2 ${compact ? 'px-4' : ''}`}>
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1 cursor-pointer" onClick={onToggle}>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <CardTitle className={compact ? 'text-sm' : 'text-base'}>{item.title}</CardTitle>
                             <ExtractionTypeBadge type={item.extraction_type} enhances={item.enhances} />
+                            <MatchStatusBadge matchInfo={matchInfo} />
                         </div>
+                        <MatchSummaryLine matchInfo={matchInfo} compact={compact} />
                     </div>
                     {selected && <CardActions onEdit={onEdit} onEnhance={onEnhance} enhancing={enhancing} />}
                 </div>
@@ -212,18 +262,29 @@ export function SkillBadges({
     skills,
     selected,
     onToggle,
+    matchInfoMap,
 }: {
     skills: ParsedSkill[];
     selected: Set<number>;
     onToggle: (section: SectionKey, index: number) => void;
+    matchInfoMap?: Record<number, ItemMatchInfo>;
 }) {
     return (
         <div className="flex flex-wrap gap-2">
-            {skills.map((skill, i) => (
-                <Badge key={i} variant={selected.has(i) ? 'secondary' : 'outline'} className="cursor-pointer" onClick={() => onToggle('skills', i)}>
-                    {skill.name}
-                </Badge>
-            ))}
+            {skills.map((skill, i) => {
+                const isDuplicate = matchInfoMap?.[i]?.status === 'duplicate';
+                return (
+                    <Badge
+                        key={i}
+                        variant={selected.has(i) ? 'secondary' : 'outline'}
+                        className={`cursor-pointer ${isDuplicate ? 'opacity-50' : ''}`}
+                        onClick={() => onToggle('skills', i)}
+                    >
+                        {skill.name}
+                        {isDuplicate && <span className="ml-1 text-amber-600 dark:text-amber-400">*</span>}
+                    </Badge>
+                );
+            })}
         </div>
     );
 }
@@ -239,20 +300,23 @@ export function EducationCard({
     onAcceptEnhancement,
     onRejectEnhancement,
     compact,
+    matchInfo,
 }: ItemCardProps & { item: ParsedEducation }) {
     return (
         <Card className={`cursor-pointer ${!selected ? 'opacity-40' : ''} ${compact ? 'py-3 gap-2' : ''}`}>
             <CardHeader className={`pb-2 ${compact ? 'px-4' : ''}`}>
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1 cursor-pointer" onClick={onToggle}>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <CardTitle className={compact ? 'text-sm' : 'text-base'}>{item.title}</CardTitle>
                             <ExtractionTypeBadge type={item.extraction_type} enhances={item.enhances} />
+                            <MatchStatusBadge matchInfo={matchInfo} />
                         </div>
                         <p className={`text-muted-foreground ${compact ? 'text-xs' : 'text-sm'}`}>
                             {item.institution}
                             {item.field && ` · ${item.field}`}
                         </p>
+                        <MatchSummaryLine matchInfo={matchInfo} compact={compact} />
                     </div>
                     {selected && <CardActions onEdit={onEdit} onEnhance={onEnhance} enhancing={enhancing} />}
                 </div>
@@ -275,17 +339,20 @@ export function ProjectCard({
     onAcceptEnhancement,
     onRejectEnhancement,
     compact,
+    matchInfo,
 }: ItemCardProps & { item: ParsedProject }) {
     return (
         <Card className={`cursor-pointer ${!selected ? 'opacity-40' : ''} ${compact ? 'py-3 gap-2' : ''}`}>
             <CardHeader className={`pb-2 ${compact ? 'px-4' : ''}`}>
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1 cursor-pointer" onClick={onToggle}>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <CardTitle className={compact ? 'text-sm' : 'text-base'}>{item.name}</CardTitle>
                             <ExtractionTypeBadge type={item.extraction_type} enhances={item.enhances} />
+                            <MatchStatusBadge matchInfo={matchInfo} />
                         </div>
                         {item.role && <p className={`text-muted-foreground ${compact ? 'text-xs' : 'text-sm'}`}>{item.role}</p>}
+                        <MatchSummaryLine matchInfo={matchInfo} compact={compact} />
                     </div>
                     {selected && <CardActions onEdit={onEdit} onEnhance={onEnhance} enhancing={enhancing} />}
                 </div>
@@ -312,25 +379,35 @@ export function LinkBadges({
     urls,
     selected,
     onToggle,
+    matchInfoMap,
 }: {
     urls: ParsedUrl[];
     selected: Set<number>;
     onToggle: (section: SectionKey, index: number) => void;
+    matchInfoMap?: Record<number, ItemMatchInfo>;
 }) {
     return (
         <div className="space-y-2">
-            {urls.map((url, i) => (
-                <div
-                    key={i}
-                    className={`flex cursor-pointer items-center gap-2 rounded-md border p-2 ${selected.has(i) ? '' : 'opacity-40'}`}
-                    onClick={() => onToggle('urls', i)}
-                >
-                    <Badge variant={selected.has(i) ? 'secondary' : 'outline'} className="shrink-0">
-                        {urlTypeLabels[url.type] ?? url.type}
-                    </Badge>
-                    <span className="min-w-0 truncate text-sm">{url.label || url.url}</span>
-                </div>
-            ))}
+            {urls.map((url, i) => {
+                const isDuplicate = matchInfoMap?.[i]?.status === 'duplicate';
+                return (
+                    <div
+                        key={i}
+                        className={`flex cursor-pointer items-center gap-2 rounded-md border p-2 ${selected.has(i) ? '' : 'opacity-40'}`}
+                        onClick={() => onToggle('urls', i)}
+                    >
+                        <Badge variant={selected.has(i) ? 'secondary' : 'outline'} className="shrink-0">
+                            {urlTypeLabels[url.type] ?? url.type}
+                        </Badge>
+                        <span className="min-w-0 truncate text-sm">{url.label || url.url}</span>
+                        {isDuplicate && (
+                            <Badge variant="outline" className="ml-auto shrink-0 border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                Duplicate
+                            </Badge>
+                        )}
+                    </div>
+                );
+            })}
         </div>
     );
 }

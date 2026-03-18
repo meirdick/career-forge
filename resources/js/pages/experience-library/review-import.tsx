@@ -3,7 +3,7 @@ import { Loader2, X } from 'lucide-react';
 import { useEffect } from 'react';
 import ResumeUploadController from '@/actions/App/Http/Controllers/ExperienceLibrary/ResumeUploadController';
 import ExtractionReviewContent from '@/components/extraction-review/extraction-review-content';
-import type { ExtractionData } from '@/components/extraction-review/types';
+import type { ExtractionData, MatchAnalysis } from '@/components/extraction-review/types';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,7 +18,15 @@ type ParseResult = {
 
 type Document = { id: number; filename: string };
 
-export default function ReviewImport({ document, parseResult }: { document: Document; parseResult: ParseResult }) {
+export default function ReviewImport({
+    document,
+    parseResult,
+    matchAnalysis,
+}: {
+    document: Document;
+    parseResult: ParseResult;
+    matchAnalysis?: MatchAnalysis;
+}) {
     useEffect(() => {
         if (parseResult.status === 'processing') {
             const interval = setInterval(() => {
@@ -82,7 +90,7 @@ export default function ReviewImport({ document, parseResult }: { document: Docu
 
             <div className="mx-auto max-w-3xl space-y-6 p-4">
                 <Heading title="Review Import" description={`Parsed from ${document.filename}. Edit, enhance, or deselect items before importing.`} />
-                <ExtractionReviewContent data={data} onImport={handleImport} />
+                <ExtractionReviewContent data={data} onImport={handleImport} matchAnalysis={matchAnalysis} />
             </div>
         </AppLayout>
     );

@@ -323,6 +323,151 @@ test('import merges project by name', function () {
     expect($stats['merged'])->toBe(1);
 });
 
+// --- analyze() tests ---
+
+test('analyze returns new status for unmatched items', function () {
+    $result = $this->service->analyze($this->user, [
+        'experiences' => [
+            ['company' => 'NewCo', 'title' => 'Dev', 'started_at' => '2023-01-01', 'is_current' => true],
+        ],
+        'skills' => [
+            ['name' => 'Rust', 'category' => 'technical'],
+        ],
+        'education' => [
+            ['type' => 'degree', 'institution' => 'Stanford', 'title' => 'PhD CS'],
+        ],
+        'projects' => [
+            ['name' => 'NewProject', 'description' => 'Something new'],
+        ],
+        'urls' => [
+            ['url' => 'https://example.com', 'type' => 'portfolio'],
+        ],
+    ]);
+
+    expect($result['matches']['experiences'][0]['status'])->toBe('new');
+    expect($result['matches']['skills'][0]['status'])->toBe('new');
+    expect($result['matches']['education'][0]['status'])->toBe('new');
+    expect($result['matches']['projects'][0]['status'])->toBe('new');
+    expect($result['matches']['urls'][0]['status'])->toBe('new');
+});
+
+test('analyze returns will_update when existing item has blank fields to fill', function () {
+    Experience::factory()->create([
+        'user_id' => $this->user->id,
+        'company' => 'Acme',
+        'title' => 'Dev',
+        'started_at' => '2023-01-01',
+        'location' => null,
+        'description' => null,
+    ]);
+
+    $result = $this->service->analyze($this->user, [
+        'experiences' => [
+            [
+                'company' => 'acme',
+                'title' => 'dev',
+                'started_at' => '2023-01-15',
+                'is_current' => true,
+                'location' => 'San Francisco',
+                'description' => 'Built APIs',
+            ],
+        ],
+    ]);
+
+    expect($result['matches']['experiences'][0]['status'])->toBe('will_update');
+    expect($result['matches']['experiences'][0]['fills'])->toContain('location');
+    expect($result['matches']['experiences'][0]['fills'])->toContain('description');
+});
+
+test('analyze returns duplicate when existing item already has all data', function () {
+    Experience::factory()->create([
+        'user_id' => $this->user->id,
+        'company' => 'Acme',
+        'title' => 'Dev',
+        'started_at' => '2023-01-01',
+        'location' => 'New York',
+        'description' => 'Existing description',
+    ]);
+
+    $result = $this->service->analyze($this->user, [
+        'experiences' => [
+            [
+                'company' => 'Acme',
+                'title' => 'Dev',
+                'started_at' => '2023-01-01',
+                'is_current' => true,
+                'location' => 'San Francisco',
+                'description' => 'New description',
+            ],
+        ],
+    ]);
+
+    expect($result['matches']['experiences'][0]['status'])->toBe('duplicate');
+});
+
+test('analyze includes existing_summary for matched items', function () {
+    Experience::factory()->create([
+        'user_id' => $this->user->id,
+        'company' => 'Acme',
+        'title' => 'Senior Dev',
+        'started_at' => '2023-01-01',
+        'ended_at' => null,
+        'location' => 'NYC',
+        'description' => 'Built stuff',
+    ]);
+
+    $result = $this->service->analyze($this->user, [
+        'experiences' => [
+            [
+                'company' => 'Acme',
+                'title' => 'Senior Dev',
+                'started_at' => '2023-01-01',
+                'is_current' => true,
+            ],
+        ],
+    ]);
+
+    expect($result['matches']['experiences'][0]['existing_summary'])
+        ->toContain('Senior Dev at Acme')
+        ->toContain('Present');
+});
+
+test('analyze detects project-experience overlaps within parsed data', function () {
+    $result = $this->service->analyze($this->user, [
+        'experiences' => [
+            [
+                'company' => 'Acme',
+                'title' => 'Dev',
+                'started_at' => '2023-01-01',
+                'is_current' => true,
+                'description' => 'Built the payment system redesign for Acme Corp',
+            ],
+        ],
+        'projects' => [
+            ['name' => 'Portal', 'description' => 'Customer portal for Acme', 'experience_index' => 0],
+            ['name' => 'Payment Redesign', 'description' => 'Built the payment system redesign for Acme Corp'],
+        ],
+    ]);
+
+    // Project 0 is explicitly linked (experience_index = 0), not flagged as overlap
+    // Project 1 has matching description, flagged as overlap
+    expect($result['overlaps'])->toHaveCount(1);
+    expect($result['overlaps'][0]['experience_index'])->toBe(0);
+    expect($result['overlaps'][0]['project_indices'])->toContain(1);
+});
+
+test('analyze handles empty data', function () {
+    $result = $this->service->analyze($this->user, []);
+
+    expect($result['matches']['experiences'])->toBeEmpty();
+    expect($result['matches']['skills'])->toBeEmpty();
+    expect($result['matches']['accomplishments'])->toBeEmpty();
+    expect($result['matches']['education'])->toBeEmpty();
+    expect($result['matches']['projects'])->toBeEmpty();
+    expect($result['matches']['urls'])->toBeEmpty();
+    expect($result['overlaps'])->toBeEmpty();
+});
+
 test('buildImportMessage formats stats correctly', function () {
     expect(ExperienceImportService::buildImportMessage(['created' => 3, 'merged' => 1, 'skipped' => 2]))
         ->toBe('Import complete: 3 new items added, 1 item updated, 2 duplicates skipped.');

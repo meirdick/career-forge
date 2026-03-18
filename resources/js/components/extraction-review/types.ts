@@ -59,3 +59,22 @@ export type ExtractionData = {
 };
 
 export type SectionKey = keyof ExtractionData;
+
+export type MatchStatus = 'new' | 'will_update' | 'duplicate';
+
+export type ItemMatchInfo = {
+    status: MatchStatus;
+    existing_summary?: string;
+    fills?: string[];
+};
+
+export type OverlapGroup = {
+    experience_index: number;
+    project_indices: number[];
+    reason: string;
+};
+
+export type MatchAnalysis = {
+    matches: Record<SectionKey, Record<number, ItemMatchInfo>>;
+    overlaps: OverlapGroup[];
+};

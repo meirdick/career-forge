@@ -64,16 +64,22 @@ class ResumeUploadController extends Controller
                 : 'Resume uploaded. Parsing in progress...');
     }
 
-    public function review(Request $request, Document $document): Response
+    public function review(Request $request, Document $document, ExperienceImportService $importService): Response
     {
         abort_unless($document->user_id === $request->user()->id, 403);
 
         $cacheKey = "resume-parse:{$document->id}";
         $parseResult = Cache::get($cacheKey, ['status' => 'processing']);
 
+        $matchAnalysis = null;
+        if (($parseResult['status'] ?? null) === 'completed' && isset($parseResult['data'])) {
+            $matchAnalysis = $importService->analyze($request->user(), $parseResult['data']);
+        }
+
         return Inertia::render('experience-library/review-import', [
             'document' => $document,
             'parseResult' => $parseResult,
+            'matchAnalysis' => $matchAnalysis,
         ]);
     }
 

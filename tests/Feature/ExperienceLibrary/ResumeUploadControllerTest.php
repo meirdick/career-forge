@@ -284,3 +284,41 @@ test('commit auto-populates user link from portfolio URL', function () {
 
     expect($this->user->links()->where('url', 'https://johndoe.com')->exists())->toBeTrue();
 });
+
+test('review page includes matchAnalysis prop when parse is completed', function () {
+    $document = Document::factory()->create(['user_id' => $this->user->id]);
+    Cache::put("resume-parse:{$document->id}", [
+        'status' => 'completed',
+        'data' => [
+            'experiences' => [['company' => 'Acme', 'title' => 'Dev', 'started_at' => '2023-01-01', 'is_current' => true]],
+            'accomplishments' => [],
+            'skills' => [['name' => 'PHP', 'category' => 'technical']],
+            'education' => [],
+            'projects' => [],
+            'urls' => [],
+        ],
+    ]);
+
+    $this->actingAs($this->user)
+        ->get("/resume-upload/{$document->id}/review")
+        ->assertSuccessful()
+        ->assertInertia(
+            fn ($page) => $page
+                ->has('matchAnalysis')
+                ->has('matchAnalysis.matches')
+                ->has('matchAnalysis.overlaps')
+        );
+});
+
+test('review page matchAnalysis is null when parse is processing', function () {
+    $document = Document::factory()->create(['user_id' => $this->user->id]);
+    Cache::put("resume-parse:{$document->id}", ['status' => 'processing']);
+
+    $this->actingAs($this->user)
+        ->get("/resume-upload/{$document->id}/review")
+        ->assertSuccessful()
+        ->assertInertia(
+            fn ($page) => $page
+                ->where('matchAnalysis', null)
+        );
+});
