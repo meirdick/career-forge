@@ -52,7 +52,7 @@ class WebScraperService
 
             $result = $driver->discoverLinks($url);
 
-            if ($result !== null) {
+            if ($result !== null && $result !== []) {
                 return $result;
             }
 
@@ -77,7 +77,7 @@ class WebScraperService
 
             $result = $driver->scrape($url);
 
-            if ($result !== null) {
+            if (filled($result)) {
                 return $result;
             }
 

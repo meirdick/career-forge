@@ -70,3 +70,21 @@ test('returns null when no drivers are configured', function () {
     expect($service->discoverLinks('https://example.com'))->toBeNull();
     expect($service->scrape('https://example.com'))->toBeNull();
 });
+
+test('falls back when primary returns empty string for scrape', function () {
+    $primary = mockDriver(true, null, '');
+    $secondary = mockDriver(true, null, '# Fallback content');
+
+    $service = new WebScraperService([$primary, $secondary]);
+
+    expect($service->scrape('https://example.com'))->toBe('# Fallback content');
+});
+
+test('falls back when primary returns empty array for discoverLinks', function () {
+    $primary = mockDriver(true, [], null);
+    $secondary = mockDriver(true, [['url' => 'https://example.com/page']], null);
+
+    $service = new WebScraperService([$primary, $secondary]);
+
+    expect($service->discoverLinks('https://example.com'))->toBe([['url' => 'https://example.com/page']]);
+});

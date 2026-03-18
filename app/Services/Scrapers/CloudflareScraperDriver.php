@@ -73,7 +73,7 @@ class CloudflareScraperDriver implements WebScraperContract
                     'url' => $url,
                 ]);
 
-            if ($response->successful()) {
+            if ($response->successful() && filled($response->json('result'))) {
                 return $response->json('result');
             }
 
