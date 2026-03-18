@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "563ef918c7d04eae0c50f15a1ac12548",
+    "content-hash": "18273d996d66973c1fba336449d470f8",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -3065,6 +3065,55 @@
                 "source": "https://github.com/Masterminds/html5-php/tree/2.10.0"
             },
             "time": "2025-07-25T09:04:22+00:00"
+        },
+        {
+            "name": "meirdick/prism-workers-ai",
+            "version": "v0.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/meirdick/prism-workers-ai.git",
+                "reference": "b4a0bbe584abecd02c7458f886b7d4925615f299"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/meirdick/prism-workers-ai/zipball/b4a0bbe584abecd02c7458f886b7d4925615f299",
+                "reference": "b4a0bbe584abecd02c7458f886b7d4925615f299",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.2",
+                "prism-php/prism": "^0.99"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^9.0",
+                "pestphp/pest": "^3.0"
+            },
+            "suggest": {
+                "laravel/ai": "Required for agent() integration (^0.3)"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "PrismWorkersAi\\WorkersAiServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "PrismWorkersAi\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Cloudflare Workers AI provider for Prism PHP — routes through AI Gateway /compat endpoint",
+            "support": {
+                "issues": "https://github.com/meirdick/prism-workers-ai/issues",
+                "source": "https://github.com/meirdick/prism-workers-ai/tree/v0.1.0"
+            },
+            "time": "2026-03-18T21:31:28+00:00"
         },
         {
             "name": "monolog/monolog",
