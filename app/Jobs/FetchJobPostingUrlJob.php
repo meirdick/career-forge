@@ -38,6 +38,9 @@ class FetchJobPostingUrlJob implements ShouldQueue
             return;
         }
 
+        // Immediately populate from URL slug so the UI shows something
+        $this->populateFromUrl();
+
         $content = $scraper->scrape($this->jobPosting->url);
 
         if (! $content) {
@@ -46,14 +49,15 @@ class FetchJobPostingUrlJob implements ShouldQueue
                 'url' => $this->jobPosting->url,
             ]);
 
-            $this->populateFromUrl();
-
             $this->jobPosting->user->notify(
                 new JobPostingScrapeFailed($this->jobPosting, 'No content could be extracted from the page.')
             );
 
             return;
         }
+
+        // Even if quality fails, extract whatever metadata we can from the content
+        $this->populateFromContent($content);
 
         $quality = ContentQualityAnalyzer::analyze($content);
 
@@ -65,8 +69,6 @@ class FetchJobPostingUrlJob implements ShouldQueue
                 'failing_signals' => array_keys(array_filter($quality->signals, fn (bool $passed) => ! $passed)),
                 'content_preview' => mb_substr($content, 0, 200),
             ]);
-
-            $this->populateFromUrl();
 
             $this->jobPosting->user->notify(
                 new JobPostingScrapeFailed(
@@ -84,37 +86,51 @@ class FetchJobPostingUrlJob implements ShouldQueue
     }
 
     /**
-     * Extract whatever metadata we can from the URL slug (title, location)
-     * so the posting isn't completely empty even when scraping fails.
+     * Extract title from the URL slug so the UI has something immediately.
      */
     private function populateFromUrl(): void
     {
-        $url = $this->jobPosting->url;
-
-        if (! $url) {
-            return;
-        }
-
-        $path = parse_url($url, PHP_URL_PATH) ?? '';
+        $path = parse_url($this->jobPosting->url, PHP_URL_PATH) ?? '';
         $segments = array_filter(explode('/', $path));
         $slug = end($segments) ?: '';
 
-        // Strip trailing IDs (e.g. "_55006", "-12345")
         $slug = preg_replace('/[_-]\d+$/', '', $slug);
 
         if (blank($slug)) {
             return;
         }
 
-        // Convert URL slug to readable title: "Senior-Director--Lead-Product-Manager---Norton-360" → "Senior Director Lead Product Manager Norton 360"
         $title = str_replace(['-', '_'], ' ', $slug);
         $title = preg_replace('/\s{2,}/', ' ', $title);
         $title = mb_convert_case(trim($title), MB_CASE_TITLE);
 
+        if (blank($this->jobPosting->title) && filled($title)) {
+            $this->jobPosting->update(['title' => $title]);
+        }
+    }
+
+    /**
+     * Extract metadata from scraped markdown content — title from the first
+     * heading, company from a **Company:** line. Content metadata is more
+     * accurate than URL slugs, so it overwrites any slug-derived values.
+     */
+    private function populateFromContent(string $content): void
+    {
         $updates = [];
 
-        if (blank($this->jobPosting->title) && filled($title)) {
-            $updates['title'] = $title;
+        // Title from first markdown heading: "# Senior Director, Lead PM"
+        if (preg_match('/^#\s+(.+)$/m', $content, $m)) {
+            $updates['title'] = trim($m[1]);
+        }
+
+        // Company from **Company:** metadata line (our formatter writes this pattern)
+        if (preg_match('/\*\*Company:\*\*\s*(.+)$/m', $content, $m)) {
+            $updates['company'] = trim($m[1]);
+        }
+
+        // Location from **Location:** metadata line
+        if (preg_match('/\*\*Location:\*\*\s*(.+)$/m', $content, $m)) {
+            $updates['location'] = trim($m[1]);
         }
 
         if ($updates !== []) {

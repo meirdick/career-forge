@@ -170,3 +170,85 @@ test('does not overwrite existing title when populating from URL', function () {
     $jobPosting->refresh();
     expect($jobPosting->title)->toBe('My Custom Title');
 });
+
+test('extracts title and company from partial scrape content even when quality fails', function () {
+    Notification::fake();
+    Queue::fake([AnalyzeJobPostingJob::class]);
+
+    $jobPosting = JobPosting::factory()->create([
+        'user_id' => $this->user->id,
+        'url' => 'https://example.com/job/123',
+        'title' => null,
+        'company' => null,
+        'raw_text' => null,
+    ]);
+
+    $partialContent = "# Staff Product Designer\n\n**Company:** Figma\n**Location:** San Francisco, CA\n\nSign in\nLoading...";
+
+    $scraper = Mockery::mock(WebScraperService::class);
+    $scraper->shouldReceive('scrape')->andReturn($partialContent);
+
+    (new FetchJobPostingUrlJob($jobPosting))->handle($scraper);
+
+    $jobPosting->refresh();
+    expect($jobPosting->title)->toBe('Staff Product Designer')
+        ->and($jobPosting->company)->toBe('Figma')
+        ->and($jobPosting->location)->toBe('San Francisco, CA')
+        ->and($jobPosting->raw_text)->toBeNull();
+
+    Queue::assertNotPushed(AnalyzeJobPostingJob::class);
+    Notification::assertSentTo($jobPosting->user, JobPostingScrapeFailed::class);
+});
+
+test('populates title from URL slug immediately before scraping', function () {
+    Queue::fake([AnalyzeJobPostingJob::class]);
+
+    $jobPosting = JobPosting::factory()->create([
+        'user_id' => $this->user->id,
+        'url' => 'https://boards.greenhouse.io/company/jobs/senior-engineer_456',
+        'title' => null,
+        'raw_text' => null,
+    ]);
+
+    $scraper = Mockery::mock(WebScraperService::class);
+    $scraper->shouldReceive('scrape')->andReturn(qualityJobContent());
+
+    (new FetchJobPostingUrlJob($jobPosting))->handle($scraper);
+
+    $jobPosting->refresh();
+    // Quality content has "# Senior Software Engineer" which overrides the URL slug
+    expect($jobPosting->title)->toBe('Senior Software Engineer');
+});
+
+test('content metadata overrides url slug title', function () {
+    Queue::fake([AnalyzeJobPostingJob::class]);
+
+    $jobPosting = JobPosting::factory()->create([
+        'user_id' => $this->user->id,
+        'url' => 'https://example.com/jobs/some-slug_123',
+        'title' => null,
+        'company' => null,
+        'raw_text' => null,
+    ]);
+
+    $content = "# Actual Job Title\n\n**Company:** Real Company\n\n## About Us\n\n"
+        ."We are a leading technology company building innovative solutions.\n\n"
+        ."## Responsibilities\n\n- Design scalable systems\n- Lead code reviews and mentor engineers\n"
+        ."- Collaborate with product managers on requirements\n\n"
+        ."## Requirements\n\n- 5+ years of experience in software engineering\n"
+        ."- Strong skills in Python, Go, or similar languages\n"
+        ."- Experience with distributed systems and cloud platforms\n\n"
+        ."## Benefits\n\n- Salary range of \$150,000 - \$200,000 per year\n"
+        ."- Health, dental, and vision insurance coverage\n\n"
+        ."## How to Apply\n\nSubmit your resume and cover letter for this role.";
+
+    $scraper = Mockery::mock(WebScraperService::class);
+    $scraper->shouldReceive('scrape')->andReturn($content);
+
+    (new FetchJobPostingUrlJob($jobPosting))->handle($scraper);
+
+    $jobPosting->refresh();
+    // URL slug set "Some Slug", but content heading "Actual Job Title" overwrites it
+    expect($jobPosting->title)->toBe('Actual Job Title')
+        ->and($jobPosting->company)->toBe('Real Company');
+});
