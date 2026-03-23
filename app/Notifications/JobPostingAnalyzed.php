@@ -33,6 +33,7 @@ class JobPostingAnalyzed extends Notification implements ShouldQueue
 
         $message = (new MailMessage)
             ->subject("Job Analysis Complete: {$title} at {$company}")
+            ->replyTo('careerforge@meirdick.com', 'CareerForge')
             ->greeting('Your job posting has been analyzed!')
             ->line("**{$title}** at **{$company}**".($location ? " — {$location}" : ''));
 
