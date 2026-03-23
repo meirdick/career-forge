@@ -4,6 +4,10 @@
     <meta charset="utf-8">
     <title>{{ $header['name'] ?? $user->name ?? 'Resume' }}</title>
     <style>
+        @page {
+            size: letter;
+            margin: 0.5in 0.6in;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Calibri', 'Helvetica Neue', 'Arial', sans-serif;
@@ -36,6 +40,7 @@
         }
         .section {
             margin-bottom: 16px;
+            page-break-inside: avoid;
         }
         .section h2 {
             font-size: 12pt;
@@ -46,6 +51,7 @@
             margin-bottom: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            page-break-after: avoid;
         }
         .section-content {
             font-size: 10.5pt;

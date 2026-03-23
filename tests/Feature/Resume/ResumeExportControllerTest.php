@@ -366,3 +366,136 @@ test('hidden sections excluded from docx export', function () {
     expect($xmlContent)->toContain('Visible Section');
     expect($xmlContent)->not->toContain('Hidden Section');
 });
+
+test('docx contains section titles and formatted content', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create([
+        'resume_id' => $resume->id,
+        'title' => 'Work Experience',
+    ]);
+    $variant = ResumeSectionVariant::factory()->create([
+        'resume_section_id' => $section->id,
+        'content' => "### Acme Corp\n*Jan 2020 – Present*\n- **Led** a team of engineers\n- Built scalable systems",
+    ]);
+    $section->update(['selected_variant_id' => $variant->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/export/docx")
+        ->assertSuccessful();
+
+    $fullPath = storage_path('app/private/resumes/'.$resume->id.'.docx');
+    $zip = new \ZipArchive;
+    $zip->open($fullPath);
+    $xmlContent = $zip->getFromName('word/document.xml');
+    $zip->close();
+
+    expect($xmlContent)
+        ->toContain('Work Experience')
+        ->toContain('Acme Corp')
+        ->toContain('Jan 2020')
+        ->toContain('Led')
+        ->toContain('Built scalable systems');
+});
+
+test('docx contains bold and italic xml tags', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+    $variant = ResumeSectionVariant::factory()->create([
+        'resume_section_id' => $section->id,
+        'content' => '**Bold text** and *italic text*',
+    ]);
+    $section->update(['selected_variant_id' => $variant->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/export/docx")
+        ->assertSuccessful();
+
+    $fullPath = storage_path('app/private/resumes/'.$resume->id.'.docx');
+    $zip = new \ZipArchive;
+    $zip->open($fullPath);
+    $xmlContent = $zip->getFromName('word/document.xml');
+    $zip->close();
+
+    // Verify bold tag exists (w:b or w:b/)
+    expect($xmlContent)->toMatch('/<w:b[\s\/]/')
+        ->and($xmlContent)->toContain('Bold text');
+
+    // Verify italic tag exists (w:i or w:i/)
+    expect($xmlContent)->toMatch('/<w:i[\s\/]/')
+        ->and($xmlContent)->toContain('italic text');
+});
+
+test('docx has us letter page size', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+    $variant = ResumeSectionVariant::factory()->create(['resume_section_id' => $section->id]);
+    $section->update(['selected_variant_id' => $variant->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/export/docx")
+        ->assertSuccessful();
+
+    $fullPath = storage_path('app/private/resumes/'.$resume->id.'.docx');
+    $zip = new \ZipArchive;
+    $zip->open($fullPath);
+    $xmlContent = $zip->getFromName('word/document.xml');
+    $zip->close();
+
+    // US Letter in twips: 12240 x 15840
+    expect($xmlContent)->toContain('w:w="12240"')
+        ->and($xmlContent)->toContain('w:h="15840"');
+});
+
+test('docx document xml is well-formed', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+    $variant = ResumeSectionVariant::factory()->create([
+        'resume_section_id' => $section->id,
+        'content' => "### Company\n**Bold** and *italic*\n- List item one\n- List item two\n1. Numbered one\n2. Numbered two",
+    ]);
+    $section->update(['selected_variant_id' => $variant->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/export/docx")
+        ->assertSuccessful();
+
+    $fullPath = storage_path('app/private/resumes/'.$resume->id.'.docx');
+    $zip = new \ZipArchive;
+    $zip->open($fullPath);
+    $xmlContent = $zip->getFromName('word/document.xml');
+    $zip->close();
+
+    // Verify the XML is well-formed by loading it
+    $doc = new \DOMDocument;
+    $result = $doc->loadXML($xmlContent);
+    expect($result)->toBeTrue();
+});
+
+test('pdf export has letter page size', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+    $variant = ResumeSectionVariant::factory()->create(['resume_section_id' => $section->id]);
+    $section->update(['selected_variant_id' => $variant->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/export/pdf")
+        ->assertSuccessful();
+
+    $fullPath = storage_path('app/private/resumes/'.$resume->id.'.pdf');
+    expect(file_exists($fullPath))->toBeTrue();
+
+    $parser = new \Smalot\PdfParser\Parser;
+    $pdf = $parser->parseFile($fullPath);
+    $pages = $pdf->getPages();
+
+    expect($pages)->not->toBeEmpty();
+
+    $details = $pages[0]->getDetails();
+    // US Letter: 612 x 792 points
+    if (isset($details['MediaBox'])) {
+        $width = (float) $details['MediaBox'][2];
+        $height = (float) $details['MediaBox'][3];
+        expect($width)->toBeBetween(610, 614)
+            ->and($height)->toBeBetween(790, 794);
+    }
+});

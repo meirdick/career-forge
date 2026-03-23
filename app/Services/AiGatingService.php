@@ -87,6 +87,11 @@ class AiGatingService
             'ai.default' => $originalDefault,
             'ai.default_model' => $originalDefaultModel,
         ]);
+
+        // Remove BYOK provider config to prevent leakage between queue jobs
+        if (config()->has('ai.providers.byok')) {
+            config(['ai.providers.byok' => null]);
+        }
     }
 
     public function chargeCredits(User $user, AiPurpose $purpose, ?int $aiInteractionId = null): void

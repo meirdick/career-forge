@@ -8,8 +8,7 @@
     "mcp": true,
     "nightwatch_mcp": true,
     "packages": [
-        "laravel/fortify",
-        "laravel/ai"
+        "laravel/fortify"
     ],
     "sail": false,
     "skills": [
@@ -17,8 +16,8 @@
         "pest-testing",
         "inertia-react-development",
         "tailwindcss-development",
-        "ai-sdk-development",
         "developing-with-fortify",
-        "growth-product-context"
+        "growth-product-context",
+        "laravel-cloudflare-ai-gateway"
     ]
 }

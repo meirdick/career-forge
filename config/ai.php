@@ -192,7 +192,7 @@ return [
         ],
 
         'workers-ai' => [
-            'driver' => 'xai',
+            'driver' => 'workers-ai',
             'key' => env('CLOUDFLARE_AI_API_KEY'),
             'url' => env('WORKERS_AI_URL'),
             'models' => [

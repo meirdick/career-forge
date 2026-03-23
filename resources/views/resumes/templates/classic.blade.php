@@ -4,13 +4,17 @@
     <meta charset="utf-8">
     <title>{{ $header['name'] ?? $user->name ?? 'Resume' }}</title>
     <style>
+        @page {
+            size: letter;
+            margin: 0.5in 0.6in;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Calibri', 'Helvetica Neue', 'Arial', sans-serif;
             font-size: 10.5pt;
             line-height: 1.4;
             color: #1a1a1a;
-            padding: 36px 48px;
+            padding: 0;
         }
         .contact-header {
             text-align: center;
@@ -34,6 +38,7 @@
         }
         .section {
             margin-top: 14px;
+            page-break-inside: avoid;
         }
         .section h2 {
             font-size: 11pt;
@@ -44,6 +49,7 @@
             border-bottom: 1.5px solid #333;
             padding-bottom: 2px;
             margin-bottom: 6px;
+            page-break-after: avoid;
         }
         .section-content {
             font-size: 10.5pt;

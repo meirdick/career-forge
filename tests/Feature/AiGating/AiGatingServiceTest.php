@@ -121,6 +121,30 @@ test('configureRuntimeProvider does nothing for non-byok users', function () {
     expect(config('ai.default'))->toBe(['anthropic', 'gemini']);
 });
 
+test('configureRuntimeProvider clears byok config between sequential calls', function () {
+    $byokUser = User::factory()->create();
+    UserApiKey::factory()->active()->create([
+        'user_id' => $byokUser->id,
+        'provider' => 'anthropic',
+        'encrypted_key' => 'sk-test-key-456',
+    ]);
+
+    $creditsUser = User::factory()->create();
+    CreditBalance::factory()->withBalance(100)->create(['user_id' => $creditsUser->id]);
+
+    $service = app(AiGatingService::class);
+
+    // First call sets BYOK config
+    $service->configureRuntimeProvider($byokUser);
+    expect(config('ai.providers.byok.driver'))->toBe('anthropic');
+    expect(config('ai.default'))->toBe('byok');
+
+    // Second call for a non-BYOK user should clear BYOK config
+    $service->configureRuntimeProvider($creditsUser);
+    expect(config('ai.providers.byok'))->toBeNull();
+    expect(config('ai.default'))->toBe(['anthropic', 'gemini']);
+});
+
 test('chargeCredits deducts from balance for credits mode', function () {
     $user = User::factory()->create();
     CreditBalance::factory()->withBalance(100)->create(['user_id' => $user->id]);

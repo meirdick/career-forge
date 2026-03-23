@@ -45,8 +45,28 @@ class ResumeExportService
         $phpWord->setDefaultFontName($styles['font']);
         $phpWord->setDefaultFontSize($styles['bodySize']);
 
-        $phpWord->addTitleStyle(1, ['bold' => true, 'size' => $styles['titleSize'], 'color' => $styles['headingColor']]);
-        $phpWord->addTitleStyle(2, ['bold' => true, 'size' => $styles['sectionSize'], 'color' => $styles['headingColor']]);
+        // Set OOXML compatibility to Word 2013+
+        $phpWord->getCompatibility()->setOoxmlVersion(15);
+
+        // Set document properties
+        $docInfo = $phpWord->getDocInfo();
+        $docInfo->setCreator('CareerForge');
+        $docInfo->setTitle($this->sanitizeForXml($header['name'] ?? 'Resume'));
+
+        $phpWord->addTitleStyle(1, [
+            'bold' => true,
+            'size' => $styles['titleSize'],
+            'color' => $styles['headingColor'],
+        ], [
+            'keepNext' => true,
+        ]);
+        $phpWord->addTitleStyle(2, [
+            'bold' => true,
+            'size' => $styles['sectionSize'],
+            'color' => $styles['headingColor'],
+        ], [
+            'keepNext' => true,
+        ]);
 
         $section = $phpWord->addSection([
             'pageSizeW' => 12240,
@@ -124,7 +144,7 @@ class ResumeExportService
             'user' => $resume->user,
             'header' => $header,
             'template' => $template,
-        ]);
+        ])->setPaper('letter');
 
         $path = 'resumes/'.$resume->id.'.pdf';
         $fullPath = storage_path('app/private/'.$path);
@@ -180,13 +200,13 @@ class ResumeExportService
 
     private function addFormattedText(\PhpOffice\PhpWord\Element\Section $section, string $text, array $styles): void
     {
-        $textRun = $section->addTextRun();
+        $textRun = $section->addTextRun([]);
         $this->parseInlineFormatting($textRun, $text, $styles);
     }
 
     private function addFormattedListItem(\PhpOffice\PhpWord\Element\Section $section, string $text, array $styles): void
     {
-        $listItemRun = $section->addListItemRun(0);
+        $listItemRun = $section->addListItemRun(0, null, ['keepLines' => true]);
         $this->parseInlineFormatting($listItemRun, $text, $styles);
     }
 
@@ -199,18 +219,18 @@ class ResumeExportService
         $parts = preg_split('/(\*\*[^*]+\*\*|\*[^*]+\*)/', $text, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
 
         if ($parts === false) {
-            $container->addText($text);
+            $container->addText($text, ['size' => $styles['bodySize']]);
 
             return;
         }
 
         foreach ($parts as $part) {
             if (preg_match('/^\*\*(.+)\*\*$/', $part, $matches)) {
-                $container->addText($matches[1], ['bold' => true]);
+                $container->addText($matches[1], ['bold' => true, 'size' => $styles['bodySize']]);
             } elseif (preg_match('/^\*(.+)\*$/', $part, $matches)) {
-                $container->addText($matches[1], ['italic' => true]);
+                $container->addText($matches[1], ['italic' => true, 'size' => $styles['bodySize']]);
             } else {
-                $container->addText($part);
+                $container->addText($part, ['size' => $styles['bodySize']]);
             }
         }
     }
