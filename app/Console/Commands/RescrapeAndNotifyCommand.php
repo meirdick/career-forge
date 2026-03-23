@@ -3,20 +3,22 @@
 namespace App\Console\Commands;
 
 use App\Jobs\AnalyzeJobPostingJob;
-use App\Jobs\FetchJobPostingUrlJob;
 use App\Models\JobPosting;
 use App\Notifications\JobPostingAnalyzed;
+use App\Services\Scrapers\ContentQualityAnalyzer;
+use App\Services\WebScraperService;
 use Illuminate\Console\Command;
 
 class RescrapeAndNotifyCommand extends Command
 {
     protected $signature = 'posting:rescrape-notify
         {id : The job posting ID to rescrape and re-analyze}
-        {--notify-only : Skip rescraping, just send the notification}';
+        {--notify-only : Skip rescraping, just send the notification}
+        {--dry-run : Scrape and show results without saving or notifying}';
 
     protected $description = 'Rescrape a job posting URL with the new drivers, re-analyze, and send the notification';
 
-    public function handle(): int
+    public function handle(WebScraperService $scraper): int
     {
         $posting = JobPosting::with(['user', 'idealCandidateProfile'])->find($this->argument('id'));
 
@@ -47,21 +49,38 @@ class RescrapeAndNotifyCommand extends Command
             return self::SUCCESS;
         }
 
-        // Rescrape
-        $this->info('Rescraping...');
-        FetchJobPostingUrlJob::dispatchSync($posting);
-        $posting->refresh();
+        // Scrape fresh — bypass FetchJobPostingUrlJob which skips when raw_text exists
+        $this->info('Scraping fresh...');
+        $content = $scraper->scrape($posting->url);
 
-        $this->line('  raw_text after scrape: '.(filled($posting->raw_text) ? strlen($posting->raw_text).' chars' : 'empty'));
-
-        if (blank($posting->raw_text)) {
-            $this->error('Scraping failed — no content extracted.');
+        if (blank($content)) {
+            $this->error('Scraping failed — no content returned.');
 
             return self::FAILURE;
         }
 
-        // Re-analyze
-        $this->info('Analyzing...');
+        $quality = ContentQualityAnalyzer::analyze($content);
+        $this->line("  Scrape length: {$this->contentLength($content)} chars");
+        $this->line("  Quality: {$quality->score}/{$quality->maxScore}");
+        $this->line('  Signals: '.$this->formatSignals($quality->signals));
+
+        if (! $quality->isValid) {
+            $this->error("Scrape failed quality check ({$quality->score}/{$quality->maxScore}). Not sending.");
+
+            return self::FAILURE;
+        }
+
+        if ($this->option('dry-run')) {
+            $this->info('Dry run — not saving or notifying.');
+            $this->line(substr($content, 0, 500).'...');
+
+            return self::SUCCESS;
+        }
+
+        // Save and analyze
+        $posting->update(['raw_text' => $content]);
+        $this->info('Content saved. Analyzing...');
+
         AnalyzeJobPostingJob::dispatchSync($posting);
         $posting->refresh();
 
@@ -73,5 +92,24 @@ class RescrapeAndNotifyCommand extends Command
         $this->line("  Compensation: {$posting->compensation}");
 
         return self::SUCCESS;
+    }
+
+    private function contentLength(string $content): int
+    {
+        return mb_strlen(trim($content));
+    }
+
+    /**
+     * @param  array<string, bool>  $signals
+     */
+    private function formatSignals(array $signals): string
+    {
+        $parts = [];
+
+        foreach ($signals as $name => $passed) {
+            $parts[] = ($passed ? '+' : '-').$name;
+        }
+
+        return implode(' ', $parts);
     }
 }
