@@ -116,7 +116,7 @@ return [
     ],
 
     'markdown' => [
-        'theme' => 'careerforge',
+        'theme' => 'themes.careerforge',
     ],
 
 ];
