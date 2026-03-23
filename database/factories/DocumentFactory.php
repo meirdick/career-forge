@@ -26,4 +26,44 @@ class DocumentFactory extends Factory
             'metadata' => null,
         ];
     }
+
+    public function resumeImport(): static
+    {
+        return $this->state(fn () => [
+            'metadata' => ['purpose' => 'resume_import'],
+        ]);
+    }
+
+    public function parsed(): static
+    {
+        return $this->resumeImport()->state(fn () => [
+            'metadata' => [
+                'purpose' => 'resume_import',
+                'parsed_at' => now()->toIso8601String(),
+                'text_length' => 4000,
+            ],
+            'parsed_data' => [
+                'experiences' => [
+                    ['company' => 'Acme Corp', 'title' => 'Senior Engineer', 'location' => 'San Francisco, CA', 'started_at' => '2020-01-01', 'ended_at' => null, 'is_current' => true, 'description' => 'Built scalable systems.'],
+                    ['company' => 'StartupCo', 'title' => 'Engineer', 'location' => 'New York, NY', 'started_at' => '2017-06-01', 'ended_at' => '2019-12-31', 'is_current' => false, 'description' => 'Full-stack development.'],
+                ],
+                'skills' => [
+                    ['name' => 'PHP', 'category' => 'technical'],
+                    ['name' => 'Laravel', 'category' => 'technical'],
+                    ['name' => 'React', 'category' => 'technical'],
+                    ['name' => 'Leadership', 'category' => 'soft'],
+                ],
+                'accomplishments' => [
+                    ['title' => 'Reduced latency by 50%', 'description' => 'Optimized database queries.', 'impact' => '50% latency reduction', 'experience_index' => 0],
+                ],
+                'education' => [
+                    ['type' => 'degree', 'institution' => 'MIT', 'title' => 'B.S. Computer Science', 'field' => 'Computer Science', 'completed_at' => '2017-05-15'],
+                ],
+                'projects' => [],
+                'urls' => [
+                    ['url' => 'https://linkedin.com/in/test', 'type' => 'linkedin', 'label' => 'LinkedIn'],
+                ],
+            ],
+        ]);
+    }
 }

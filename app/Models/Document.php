@@ -21,12 +21,14 @@ class Document extends Model
         'mime_type',
         'size',
         'metadata',
+        'parsed_data',
     ];
 
     protected function casts(): array
     {
         return [
             'metadata' => 'array',
+            'parsed_data' => 'array',
             'size' => 'integer',
         ];
     }

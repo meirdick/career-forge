@@ -7,6 +7,8 @@ use App\Concerns\ConfiguresAiForUser;
 use App\Enums\AiPurpose;
 use App\Models\Document;
 use App\Models\User;
+use App\Notifications\ResumeUploadAnalyzed;
+use App\Notifications\ResumeUploadFailed;
 use App\Services\DocumentExtractorService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -44,20 +46,23 @@ class ParseResumeJob implements ShouldQueue
         $prompt = view('prompts.resume-parser', ['text' => $text])->render();
         $response = (new ResumeParser)->prompt($prompt);
 
+        $parsedData = [
+            'experiences' => $response['experiences'] ?? [],
+            'accomplishments' => $response['accomplishments'] ?? [],
+            'skills' => $response['skills'] ?? [],
+            'education' => $response['education'] ?? [],
+            'projects' => $response['projects'] ?? [],
+            'urls' => $response['urls'] ?? [],
+        ];
+
         $cacheKey = "resume-parse:{$this->document->id}";
         Cache::put($cacheKey, [
             'status' => 'completed',
-            'data' => [
-                'experiences' => $response['experiences'] ?? [],
-                'accomplishments' => $response['accomplishments'] ?? [],
-                'skills' => $response['skills'] ?? [],
-                'education' => $response['education'] ?? [],
-                'projects' => $response['projects'] ?? [],
-                'urls' => $response['urls'] ?? [],
-            ],
+            'data' => $parsedData,
         ], now()->addHour());
 
         $this->document->update([
+            'parsed_data' => $parsedData,
             'metadata' => array_merge($this->document->metadata ?? [], [
                 'parsed_at' => now()->toIso8601String(),
                 'text_length' => mb_strlen($text),
@@ -65,6 +70,8 @@ class ParseResumeJob implements ShouldQueue
         ]);
 
         $this->chargeAiUsage($this->user, AiPurpose::ResumeParsing);
+
+        $this->user->notify(new ResumeUploadAnalyzed($this->document));
     }
 
     public function failed(\Throwable $exception): void
@@ -74,5 +81,7 @@ class ParseResumeJob implements ShouldQueue
             'status' => 'failed',
             'error' => $exception->getMessage(),
         ], now()->addHour());
+
+        $this->user->notify(new ResumeUploadFailed($this->document));
     }
 }

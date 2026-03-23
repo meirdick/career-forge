@@ -322,3 +322,30 @@ test('review page matchAnalysis is null when parse is processing', function () {
                 ->where('matchAnalysis', null)
         );
 });
+
+test('review page falls back to database when cache is expired', function () {
+    $document = Document::factory()->parsed()->create(['user_id' => $this->user->id]);
+
+    // No cache entry — simulates expired cache
+    $this->actingAs($this->user)
+        ->get("/resume-upload/{$document->id}/review")
+        ->assertSuccessful()
+        ->assertInertia(
+            fn ($page) => $page
+                ->where('parseResult.status', 'completed')
+                ->has('parseResult.data.experiences', 2)
+                ->has('parseResult.data.skills', 4)
+        );
+});
+
+test('review page shows processing when no cache and no parsed data', function () {
+    $document = Document::factory()->resumeImport()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resume-upload/{$document->id}/review")
+        ->assertSuccessful()
+        ->assertInertia(
+            fn ($page) => $page
+                ->where('parseResult.status', 'processing')
+        );
+});

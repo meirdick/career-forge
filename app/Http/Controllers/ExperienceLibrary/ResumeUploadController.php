@@ -69,7 +69,16 @@ class ResumeUploadController extends Controller
         abort_unless($document->user_id === $request->user()->id, 403);
 
         $cacheKey = "resume-parse:{$document->id}";
-        $parseResult = Cache::get($cacheKey, ['status' => 'processing']);
+        $parseResult = Cache::get($cacheKey);
+
+        if (! $parseResult && $document->parsed_data) {
+            $parseResult = [
+                'status' => 'completed',
+                'data' => $document->parsed_data,
+            ];
+        }
+
+        $parseResult ??= ['status' => 'processing'];
 
         $matchAnalysis = null;
         if (($parseResult['status'] ?? null) === 'completed' && isset($parseResult['data'])) {
