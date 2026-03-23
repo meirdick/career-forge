@@ -6,6 +6,7 @@ use App\Ai\Agents\JobAnalyzer;
 use App\Concerns\ConfiguresAiForUser;
 use App\Enums\AiPurpose;
 use App\Models\JobPosting;
+use App\Notifications\JobPostingAnalyzed;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -56,5 +57,7 @@ class AnalyzeJobPostingJob implements ShouldQueue
         );
 
         $this->chargeAiUsage($this->jobPosting->user, AiPurpose::JobAnalysis);
+
+        $this->jobPosting->user->notify(new JobPostingAnalyzed($this->jobPosting));
     }
 }

@@ -9,8 +9,6 @@ use Illuminate\Support\Facades\Log;
 
 class CloudflareScraperDriver implements WebScraperContract
 {
-    private const int MIN_CONTENT_LENGTH = 200;
-
     public function isConfigured(): bool
     {
         return filled(config('services.cloudflare_browser.account_id'))
@@ -73,7 +71,7 @@ class CloudflareScraperDriver implements WebScraperContract
             'rejectResourceTypes' => ['image', 'font', 'media', 'stylesheet'],
         ], 15);
 
-        if ($this->isContentSufficient($result)) {
+        if (filled($result) && ContentQualityAnalyzer::isJobPostingContent($result)) {
             return $result;
         }
 
@@ -127,10 +125,5 @@ class CloudflareScraperDriver implements WebScraperContract
 
             return null;
         }
-    }
-
-    private function isContentSufficient(?string $content): bool
-    {
-        return filled($content) && mb_strlen(trim($content)) >= self::MIN_CONTENT_LENGTH;
     }
 }

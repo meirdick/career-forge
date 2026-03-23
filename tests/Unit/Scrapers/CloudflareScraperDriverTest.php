@@ -5,6 +5,38 @@ use Illuminate\Support\Facades\Http;
 
 uses(Tests\TestCase::class);
 
+function realisticJobMarkdown(): string
+{
+    return <<<'MD'
+    # Senior Software Engineer
+
+    ## About Us
+
+    Acme Corp is a leading technology company building innovative solutions for the modern workforce.
+
+    ## Responsibilities
+
+    - Design and implement scalable microservices architecture
+    - Lead code reviews and mentor junior engineers on the team
+    - Collaborate with product managers to define technical requirements
+
+    ## Requirements
+
+    - 5+ years of professional software engineering experience
+    - Strong proficiency in Python, Go, or similar languages
+    - Experience with distributed systems and cloud platforms
+
+    ## Benefits
+
+    - Competitive salary range of $150,000 - $200,000 per year
+    - Comprehensive health, dental, and vision insurance
+
+    ## How to Apply
+
+    Submit your resume and a brief cover letter explaining why you are interested in this role.
+    MD;
+}
+
 beforeEach(function () {
     config()->set('services.cloudflare_browser.account_id', 'test-account-id');
     config()->set('services.cloudflare_browser.api_token', 'test-api-token');
@@ -34,7 +66,7 @@ test('isConfigured returns false when api_token is missing', function () {
 });
 
 test('scrape returns immediately when Phase 1 returns sufficient content', function () {
-    $sufficientContent = str_repeat('a', 200);
+    $sufficientContent = realisticJobMarkdown();
 
     Http::fake([
         'api.cloudflare.com/*' => Http::response([
@@ -56,9 +88,9 @@ test('scrape returns immediately when Phase 1 returns sufficient content', funct
     });
 });
 
-test('scrape falls through to Phase 2 when Phase 1 returns short content', function () {
-    $shortContent = 'nav only';
-    $fullContent = str_repeat('b', 300);
+test('scrape falls through to Phase 2 when Phase 1 returns shell content', function () {
+    $shortContent = "Skip to content\nSign in\nLoading...\n© 2024 Workday, Inc. All rights reserved.";
+    $fullContent = realisticJobMarkdown();
 
     Http::fakeSequence('api.cloudflare.com/*')
         ->push(['result' => $shortContent])

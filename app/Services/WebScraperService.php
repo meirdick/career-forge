@@ -3,12 +3,11 @@
 namespace App\Services;
 
 use App\Contracts\WebScraperContract;
+use App\Services\Scrapers\ContentQualityAnalyzer;
 use Illuminate\Support\Facades\Log;
 
 class WebScraperService
 {
-    private const int MIN_CONTENT_LENGTH = 200;
-
     /** @var list<string> */
     private const array UNSUPPORTED_DOMAINS = [
         'linkedin.com',
@@ -70,13 +69,15 @@ class WebScraperService
     /**
      * Scrape a URL to markdown, trying each configured driver in order.
      *
-     * Drivers that return content shorter than MIN_CONTENT_LENGTH are treated
-     * as insufficient — the next driver is tried. If all drivers return short
-     * content, the longest result is returned as a best-effort fallback.
+     * Drivers that return content failing the quality analyzer are treated
+     * as insufficient — the next driver is tried. If all drivers return
+     * low-quality content, the highest-scoring result is returned as a
+     * best-effort fallback.
      */
     public function scrape(string $url): ?string
     {
         $bestResult = null;
+        $bestScore = -1;
 
         foreach ($this->drivers as $driver) {
             if (! $driver->isConfigured()) {
@@ -85,12 +86,17 @@ class WebScraperService
 
             $result = $driver->scrape($url);
 
-            if (filled($result) && mb_strlen(trim($result)) >= self::MIN_CONTENT_LENGTH) {
+            if (filled($result) && ContentQualityAnalyzer::isJobPostingContent($result)) {
                 return $result;
             }
 
-            if (filled($result) && (! $bestResult || mb_strlen($result) > mb_strlen($bestResult))) {
-                $bestResult = $result;
+            if (filled($result)) {
+                $quality = ContentQualityAnalyzer::analyze($result);
+
+                if ($quality->score > $bestScore) {
+                    $bestScore = $quality->score;
+                    $bestResult = $result;
+                }
             }
 
             Log::warning('Scraper driver returned insufficient content, trying next driver', [
