@@ -28,65 +28,24 @@ class JobPostingAnalyzed extends Notification implements ShouldQueue
     {
         $title = $this->jobPosting->title ?? 'Untitled Position';
         $company = $this->jobPosting->company ?? 'Unknown Company';
-        $location = $this->jobPosting->location;
         $profile = $this->jobPosting->idealCandidateProfile;
 
-        $message = (new MailMessage)
+        return (new MailMessage)
             ->subject("Job Analysis Complete: {$title} at {$company}")
             ->replyTo('careerforge@meirdick.com', 'CareerForge')
-            ->greeting('Your job posting has been analyzed!')
-            ->line("**{$title}** at **{$company}**".($location ? " — {$location}" : ''));
-
-        $message->line($this->formatDetailsLine());
-
-        if ($profile?->candidate_summary) {
-            $message->line('---');
-            $message->line("**What they're looking for**");
-            $message->line($profile->candidate_summary);
-        }
-
-        if (filled($profile?->required_skills)) {
-            $skillNames = collect($profile->required_skills)
-                ->map(fn (array $skill) => $skill['name'].($skill['years'] ?? 0 ? " ({$skill['years']}+ yrs)" : ''))
-                ->implode(' · ');
-
-            $message->line("**Must-have skills:** {$skillNames}");
-        }
-
-        if (filled($profile?->preferred_skills)) {
-            $bonusNames = collect($profile->preferred_skills)
-                ->pluck('name')
-                ->implode(' · ');
-
-            $message->line("**Nice-to-have:** {$bonusNames}");
-        }
-
-        if (filled($profile?->red_flags)) {
-            $flags = collect($profile->red_flags)
-                ->take(3)
-                ->implode(' · ');
-
-            $message->line("**Red flags to avoid:** {$flags}");
-        }
-
-        return $message
-            ->action('View Full Analysis', route('job-postings.show', $this->jobPosting))
-            ->line('Generate a gap analysis and tailored resume to see how you match up.');
-    }
-
-    private function formatDetailsLine(): string
-    {
-        $parts = array_filter([
-            $this->jobPosting->seniority_level,
-            $this->jobPosting->remote_policy,
-            $this->jobPosting->compensation,
-        ]);
-
-        if ($parts === []) {
-            return '';
-        }
-
-        return implode(' · ', $parts);
+            ->markdown('mail.job-posting-analyzed', [
+                'title' => $title,
+                'company' => $company,
+                'location' => $this->jobPosting->location,
+                'seniority' => $this->jobPosting->seniority_level,
+                'remote' => $this->jobPosting->remote_policy,
+                'compensation' => $this->jobPosting->compensation,
+                'summary' => $profile?->candidate_summary,
+                'experience' => $profile?->experience_profile,
+                'culturalFit' => $profile?->cultural_fit,
+                'redFlags' => $profile?->red_flags ?? [],
+                'url' => route('job-postings.show', $this->jobPosting),
+            ]);
     }
 
     /**
