@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Services\Scrapers\AtsApiDriver;
 use App\Services\Scrapers\CloudflareScraperDriver;
 use App\Services\Scrapers\FirecrawlScraperDriver;
+use App\Services\Scrapers\JsonLdScraperDriver;
 use App\Services\WebScraperService;
 use Carbon\CarbonImmutable;
 use GuzzleHttp\Psr7\Response as GuzzleResponse;
@@ -23,6 +25,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(WebScraperService::class, fn ($app) => new WebScraperService([
+            $app->make(AtsApiDriver::class),
+            $app->make(JsonLdScraperDriver::class),
             $app->make(CloudflareScraperDriver::class),
             $app->make(FirecrawlScraperDriver::class),
         ]));

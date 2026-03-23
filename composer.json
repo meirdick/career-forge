@@ -20,6 +20,7 @@
         "laravel/tinker": "^2.10.1",
         "laravel/wayfinder": "^0.1.9",
         "league/flysystem-aws-s3-v3": "^3.32",
+        "league/html-to-markdown": "^5.1",
         "meirdick/prism-workers-ai": "^0.1",
         "phpoffice/phpword": "^1.4",
         "smalot/pdfparser": "^2.12",
