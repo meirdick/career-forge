@@ -95,19 +95,19 @@ return [
     'purpose_providers' => [
         'chat_message' => [
             'providers' => env('AI_CHAT_PROVIDERS', env('AI_CHAT_PROVIDER', 'workers-ai,gemini')),
-            'model' => env('AI_CHAT_MODEL'),
+            'model' => env('AI_CHAT_MODEL', 'workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast'),
         ],
         'content_enhance' => [
             'providers' => env('AI_CONTENT_ENHANCE_PROVIDERS', env('AI_CONTENT_ENHANCE_PROVIDER', 'workers-ai,gemini')),
-            'model' => env('AI_CONTENT_ENHANCE_MODEL'),
+            'model' => env('AI_CONTENT_ENHANCE_MODEL', 'workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast'),
         ],
         'gap_reframe' => [
             'providers' => env('AI_GAP_REFRAME_PROVIDERS', env('AI_GAP_REFRAME_PROVIDER', 'workers-ai,gemini')),
-            'model' => env('AI_GAP_REFRAME_MODEL'),
+            'model' => env('AI_GAP_REFRAME_MODEL', 'workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast'),
         ],
         'link_indexing' => [
             'providers' => env('AI_LINK_INDEXING_PROVIDERS', env('AI_LINK_INDEXING_PROVIDER', 'workers-ai,gemini')),
-            'model' => env('AI_LINK_INDEXING_MODEL'),
+            'model' => env('AI_LINK_INDEXING_MODEL', 'workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast'),
         ],
         'resume_generation' => [
             'providers' => env('AI_RESUME_GENERATION_PROVIDERS', env('AI_RESUME_GENERATION_PROVIDER', 'workers-ai,gemini')),
