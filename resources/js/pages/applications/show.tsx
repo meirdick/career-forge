@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import axios from 'axios';
-import { FileText, Globe, Loader2, Mail, Pencil, Trash2 } from 'lucide-react';
+import { Download, FileText, Globe, Loader2, Mail, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import PipelineAssistantPanel from '@/components/pipeline-assistant-panel';
@@ -188,16 +188,28 @@ export default function ShowApplication({ application }: { application: Applicat
                         <CardTitle className="text-base">Cover Letter</CardTitle>
                         <div className="flex gap-2">
                             {coverLetter && !editingCoverLetter && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                        setCoverLetterDraft(coverLetter);
-                                        setEditingCoverLetter(true);
-                                    }}
-                                >
-                                    <Pencil className="mr-1 h-4 w-4" /> Edit
-                                </Button>
+                                <>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            setCoverLetterDraft(coverLetter);
+                                            setEditingCoverLetter(true);
+                                        }}
+                                    >
+                                        <Pencil className="mr-1 h-4 w-4" /> Edit
+                                    </Button>
+                                    <a href={`/applications/${application.id}/cover-letter/export/pdf`} download>
+                                        <Button variant="outline" size="sm" aria-label="Export cover letter as PDF">
+                                            <Download className="mr-1 h-4 w-4" /> PDF
+                                        </Button>
+                                    </a>
+                                    <a href={`/applications/${application.id}/cover-letter/export/docx`} download>
+                                        <Button variant="outline" size="sm" aria-label="Export cover letter as DOCX">
+                                            <Download className="mr-1 h-4 w-4" /> DOCX
+                                        </Button>
+                                    </a>
+                                </>
                             )}
                             {editingCoverLetter && (
                                 <>

@@ -5,6 +5,7 @@ namespace App\Ai\Tools;
 use App\Ai\Agents\CoverLetterWriter;
 use App\Models\Application;
 use App\Models\User;
+use App\Services\CoverLetterContextBuilder;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -25,7 +26,7 @@ class GenerateCoverLetter implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        $context = $this->buildWritingContext();
+        $context = app(CoverLetterContextBuilder::class)->build($this->user, $this->application);
         $instructions = $request['instructions'] ?? '';
 
         $prompt = 'Write a cover letter for this position.';
@@ -49,46 +50,5 @@ class GenerateCoverLetter implements Tool
         return [
             'instructions' => $schema->string(),
         ];
-    }
-
-    private function buildWritingContext(): string
-    {
-        $this->application->load(['jobPosting', 'resume.sections.variants']);
-
-        $this->user->loadMissing('links');
-
-        $contactInfo = collect([
-            'Name' => $this->user->name,
-            'Email' => $this->user->email,
-            'Phone' => $this->user->phone,
-            'Location' => $this->user->location,
-            'LinkedIn' => $this->user->linkedin_url,
-        ])->filter()->map(fn ($value, $label) => "{$label}: {$value}");
-
-        foreach ($this->user->links as $link) {
-            $contactInfo->push(ucfirst($link->type).': '.$link->url);
-        }
-
-        $contactInfo = $contactInfo->join("\n");
-
-        $parts = ["Candidate Contact Information:\n{$contactInfo}"];
-        $parts[] = "Company: {$this->application->company}";
-        $parts[] = "Role: {$this->application->role}";
-
-        if ($this->application->jobPosting) {
-            $parts[] = "Job Posting:\n{$this->application->jobPosting->raw_text}";
-        }
-
-        if ($this->application->resume) {
-            $sections = $this->application->resume->sections->map(function ($section) {
-                $variant = $section->variants->firstWhere('is_selected', true) ?? $section->variants->first();
-
-                return $variant ? "{$section->heading}:\n{$variant->content}" : null;
-            })->filter()->join("\n\n");
-
-            $parts[] = "Resume:\n{$sections}";
-        }
-
-        return implode("\n\n", $parts);
     }
 }

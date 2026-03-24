@@ -5,15 +5,23 @@ namespace App\Http\Controllers;
 use App\Ai\Agents\CoverLetterWriter;
 use App\Enums\ApplicationStatus;
 use App\Models\Application;
+use App\Services\CoverLetterContextBuilder;
+use App\Services\ResumeExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ApplicationController extends Controller
 {
+    public function __construct(
+        private CoverLetterContextBuilder $contextBuilder,
+        private ResumeExportService $exportService,
+    ) {}
+
     public function index(Request $request): Response
     {
         $applications = $request->user()
@@ -147,7 +155,7 @@ class ApplicationController extends Controller
     {
         abort_unless($application->user_id === $request->user()->id, 403);
 
-        $context = $this->buildWritingContext($request, $application);
+        $context = $this->contextBuilder->build($request->user(), $application);
 
         $response = (new CoverLetterWriter(context: $context))
             ->prompt('Write a cover letter for this position.');
@@ -161,7 +169,7 @@ class ApplicationController extends Controller
     {
         abort_unless($application->user_id === $request->user()->id, 403);
 
-        $context = $this->buildWritingContext($request, $application);
+        $context = $this->contextBuilder->build($request->user(), $application);
         $coverLetter = $application->cover_letter;
 
         $prompt = $coverLetter
@@ -176,55 +184,20 @@ class ApplicationController extends Controller
         return response()->json(['submission_email' => $response->text]);
     }
 
-    private function buildWritingContext(Request $request, Application $application): string
+    public function exportCoverLetter(Request $request, Application $application, string $format): BinaryFileResponse
     {
-        $application->load(['jobPosting', 'resume.sections.variants']);
-        $user = $request->user();
+        abort_unless($application->user_id === $request->user()->id, 403);
+        abort_unless(in_array($format, ['pdf', 'docx']), 404);
+        abort_unless($application->cover_letter, 404);
 
-        $contactInfo = collect([
-            'Name' => $user->name,
-            'Email' => $user->email,
-            'Phone' => $user->phone,
-            'Location' => $user->location,
-            'LinkedIn' => $user->linkedin_url,
-            'Portfolio' => $user->portfolio_url,
-        ])->filter()->map(fn ($value, $label) => "{$label}: {$value}")->join("\n");
+        $path = $format === 'pdf'
+            ? $this->exportService->coverLetterToPdf($application)
+            : $this->exportService->coverLetterToDocx($application);
 
-        $parts = ["Candidate Contact Information:\n{$contactInfo}"];
+        $fullPath = storage_path('app/private/'.$path);
+        $filename = 'Cover_Letter_'.str_replace(' ', '_', $application->company).'.'.$format;
 
-        $parts[] = "Company: {$application->company}";
-        $parts[] = "Role: {$application->role}";
-
-        if ($application->jobPosting) {
-            $parts[] = "Job Posting:\n{$application->jobPosting->raw_text}";
-        }
-
-        if ($application->resume) {
-            $sections = $application->resume->sections->map(function ($section) {
-                $variant = $section->variants->firstWhere('is_selected', true) ?? $section->variants->first();
-
-                return $variant ? "{$section->heading}:\n{$variant->content}" : null;
-            })->filter()->join("\n\n");
-
-            $parts[] = "Resume:\n{$sections}";
-        }
-
-        $identity = $user->professionalIdentity;
-        if ($identity) {
-            $identityParts = collect([
-                'Values' => $identity->values,
-                'Philosophy' => $identity->philosophy,
-                'Passions' => $identity->passions,
-                'Leadership Style' => $identity->leadership_style,
-                'Collaboration Approach' => $identity->collaboration_approach,
-                'Communication Style' => $identity->communication_style,
-                'Cultural Preferences' => $identity->cultural_preferences,
-            ])->filter()->map(fn ($value, $label) => "{$label}: {$value}")->join("\n");
-
-            $parts[] = "Professional Identity:\n{$identityParts}";
-        }
-
-        return implode("\n\n", $parts);
+        return response()->download($fullPath, $filename);
     }
 
     public function destroy(Request $request, Application $application): RedirectResponse
