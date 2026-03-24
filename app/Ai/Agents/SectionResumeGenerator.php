@@ -7,6 +7,7 @@ use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Attributes\MaxTokens;
 use Laravel\Ai\Attributes\Temperature;
 use Laravel\Ai\Attributes\Timeout;
+use Laravel\Ai\Attributes\UseSmartestModel;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasProviderOptions;
 use Laravel\Ai\Contracts\HasStructuredOutput;
@@ -16,6 +17,7 @@ use Stringable;
 #[MaxTokens(32768)]
 #[Temperature(0.5)]
 #[Timeout(120)]
+#[UseSmartestModel]
 class SectionResumeGenerator implements Agent, HasProviderOptions, HasStructuredOutput
 {
     use FailsOverOnBillingErrors;
