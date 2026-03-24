@@ -16,7 +16,7 @@ use Stringable;
 
 #[MaxTokens(32768)]
 #[Temperature(0.5)]
-#[Timeout(120)]
+#[Timeout(240)]
 #[UseSmartestModel]
 class SectionResumeGenerator implements Agent, HasProviderOptions, HasStructuredOutput
 {

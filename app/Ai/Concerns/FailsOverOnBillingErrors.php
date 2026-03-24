@@ -9,6 +9,7 @@ use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Events\AgentFailedOver;
 use Laravel\Ai\Exceptions\AiException;
 use Laravel\Ai\Exceptions\FailoverableException;
+use Laravel\Ai\Exceptions\ProviderOverloadedException;
 use Laravel\Ai\Exceptions\RateLimitedException;
 use Laravel\Ai\Promptable;
 use Laravel\Ai\Prompts\AgentPrompt;
@@ -129,7 +130,8 @@ trait FailsOverOnBillingErrors
                         'error' => $e->getMessage(),
                     ]);
 
-                    event(new AgentFailedOver($this, $provider, $model, $e));
+                    $failoverException = new ProviderOverloadedException($e->getMessage(), $e->getCode(), $e);
+                    event(new AgentFailedOver($this, $provider, $model, $failoverException));
 
                     continue;
                 }
@@ -138,7 +140,7 @@ trait FailsOverOnBillingErrors
             } catch (\Throwable $e) {
                 // Catch unexpected errors (e.g. TypeError from malformed provider responses)
                 // so the failover chain can try the next provider
-                $failoverException = new FailoverableException($e->getMessage(), $e->getCode(), $e);
+                $failoverException = new ProviderOverloadedException($e->getMessage(), $e->getCode(), $e);
                 $lastException = $e instanceof AiException ? $e : new AiException($e->getMessage(), $e->getCode(), $e);
 
                 Log::warning('AI provider unexpected error, failing over', [

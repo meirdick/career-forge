@@ -17,7 +17,7 @@ class GenerateResumeJob implements ShouldQueue
 {
     use ConfiguresAiForUser, Queueable;
 
-    public int $timeout = 300;
+    public int $timeout = 600;
 
     public int $tries = 3;
 
@@ -307,18 +307,32 @@ class GenerateResumeJob implements ShouldQueue
     }
 
     /**
+     * Return a per-section timeout in seconds. Experience and Projects sections
+     * produce block-based structured output for many items, so they need more time.
+     */
+    private function sectionTimeout(ResumeSectionType $type): int
+    {
+        return match ($type) {
+            ResumeSectionType::Experience, ResumeSectionType::Projects => 240,
+            default => 120,
+        };
+    }
+
+    /**
      * Prompt the AI for variants, retrying once if the response is malformed.
      */
     private function promptForVariants(SectionResumeGenerator $agent, string $prompt, ResumeSectionType $type): array
     {
-        $response = $agent->prompt($prompt);
+        $timeout = $this->sectionTimeout($type);
+
+        $response = $agent->prompt($prompt, timeout: $timeout);
         $variants = $this->extractVariants($response);
 
         if (empty($variants)) {
             Log::warning("Resume section [{$type->value}] returned invalid variants, retrying once");
             sleep(2);
 
-            $response = $agent->prompt($prompt);
+            $response = $agent->prompt($prompt, timeout: $timeout);
             $variants = $this->extractVariants($response);
         }
 
