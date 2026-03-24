@@ -138,6 +138,7 @@ trait FailsOverOnBillingErrors
             } catch (\Throwable $e) {
                 // Catch unexpected errors (e.g. TypeError from malformed provider responses)
                 // so the failover chain can try the next provider
+                $failoverException = new FailoverableException($e->getMessage(), $e->getCode(), $e);
                 $lastException = $e instanceof AiException ? $e : new AiException($e->getMessage(), $e->getCode(), $e);
 
                 Log::warning('AI provider unexpected error, failing over', [
@@ -148,7 +149,7 @@ trait FailsOverOnBillingErrors
                     'error' => $e->getMessage(),
                 ]);
 
-                event(new AgentFailedOver($this, $provider, $model, $lastException));
+                event(new AgentFailedOver($this, $provider, $model, $failoverException));
 
                 continue;
             }
