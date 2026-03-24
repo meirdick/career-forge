@@ -110,31 +110,31 @@ return [
             'model' => env('AI_LINK_INDEXING_MODEL', 'workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast'),
         ],
         'resume_generation' => [
-            'providers' => env('AI_RESUME_GENERATION_PROVIDERS', env('AI_RESUME_GENERATION_PROVIDER', 'workers-ai,gemini')),
+            'providers' => env('AI_RESUME_GENERATION_PROVIDERS', env('AI_RESUME_GENERATION_PROVIDER', 'gemini,workers-ai')),
             'model' => env('AI_RESUME_GENERATION_MODEL'),
         ],
         'resume_parsing' => [
-            'providers' => env('AI_RESUME_PARSING_PROVIDERS', 'workers-ai,gemini'),
+            'providers' => env('AI_RESUME_PARSING_PROVIDERS', 'gemini,workers-ai'),
             'model' => env('AI_RESUME_PARSING_MODEL'),
         ],
         'job_analysis' => [
-            'providers' => env('AI_JOB_ANALYSIS_PROVIDERS', 'workers-ai,gemini'),
+            'providers' => env('AI_JOB_ANALYSIS_PROVIDERS', 'gemini,workers-ai'),
             'model' => env('AI_JOB_ANALYSIS_MODEL'),
         ],
         'gap_analysis' => [
-            'providers' => env('AI_GAP_ANALYSIS_PROVIDERS', 'workers-ai,gemini'),
+            'providers' => env('AI_GAP_ANALYSIS_PROVIDERS', 'gemini,workers-ai'),
             'model' => env('AI_GAP_ANALYSIS_MODEL'),
         ],
         'cover_letter' => [
-            'providers' => env('AI_COVER_LETTER_PROVIDERS', 'workers-ai,gemini'),
+            'providers' => env('AI_COVER_LETTER_PROVIDERS', 'gemini,workers-ai'),
             'model' => env('AI_COVER_LETTER_MODEL'),
         ],
         'experience_extract' => [
-            'providers' => env('AI_EXPERIENCE_EXTRACT_PROVIDERS', 'workers-ai,gemini'),
+            'providers' => env('AI_EXPERIENCE_EXTRACT_PROVIDERS', 'gemini,workers-ai'),
             'model' => env('AI_EXPERIENCE_EXTRACT_MODEL'),
         ],
         'transparency_page' => [
-            'providers' => env('AI_TRANSPARENCY_PAGE_PROVIDERS', 'workers-ai,gemini'),
+            'providers' => env('AI_TRANSPARENCY_PAGE_PROVIDERS', 'gemini,workers-ai'),
             'model' => env('AI_TRANSPARENCY_PAGE_MODEL'),
         ],
     ],
