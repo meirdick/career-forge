@@ -12,10 +12,13 @@ use App\Models\Resume;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class GenerateResumeJob implements ShouldQueue
 {
     use ConfiguresAiForUser, Queueable;
+
+    public bool $deleteWhenMissingModels = true;
 
     public int $timeout = 600;
 
@@ -29,6 +32,14 @@ class GenerateResumeJob implements ShouldQueue
 
     public function handle(): void
     {
+        if (! Resume::where('id', $this->resume->id)->exists()) {
+            Log::info('Resume was deleted before generation could start, skipping.', [
+                'resume_id' => $this->resume->id,
+            ]);
+
+            return;
+        }
+
         // Clean up sections from any previous failed attempt to avoid duplicates
         $this->resume->sections()->delete();
 
@@ -58,10 +69,12 @@ class GenerateResumeJob implements ShouldQueue
 
             $this->chargeAiUsage($context['user'], AiPurpose::ResumeGeneration);
         } catch (\Throwable $e) {
-            $this->resume->update([
-                'generation_status' => 'failed',
-                'section_order' => [],
-            ]);
+            if (Resume::where('id', $this->resume->id)->exists()) {
+                $this->resume->update([
+                    'generation_status' => 'failed',
+                    'section_order' => [],
+                ]);
+            }
 
             throw $e;
         }
@@ -447,7 +460,7 @@ class GenerateResumeJob implements ShouldQueue
                 'content' => $content,
                 'compact_content' => $variant['compact_content'] ?? null,
                 'blocks' => $blocks,
-                'emphasis' => $variant['emphasis'] ?? null,
+                'emphasis' => isset($variant['emphasis']) ? Str::limit($variant['emphasis'], 1000) : null,
                 'is_ai_generated' => true,
                 'is_user_edited' => false,
                 'sort_order' => $vIndex,
