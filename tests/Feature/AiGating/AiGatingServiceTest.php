@@ -219,13 +219,13 @@ test('each purpose resolves to expected default providers', function () {
         'content_enhance' => ['workers-ai', 'gemini'],
         'gap_reframe' => ['workers-ai', 'gemini'],
         'link_indexing' => ['workers-ai', 'gemini'],
-        'resume_generation' => ['workers-ai', 'gemini'],
-        'resume_parsing' => ['workers-ai', 'gemini'],
-        'job_analysis' => ['workers-ai', 'gemini'],
-        'gap_analysis' => ['workers-ai', 'gemini'],
-        'cover_letter' => ['workers-ai', 'gemini'],
-        'experience_extract' => ['workers-ai', 'gemini'],
-        'transparency_page' => ['workers-ai', 'gemini'],
+        'resume_generation' => ['gemini', 'workers-ai'],
+        'resume_parsing' => ['gemini', 'workers-ai'],
+        'job_analysis' => ['gemini', 'workers-ai'],
+        'gap_analysis' => ['gemini', 'workers-ai'],
+        'cover_letter' => ['gemini', 'workers-ai'],
+        'experience_extract' => ['gemini', 'workers-ai'],
+        'transparency_page' => ['gemini', 'workers-ai'],
     ];
 
     foreach ($expected as $purpose => $providers) {
