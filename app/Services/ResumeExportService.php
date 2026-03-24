@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Application;
 use App\Models\Resume;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
@@ -66,11 +67,18 @@ class ResumeExportService
             'color' => $styles['headingColor'],
         ], [
             'keepNext' => true,
+            'borderBottomSize' => 6,
+            'borderBottomColor' => $styles['headingColor'],
+            'spaceAfter' => 60,
         ]);
 
         $section = $phpWord->addSection([
             'pageSizeW' => 12240,
             'pageSizeH' => 15840,
+            'marginTop' => 720,
+            'marginBottom' => 720,
+            'marginLeft' => 1440,
+            'marginRight' => 1440,
         ]);
 
         // Contact header
@@ -160,9 +168,116 @@ class ResumeExportService
         return $path;
     }
 
+    public function coverLetterToPdf(Application $application): string
+    {
+        $application->loadMissing(['user', 'resume']);
+
+        $header = $application->resume
+            ? $this->headerService->resolveHeader($application->resume)
+            : $this->buildBasicHeader($application->user);
+
+        $pdf = Pdf::loadView('cover-letters.pdf', [
+            'application' => $application,
+            'header' => $header,
+            'coverLetter' => $application->cover_letter,
+        ]);
+
+        $path = 'cover-letters/'.$application->id.'.pdf';
+        $fullPath = storage_path('app/private/'.$path);
+
+        if (! is_dir(dirname($fullPath))) {
+            mkdir(dirname($fullPath), 0755, true);
+        }
+
+        file_put_contents($fullPath, $pdf->output());
+
+        return $path;
+    }
+
+    public function coverLetterToDocx(Application $application): string
+    {
+        $application->loadMissing(['user.professionalIdentity', 'resume']);
+
+        $header = $application->resume
+            ? $this->headerService->resolveHeader($application->resume)
+            : $this->buildBasicHeader($application->user);
+
+        $template = $application->resume?->template?->value ?? 'classic';
+        $styles = $this->getDocxStyles($template);
+
+        $phpWord = new PhpWord;
+        $phpWord->setDefaultFontName($styles['font']);
+        $phpWord->setDefaultFontSize($styles['bodySize']);
+
+        $section = $phpWord->addSection([
+            'pageSizeW' => 12240,
+            'pageSizeH' => 15840,
+            'marginTop' => 1440,
+            'marginBottom' => 1440,
+            'marginLeft' => 1440,
+            'marginRight' => 1440,
+        ]);
+
+        // Contact header
+        $section->addText(
+            $this->sanitizeForXml($header['name']),
+            ['bold' => true, 'size' => $styles['nameSize'], 'color' => $styles['headingColor']],
+            ['alignment' => Jc::CENTER]
+        );
+
+        $contactParts = array_filter([
+            $header['email'],
+            $header['phone'],
+            $header['location'],
+            $header['linkedin_url'] ?? null,
+            ...array_map(fn ($link) => $link['label'], $header['portfolio_links'] ?? []),
+        ]);
+
+        if (! empty($contactParts)) {
+            $section->addText(
+                $this->sanitizeForXml(implode(' | ', $contactParts)),
+                ['size' => $styles['contactSize'], 'color' => '666666'],
+                ['alignment' => Jc::CENTER]
+            );
+        }
+
+        $section->addTextBreak(2);
+
+        // Cover letter body
+        $this->addMarkdownContent($section, $application->cover_letter, $styles);
+
+        $path = 'cover-letters/'.$application->id.'.docx';
+        $fullPath = storage_path('app/private/'.$path);
+
+        if (! is_dir(dirname($fullPath))) {
+            mkdir(dirname($fullPath), 0755, true);
+        }
+
+        $writer = IOFactory::createWriter($phpWord, 'Word2007');
+        $writer->save($fullPath);
+
+        return $path;
+    }
+
+    /**
+     * @return array{name: string, email: ?string, phone: ?string, location: ?string, linkedin_url: ?string, portfolio_links: array<int, array{url: string, label: string}>}
+     */
+    private function buildBasicHeader(\App\Models\User $user): array
+    {
+        return [
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone ?? null,
+            'location' => $user->location ?? null,
+            'linkedin_url' => $user->linkedin_url ?? null,
+            'portfolio_links' => [],
+        ];
+    }
+
     private function addMarkdownContent(\PhpOffice\PhpWord\Element\Section $section, string $content, array $styles): void
     {
         $content = str_replace(['\\n', '\\r'], ["\n", "\r"], $content);
+        $content = $this->joinCrossLineFormatting($content);
         $content = $this->sanitizeForXml($content);
         $lines = explode("\n", $content);
 
@@ -170,6 +285,13 @@ class ResumeExportService
             $trimmed = trim($line);
 
             if ($trimmed === '') {
+                continue;
+            }
+
+            // Horizontal rule
+            if (preg_match('/^[-*_]{3,}$/', $trimmed)) {
+                $section->addText('', [], ['borderBottomSize' => 2, 'borderBottomColor' => 'CCCCCC', 'spaceAfter' => 120]);
+
                 continue;
             }
 
@@ -181,7 +303,15 @@ class ResumeExportService
                 continue;
             }
 
-            // Bullet point
+            // Nested bullet point (2+ leading spaces)
+            if (preg_match('/^(\s{2,})[-*]\s+(.+)$/', $line, $matches)) {
+                $depth = min((int) floor(strlen($matches[1]) / 2), 3);
+                $this->addFormattedListItem($section, $this->stripMarkdownLinks($matches[2]), $styles, $depth);
+
+                continue;
+            }
+
+            // Top-level bullet point
             if (preg_match('/^[-*]\s+(.+)$/', $trimmed, $matches)) {
                 $this->addFormattedListItem($section, $this->stripMarkdownLinks($matches[1]), $styles);
 
@@ -206,9 +336,9 @@ class ResumeExportService
         $this->parseInlineFormatting($textRun, $text, $styles);
     }
 
-    private function addFormattedListItem(\PhpOffice\PhpWord\Element\Section $section, string $text, array $styles): void
+    private function addFormattedListItem(\PhpOffice\PhpWord\Element\Section $section, string $text, array $styles, int $depth = 0): void
     {
-        $listItemRun = $section->addListItemRun(0, null, ['keepLines' => true]);
+        $listItemRun = $section->addListItemRun($depth, null, ['keepLines' => true]);
         $this->parseInlineFormatting($listItemRun, $text, $styles);
     }
 
@@ -235,6 +365,22 @@ class ResumeExportService
                 $container->addText($part, ['size' => $styles['bodySize']]);
             }
         }
+    }
+
+    /**
+     * Join bold/italic markers that span across line breaks back into single lines.
+     */
+    private function joinCrossLineFormatting(string $text): string
+    {
+        // Join **bold that spans\nmultiple lines** back into one line
+        $text = preg_replace_callback('/\*\*([^*]*?\n[^*]*?)\*\*/', function ($matches) {
+            return '**'.str_replace("\n", ' ', $matches[1]).'**';
+        }, $text) ?? $text;
+
+        // Join *italic that spans\nmultiple lines* back into one line
+        return preg_replace_callback('/(?<!\*)\*(?!\*)([^*]*?\n[^*]*?)\*(?!\*)/', function ($matches) {
+            return '*'.str_replace("\n", ' ', $matches[1]).'*';
+        }, $text) ?? $text;
     }
 
     /**

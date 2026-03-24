@@ -385,7 +385,7 @@ test('docx contains section titles and formatted content', function () {
 
     $fullPath = storage_path('app/private/resumes/'.$resume->id.'.docx');
     $zip = new \ZipArchive;
-    $zip->open($fullPath);
+    expect($zip->open($fullPath))->toBe(true);
     $xmlContent = $zip->getFromName('word/document.xml');
     $zip->close();
 
@@ -395,6 +395,30 @@ test('docx contains section titles and formatted content', function () {
         ->toContain('Jan 2020')
         ->toContain('Led')
         ->toContain('Built scalable systems');
+});
+
+test('docx renders nested list items', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+    $variant = ResumeSectionVariant::factory()->create([
+        'resume_section_id' => $section->id,
+        'content' => "- Top level item\n  - Nested item\n  - Another nested",
+    ]);
+    $section->update(['selected_variant_id' => $variant->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/export/docx")
+        ->assertSuccessful();
+
+    $fullPath = storage_path('app/private/resumes/'.$resume->id.'.docx');
+    $zip = new \ZipArchive;
+    expect($zip->open($fullPath))->toBe(true);
+    $xmlContent = $zip->getFromName('word/document.xml');
+    $zip->close();
+
+    expect($xmlContent)
+        ->toContain('Top level item')
+        ->toContain('Nested item');
 });
 
 test('docx contains bold and italic xml tags', function () {
@@ -412,7 +436,7 @@ test('docx contains bold and italic xml tags', function () {
 
     $fullPath = storage_path('app/private/resumes/'.$resume->id.'.docx');
     $zip = new \ZipArchive;
-    $zip->open($fullPath);
+    expect($zip->open($fullPath))->toBe(true);
     $xmlContent = $zip->getFromName('word/document.xml');
     $zip->close();
 
@@ -423,6 +447,31 @@ test('docx contains bold and italic xml tags', function () {
     // Verify italic tag exists (w:i or w:i/)
     expect($xmlContent)->toMatch('/<w:i[\s\/]/')
         ->and($xmlContent)->toContain('italic text');
+});
+
+test('docx renders horizontal rules', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+    $variant = ResumeSectionVariant::factory()->create([
+        'resume_section_id' => $section->id,
+        'content' => "Section one\n---\nSection two",
+    ]);
+    $section->update(['selected_variant_id' => $variant->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/export/docx")
+        ->assertSuccessful();
+
+    $fullPath = storage_path('app/private/resumes/'.$resume->id.'.docx');
+    $zip = new \ZipArchive;
+    expect($zip->open($fullPath))->toBe(true);
+    $xmlContent = $zip->getFromName('word/document.xml');
+    $zip->close();
+
+    expect($xmlContent)
+        ->toContain('Section one')
+        ->toContain('Section two')
+        ->toContain('CCCCCC');
 });
 
 test('docx has us letter page size', function () {
@@ -437,13 +486,38 @@ test('docx has us letter page size', function () {
 
     $fullPath = storage_path('app/private/resumes/'.$resume->id.'.docx');
     $zip = new \ZipArchive;
-    $zip->open($fullPath);
+    expect($zip->open($fullPath))->toBe(true);
     $xmlContent = $zip->getFromName('word/document.xml');
     $zip->close();
 
     // US Letter in twips: 12240 x 15840
     expect($xmlContent)->toContain('w:w="12240"')
         ->and($xmlContent)->toContain('w:h="15840"');
+});
+
+test('docx section titles have bottom border styling', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create([
+        'resume_id' => $resume->id,
+        'title' => 'Experience',
+    ]);
+    $variant = ResumeSectionVariant::factory()->create([
+        'resume_section_id' => $section->id,
+        'content' => '- Built features',
+    ]);
+    $section->update(['selected_variant_id' => $variant->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/export/docx")
+        ->assertSuccessful();
+
+    $fullPath = storage_path('app/private/resumes/'.$resume->id.'.docx');
+    $zip = new \ZipArchive;
+    expect($zip->open($fullPath))->toBe(true);
+    $xmlContent = $zip->getFromName('word/styles.xml');
+    $zip->close();
+
+    expect($xmlContent)->toContain('bottom');
 });
 
 test('docx document xml is well-formed', function () {
@@ -461,7 +535,7 @@ test('docx document xml is well-formed', function () {
 
     $fullPath = storage_path('app/private/resumes/'.$resume->id.'.docx');
     $zip = new \ZipArchive;
-    $zip->open($fullPath);
+    expect($zip->open($fullPath))->toBe(true);
     $xmlContent = $zip->getFromName('word/document.xml');
     $zip->close();
 
@@ -469,6 +543,30 @@ test('docx document xml is well-formed', function () {
     $doc = new \DOMDocument;
     $result = $doc->loadXML($xmlContent);
     expect($result)->toBeTrue();
+});
+
+test('docx handles cross-line bold formatting', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+    $variant = ResumeSectionVariant::factory()->create([
+        'resume_section_id' => $section->id,
+        'content' => "**Bold text that\nspans two lines**\nNormal text",
+    ]);
+    $section->update(['selected_variant_id' => $variant->id]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/export/docx")
+        ->assertSuccessful();
+
+    $fullPath = storage_path('app/private/resumes/'.$resume->id.'.docx');
+    $zip = new \ZipArchive;
+    expect($zip->open($fullPath))->toBe(true);
+    $xmlContent = $zip->getFromName('word/document.xml');
+    $zip->close();
+
+    expect($xmlContent)
+        ->toContain('Bold text that spans two lines')
+        ->toContain('Normal text');
 });
 
 test('pdf export has letter page size', function () {
