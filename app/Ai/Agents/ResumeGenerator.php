@@ -7,7 +7,6 @@ use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Attributes\MaxTokens;
 use Laravel\Ai\Attributes\Temperature;
 use Laravel\Ai\Attributes\Timeout;
-use Laravel\Ai\Attributes\UseSmartestModel;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasStructuredOutput;
 use Stringable;
@@ -15,7 +14,6 @@ use Stringable;
 #[MaxTokens(65536)]
 #[Temperature(0.5)]
 #[Timeout(180)]
-#[UseSmartestModel]
 class ResumeGenerator implements Agent, HasStructuredOutput
 {
     use FailsOverOnBillingErrors;
