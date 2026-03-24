@@ -1,7 +1,11 @@
+import Placeholder from '@tiptap/extension-placeholder';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
 import { Head, Link, router } from '@inertiajs/react';
-import { AlertTriangle, ArrowDown, ArrowUp, Bot, Check, ChevronsDownUp, ChevronsUpDown, Eye, EyeOff, Loader2, Pencil, RefreshCw, Trash2, X } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, Bold, Bot, Check, ChevronsDownUp, ChevronsUpDown, Eye, EyeOff, Heading2, Italic, List, ListOrdered, Loader2, Pencil, RefreshCw, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { htmlToMarkdown, markdownToHtml } from '@/lib/markdown-html';
 import Heading from '@/components/heading';
 import PipelineAssistantPanel from '@/components/pipeline-assistant-panel';
 import PipelineNextAction from '@/components/pipeline-next-action';
@@ -69,6 +73,52 @@ const HEADER_TOGGLE_FIELDS = [
 
 const DEFAULT_TRANSPARENCY_TEXT = 'This resume was created with AI assistance. View details at [your-link-here]';
 
+function VariantTiptapEditor({ content, onChange, placeholder }: { content: string; onChange: (html: string) => void; placeholder?: string }) {
+    const editor = useEditor({
+        extensions: [
+            StarterKit,
+            Placeholder.configure({ placeholder: placeholder ?? 'Start writing...' }),
+        ],
+        content,
+        editorProps: {
+            attributes: {
+                class: 'prose prose-sm dark:prose-invert max-w-none min-h-[120px] px-3 py-2 focus:outline-none [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-2 [&_p]:my-1',
+                'aria-label': 'Resume section editor',
+            },
+        },
+        onUpdate({ editor: e }) {
+            onChange(e.getHTML());
+        },
+    });
+
+    if (!editor) {
+        return <div className="h-[120px] animate-pulse rounded-md bg-muted" />;
+    }
+
+    return (
+        <div className="border-input bg-background rounded-md border text-sm">
+            <div className="border-input flex gap-1 border-b px-2 py-1">
+                <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={`min-h-[44px] min-w-[44px] rounded p-1 hover:bg-accent ${editor.isActive('bold') ? 'bg-accent' : ''}`} title="Bold">
+                    <Bold className="mx-auto h-4 w-4" />
+                </button>
+                <button type="button" onClick={() => editor.chain().focus().toggleItalic().run()} className={`min-h-[44px] min-w-[44px] rounded p-1 hover:bg-accent ${editor.isActive('italic') ? 'bg-accent' : ''}`} title="Italic">
+                    <Italic className="mx-auto h-4 w-4" />
+                </button>
+                <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={`min-h-[44px] min-w-[44px] rounded p-1 hover:bg-accent ${editor.isActive('heading', { level: 2 }) ? 'bg-accent' : ''}`} title="Heading">
+                    <Heading2 className="mx-auto h-4 w-4" />
+                </button>
+                <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={`min-h-[44px] min-w-[44px] rounded p-1 hover:bg-accent ${editor.isActive('bulletList') ? 'bg-accent' : ''}`} title="Bullet List">
+                    <List className="mx-auto h-4 w-4" />
+                </button>
+                <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={`min-h-[44px] min-w-[44px] rounded p-1 hover:bg-accent ${editor.isActive('orderedList') ? 'bg-accent' : ''}`} title="Numbered List">
+                    <ListOrdered className="mx-auto h-4 w-4" />
+                </button>
+            </div>
+            <EditorContent editor={editor} />
+        </div>
+    );
+}
+
 export default function ShowResume({ resume, contact, globalHeaderConfig }: { resume: ResumeData; contact: Contact; globalHeaderConfig: HeaderConfig }) {
     const isGenerating = resume.is_generating;
     const isFailed = resume.generation_status === 'failed';
@@ -119,7 +169,8 @@ export default function ShowResume({ resume, contact, globalHeaderConfig }: { re
     }
 
     function saveVariant(variantId: number) {
-        router.put(`/resumes/${resume.id}/variants/${variantId}`, { content: editContent }, { preserveScroll: true, onSuccess: () => setEditingVariant(null) });
+        const markdown = htmlToMarkdown(editContent);
+        router.put(`/resumes/${resume.id}/variants/${variantId}`, { content: markdown }, { preserveScroll: true, onSuccess: () => setEditingVariant(null) });
     }
 
     function toggleSection(sectionId: number) {
@@ -266,18 +317,15 @@ export default function ShowResume({ resume, contact, globalHeaderConfig }: { re
         if (editingVariant === variant.id) {
             return (
                 <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-3">
-                        <Textarea
-                            value={editContent}
-                            onChange={(e) => setEditContent(e.target.value)}
-                            rows={8}
-                            className="font-mono text-sm"
-                        />
-                        <div className="prose prose-sm dark:prose-invert max-w-none overflow-auto rounded-md border p-3">
-                            <ReactMarkdown>{editContent}</ReactMarkdown>
-                        </div>
-                    </div>
-                    <div className="flex justify-end gap-2">
+                    <VariantTiptapEditor
+                        content={editContent}
+                        onChange={setEditContent}
+                        placeholder="Start writing or generate content with AI..."
+                    />
+                    <div className="flex items-center justify-end gap-2">
+                        {variant.is_user_edited && (
+                            <span className="text-muted-foreground mr-auto text-xs">Edited by you</span>
+                        )}
                         <Button variant="ghost" size="sm" onClick={() => setEditingVariant(null)}>Cancel</Button>
                         <Button size="sm" onClick={() => saveVariant(variant.id)}>Save</Button>
                     </div>
@@ -297,7 +345,7 @@ export default function ShowResume({ resume, contact, globalHeaderConfig }: { re
                         className="absolute top-0 right-0 opacity-0 group-hover:opacity-100"
                         onClick={() => {
                             setEditingVariant(variant.id);
-                            setEditContent(variant.content);
+                            setEditContent(markdownToHtml(variant.content));
                         }}
                         title="Edit content"
                     >
