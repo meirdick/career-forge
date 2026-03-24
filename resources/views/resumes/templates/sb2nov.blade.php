@@ -78,20 +78,18 @@
     </div>
 
     @foreach($resume->sections->sortBy('sort_order') as $section)
-        @if(!$section->is_hidden)
+        @if(!$section->is_hidden && $section->selectedVariant && trim($section->selectedVariant->content) !== '')
+            @php
+                $variant = $section->selectedVariant;
+                $sectionContent = ($section->display_mode === 'compact' && $variant->compact_content)
+                    ? $variant->compact_content
+                    : $variant->content;
+            @endphp
             <div class="section">
                 <h2>{{ $section->title }}</h2>
-                @if($section->selectedVariant)
-                    @php
-                        $variant = $section->selectedVariant;
-                        $sectionContent = ($section->display_mode === 'compact' && $variant->compact_content)
-                            ? $variant->compact_content
-                            : $variant->content;
-                    @endphp
-                    <div class="section-content">
-                        {!! Str::markdown(str_replace(['\\n', '\\r'], ["\n", "\r"], $sectionContent)) !!}
-                    </div>
-                @endif
+                <div class="section-content">
+                    {!! Str::markdown(str_replace(['\\n', '\\r'], ["\n", "\r"], $sectionContent)) !!}
+                </div>
             </div>
         @endif
     @endforeach

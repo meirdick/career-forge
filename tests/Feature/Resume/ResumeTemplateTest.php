@@ -219,3 +219,71 @@ test('render cv service returns summary as single string', function () {
     expect($result)->toHaveCount(1);
     expect($result[0])->toBe($content);
 });
+
+// --- Empty section filtering ---
+
+test('render cv service skips sections with no selected variant', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    ResumeSection::factory()->create([
+        'resume_id' => $resume->id,
+        'type' => ResumeSectionType::Summary,
+        'title' => 'Summary',
+        'selected_variant_id' => null,
+    ]);
+
+    $service = app(RenderCvService::class);
+    $yaml = $service->buildYaml($resume->fresh());
+
+    expect($yaml)->not->toContain('Summary');
+});
+
+test('render cv service skips sections with empty content', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create([
+        'resume_id' => $resume->id,
+        'type' => ResumeSectionType::Skills,
+        'title' => 'Skills',
+    ]);
+    $variant = ResumeSectionVariant::factory()->create([
+        'resume_section_id' => $section->id,
+        'content' => '   ',
+    ]);
+    $section->update(['selected_variant_id' => $variant->id]);
+
+    $service = app(RenderCvService::class);
+    $yaml = $service->buildYaml($resume->fresh());
+
+    expect($yaml)->not->toContain('Skills');
+});
+
+test('preview excludes sections with no selected variant', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $populatedSection = ResumeSection::factory()->create([
+        'resume_id' => $resume->id,
+        'type' => ResumeSectionType::Summary,
+        'title' => 'Summary',
+        'sort_order' => 1,
+    ]);
+    $variant = ResumeSectionVariant::factory()->create([
+        'resume_section_id' => $populatedSection->id,
+        'content' => 'I am a software engineer.',
+    ]);
+    $populatedSection->update(['selected_variant_id' => $variant->id]);
+
+    ResumeSection::factory()->create([
+        'resume_id' => $resume->id,
+        'type' => ResumeSectionType::Education,
+        'title' => 'Education',
+        'selected_variant_id' => null,
+        'sort_order' => 2,
+    ]);
+
+    $this->actingAs($this->user)
+        ->get("/resumes/{$resume->id}/preview")
+        ->assertSuccessful()
+        ->assertInertia(
+            fn ($page) => $page
+                ->component('resumes/preview')
+                ->has('resume.sections', 2)
+        );
+});

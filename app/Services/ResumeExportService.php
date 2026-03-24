@@ -99,15 +99,17 @@ class ResumeExportService
         $section->addTextBreak();
 
         foreach ($resume->sections->where('is_hidden', false)->sortBy('sort_order') as $resumeSection) {
+            if (! $resumeSection->selectedVariant || trim($resumeSection->selectedVariant->content) === '') {
+                continue;
+            }
+
             $section->addTitle($this->sanitizeForXml($resumeSection->title), 2);
 
-            if ($resumeSection->selectedVariant) {
-                $variant = $resumeSection->selectedVariant;
-                $content = ($resumeSection->display_mode === 'compact' && $variant->compact_content)
-                    ? $variant->compact_content
-                    : $variant->content;
-                $this->addMarkdownContent($section, $content, $styles);
-            }
+            $variant = $resumeSection->selectedVariant;
+            $content = ($resumeSection->display_mode === 'compact' && $variant->compact_content)
+                ? $variant->compact_content
+                : $variant->content;
+            $this->addMarkdownContent($section, $content, $styles);
 
             $section->addTextBreak();
         }

@@ -34,7 +34,9 @@ export default function ResumeDocument({ template, contact, sections, className 
 
     const contactParts = [contact.email, contact.phone, contact.location, contact.linkedin_url, ...(contact.portfolio_links ?? []).map((l) => l.label)].filter(Boolean);
 
-    const sortedSections = [...sections].sort((a, b) => a.sort_order - b.sort_order);
+    const sortedSections = [...sections]
+        .filter((s) => s.selected_variant && s.selected_variant.formatted_content.trim() !== '')
+        .sort((a, b) => a.sort_order - b.sort_order);
 
     return (
         <div

@@ -121,7 +121,7 @@ class RenderCvService
         $sections = [];
 
         foreach ($resume->sections->sortBy('sort_order') as $section) {
-            if (! $section->selectedVariant) {
+            if (! $section->selectedVariant || trim($section->selectedVariant->content) === '') {
                 continue;
             }
 
