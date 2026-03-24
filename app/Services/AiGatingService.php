@@ -61,16 +61,40 @@ class AiGatingService
 
         // For non-BYOK users, apply per-purpose provider/model overrides
         if ($purpose) {
+            $providers = $this->resolvePurposeProviders($purpose);
+
+            if (! empty($providers)) {
+                config(['ai.default' => $providers]);
+            }
+
             $override = config("ai.purpose_providers.{$purpose->value}");
 
-            if (! empty($override['provider'])) {
-                config(['ai.default' => $override['provider']]);
-
-                if (! empty($override['model'])) {
-                    config(['ai.default_model' => $override['model']]);
-                }
+            if (! empty($override['model'])) {
+                config(['ai.default_model' => $override['model']]);
             }
         }
+    }
+
+    /**
+     * Parse the comma-separated provider chain for a given purpose.
+     *
+     * @return string[]
+     */
+    protected function resolvePurposeProviders(?AiPurpose $purpose): array
+    {
+        if (! $purpose) {
+            return [];
+        }
+
+        $override = config("ai.purpose_providers.{$purpose->value}");
+
+        if (empty($override['providers'])) {
+            return [];
+        }
+
+        return is_array($override['providers'])
+            ? $override['providers']
+            : array_map('trim', explode(',', $override['providers']));
     }
 
     protected function resetToDefaults(): void

@@ -48,7 +48,7 @@ return [
         ],
     ],
 
-    'default' => ['anthropic', 'gemini'],
+    'default' => ['workers-ai', 'gemini'],
     'default_for_images' => 'gemini',
     'default_for_audio' => 'openai',
     'default_for_transcription' => 'openai',
@@ -94,36 +94,49 @@ return [
 
     'purpose_providers' => [
         'chat_message' => [
-            'provider' => env('AI_CHAT_PROVIDER'),
+            'providers' => env('AI_CHAT_PROVIDERS', env('AI_CHAT_PROVIDER', 'workers-ai,gemini')),
             'model' => env('AI_CHAT_MODEL'),
         ],
         'content_enhance' => [
-            'provider' => env('AI_CONTENT_ENHANCE_PROVIDER'),
+            'providers' => env('AI_CONTENT_ENHANCE_PROVIDERS', env('AI_CONTENT_ENHANCE_PROVIDER', 'workers-ai,gemini')),
             'model' => env('AI_CONTENT_ENHANCE_MODEL'),
         ],
         'gap_reframe' => [
-            'provider' => env('AI_GAP_REFRAME_PROVIDER'),
+            'providers' => env('AI_GAP_REFRAME_PROVIDERS', env('AI_GAP_REFRAME_PROVIDER', 'workers-ai,gemini')),
             'model' => env('AI_GAP_REFRAME_MODEL'),
         ],
         'link_indexing' => [
-            'provider' => env('AI_LINK_INDEXING_PROVIDER'),
+            'providers' => env('AI_LINK_INDEXING_PROVIDERS', env('AI_LINK_INDEXING_PROVIDER', 'workers-ai,gemini')),
             'model' => env('AI_LINK_INDEXING_MODEL'),
         ],
         'resume_generation' => [
-            'provider' => env('AI_RESUME_GENERATION_PROVIDER', 'gemini'),
-            'model' => env('AI_RESUME_GENERATION_MODEL'),
+            'providers' => env('AI_RESUME_GENERATION_PROVIDERS', env('AI_RESUME_GENERATION_PROVIDER', 'workers-ai,gemini')),
+            'model' => env('AI_RESUME_GENERATION_MODEL', 'workers-ai/@cf/openai/gpt-oss-120b'),
         ],
-    ],
-
-    'models' => [
-        'resume_parsing' => env('AI_RESUME_PARSING_MODEL'),
-        'job_analysis' => env('AI_JOB_ANALYSIS_MODEL'),
-        'company_research' => env('AI_COMPANY_RESEARCH_MODEL'),
-        'gap_analysis' => env('AI_GAP_ANALYSIS_MODEL'),
-        'targeted_questions' => env('AI_TARGETED_QUESTIONS_MODEL'),
-        'resume_generation' => env('AI_RESUME_GENERATION_MODEL'),
-        'cover_letter' => env('AI_COVER_LETTER_MODEL'),
-        'transparency_page' => env('AI_TRANSPARENCY_PAGE_MODEL'),
+        'resume_parsing' => [
+            'providers' => env('AI_RESUME_PARSING_PROVIDERS', 'workers-ai,gemini'),
+            'model' => env('AI_RESUME_PARSING_MODEL'),
+        ],
+        'job_analysis' => [
+            'providers' => env('AI_JOB_ANALYSIS_PROVIDERS', 'workers-ai,gemini'),
+            'model' => env('AI_JOB_ANALYSIS_MODEL'),
+        ],
+        'gap_analysis' => [
+            'providers' => env('AI_GAP_ANALYSIS_PROVIDERS', 'workers-ai,gemini'),
+            'model' => env('AI_GAP_ANALYSIS_MODEL'),
+        ],
+        'cover_letter' => [
+            'providers' => env('AI_COVER_LETTER_PROVIDERS', 'workers-ai,gemini'),
+            'model' => env('AI_COVER_LETTER_MODEL', 'workers-ai/@cf/moonshotai/kimi-k2.5'),
+        ],
+        'experience_extract' => [
+            'providers' => env('AI_EXPERIENCE_EXTRACT_PROVIDERS', 'workers-ai,gemini'),
+            'model' => env('AI_EXPERIENCE_EXTRACT_MODEL'),
+        ],
+        'transparency_page' => [
+            'providers' => env('AI_TRANSPARENCY_PAGE_PROVIDERS', 'workers-ai,gemini'),
+            'model' => env('AI_TRANSPARENCY_PAGE_MODEL'),
+        ],
     ],
 
     /*
@@ -197,9 +210,9 @@ return [
             'url' => env('WORKERS_AI_URL'),
             'models' => [
                 'text' => [
-                    'default' => 'workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+                    'default' => 'workers-ai/@cf/openai/gpt-oss-120b',
                     'cheapest' => 'workers-ai/@cf/meta/llama-3.1-8b-instruct',
-                    'smartest' => 'workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+                    'smartest' => 'workers-ai/@cf/openai/gpt-oss-120b',
                 ],
             ],
         ],

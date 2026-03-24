@@ -310,6 +310,17 @@ Wayfinder generates TypeScript functions for Laravel routes. Import from `@/acti
 
 - The full User Requirements Document lives at `docs/CareerForge_URD.md`. Reference it for product vision, module definitions, data models, user stories, and phasing decisions.
 
+## Laravel Cloud
+
+- **App:** `career-forge`
+- **App ID:** `app-a13a56be-9931-4d3d-a446-802816d460a6`
+
+### Environments
+
+| Environment | ID | Status | Auto-Deploy | URL |
+|---|---|---|---|---|
+| `master` | `env-a13a56bf-9cf7-4818-9045-20a25f488027` | running | yes | https://resume-forge.laravel.cloud |
+
 ## Migrations
 
 - When creating multiple migrations in quick succession, add a numeric suffix to the timestamp (e.g. increment the seconds) to guarantee execution order and avoid filename collisions.

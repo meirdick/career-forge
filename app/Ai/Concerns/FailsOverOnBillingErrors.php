@@ -92,7 +92,7 @@ trait FailsOverOnBillingErrors
                 ]);
 
                 // Retry once after a short backoff before failing over
-                sleep(5);
+                sleep(2);
 
                 try {
                     return $callback($provider, $model);
@@ -136,6 +136,16 @@ trait FailsOverOnBillingErrors
 
                 throw $e;
             }
+        }
+
+        $default = config('ai.default');
+
+        if ($lastException && ($default === 'byok' || $default === ['byok'])) {
+            throw new AiException(
+                "Your API key encountered an error: {$lastException->getMessage()}. Please check your API key in Settings.",
+                $lastException->getCode(),
+                $lastException,
+            );
         }
 
         throw $lastException ?? new AiException('No providers available for failover.');

@@ -97,7 +97,7 @@ test('user with zero credits is denied all actions', function () {
     expect($service->canPerformAction($user, AiPurpose::ResumeGeneration))->toBeFalse();
 });
 
-test('configureRuntimeProvider sets byok config for byok users', function () {
+test('configureRuntimeProvider sets byok config without server-side fallbacks', function () {
     $user = User::factory()->create();
     UserApiKey::factory()->active()->create([
         'user_id' => $user->id,
@@ -118,7 +118,7 @@ test('configureRuntimeProvider does nothing for non-byok users', function () {
     $service = app(AiGatingService::class);
     $service->configureRuntimeProvider($user);
 
-    expect(config('ai.default'))->toBe(['anthropic', 'gemini']);
+    expect(config('ai.default'))->toBe(['workers-ai', 'gemini']);
 });
 
 test('configureRuntimeProvider clears byok config between sequential calls', function () {
@@ -142,7 +142,7 @@ test('configureRuntimeProvider clears byok config between sequential calls', fun
     // Second call for a non-BYOK user should clear BYOK config
     $service->configureRuntimeProvider($creditsUser);
     expect(config('ai.providers.byok'))->toBeNull();
-    expect(config('ai.default'))->toBe(['anthropic', 'gemini']);
+    expect(config('ai.default'))->toBe(['workers-ai', 'gemini']);
 });
 
 test('chargeCredits deducts from balance for credits mode', function () {
@@ -168,4 +168,94 @@ test('chargeCredits does nothing in selfhosted mode', function () {
 
     $user->refresh();
     expect($user->creditBalance->balance)->toBe(100);
+});
+
+test('configureRuntimeProvider sets failover chain array from comma-separated providers', function () {
+    config(['ai.purpose_providers.resume_generation.providers' => 'gemini,workers-ai']);
+
+    $user = User::factory()->create();
+    CreditBalance::factory()->withBalance(500)->create(['user_id' => $user->id]);
+
+    $service = app(AiGatingService::class);
+    $service->configureRuntimeProvider($user, AiPurpose::ResumeGeneration);
+
+    expect(config('ai.default'))->toBe(['gemini', 'workers-ai']);
+});
+
+test('configureRuntimeProvider works with singular provider via backwards compat env fallback', function () {
+    config(['ai.purpose_providers.content_enhance.providers' => 'workers-ai']);
+
+    $user = User::factory()->create();
+    CreditBalance::factory()->withBalance(100)->create(['user_id' => $user->id]);
+
+    $service = app(AiGatingService::class);
+    $service->configureRuntimeProvider($user, AiPurpose::ContentEnhance);
+
+    expect(config('ai.default'))->toBe(['workers-ai']);
+});
+
+test('configureRuntimeProvider byok users get byok only regardless of purpose', function () {
+    config(['ai.purpose_providers.resume_generation.providers' => 'gemini,workers-ai']);
+
+    $user = User::factory()->create();
+    UserApiKey::factory()->active()->create([
+        'user_id' => $user->id,
+        'provider' => 'anthropic',
+        'encrypted_key' => 'sk-byok-test',
+    ]);
+
+    $service = app(AiGatingService::class);
+    $service->configureRuntimeProvider($user, AiPurpose::ResumeGeneration);
+
+    // BYOK users use only their own key — no server-side fallbacks
+    expect(config('ai.default'))->toBe('byok');
+    expect(config('ai.providers.byok.driver'))->toBe('anthropic');
+});
+
+test('each purpose resolves to expected default providers', function () {
+    // Explicitly set all providers to known defaults (local .env and prior tests can mutate these)
+    $expected = [
+        'chat_message' => ['workers-ai', 'gemini'],
+        'content_enhance' => ['workers-ai', 'gemini'],
+        'gap_reframe' => ['workers-ai', 'gemini'],
+        'link_indexing' => ['workers-ai', 'gemini'],
+        'resume_generation' => ['workers-ai', 'gemini'],
+        'resume_parsing' => ['workers-ai', 'gemini'],
+        'job_analysis' => ['workers-ai', 'gemini'],
+        'gap_analysis' => ['workers-ai', 'gemini'],
+        'cover_letter' => ['workers-ai', 'gemini'],
+        'experience_extract' => ['workers-ai', 'gemini'],
+        'transparency_page' => ['workers-ai', 'gemini'],
+    ];
+
+    foreach ($expected as $purpose => $providers) {
+        config(["ai.purpose_providers.{$purpose}.providers" => implode(',', $providers)]);
+    }
+
+    $user = User::factory()->create();
+    CreditBalance::factory()->withBalance(1000)->create(['user_id' => $user->id]);
+    $service = app(AiGatingService::class);
+
+    foreach (AiPurpose::cases() as $purpose) {
+        $service->configureRuntimeProvider($user, $purpose);
+
+        expect(config('ai.default'))
+            ->toBe($expected[$purpose->value], "Purpose {$purpose->value} should resolve to correct providers");
+    }
+});
+
+test('configureRuntimeProvider sets model override when configured', function () {
+    config([
+        'ai.purpose_providers.content_enhance.providers' => 'workers-ai',
+        'ai.purpose_providers.content_enhance.model' => 'workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+    ]);
+
+    $user = User::factory()->create();
+    CreditBalance::factory()->withBalance(100)->create(['user_id' => $user->id]);
+
+    $service = app(AiGatingService::class);
+    $service->configureRuntimeProvider($user, AiPurpose::ContentEnhance);
+
+    expect(config('ai.default'))->toBe(['workers-ai']);
+    expect(config('ai.default_model'))->toBe('workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast');
 });
