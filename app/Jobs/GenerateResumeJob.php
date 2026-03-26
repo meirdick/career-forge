@@ -20,6 +20,7 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Ai\Responses\AgentResponse;
+use RuntimeException;
 
 class GenerateResumeJob implements ShouldQueue
 {
@@ -75,6 +76,14 @@ class GenerateResumeJob implements ShouldQueue
             ]);
 
             $this->chargeAiUsage($context['user'], AiPurpose::ResumeGeneration);
+        } catch (RuntimeException $e) {
+            if (str_contains($e->getMessage(), 'was deleted during generation')) {
+                Log::info($e->getMessage());
+
+                return;
+            }
+
+            throw $e;
         } catch (\Throwable $e) {
             if (Resume::where('id', $this->resume->id)->exists()) {
                 $this->resume->update([
@@ -186,6 +195,8 @@ class GenerateResumeJob implements ShouldQueue
                 continue;
             }
 
+            $this->ensureResumeExists();
+
             $section = $this->resume->sections()->create([
                 'type' => $sectionType,
                 'title' => ucfirst($sectionType->value),
@@ -250,6 +261,8 @@ class GenerateResumeJob implements ShouldQueue
 
             $variants = $this->promptForVariants($agent, $prompt, $type);
 
+            $this->ensureResumeExists();
+
             $section = $this->resume->sections()->create([
                 'type' => $type,
                 'title' => ucfirst($type->value),
@@ -303,7 +316,7 @@ class GenerateResumeJob implements ShouldQueue
         }
 
         if (empty($sections)) {
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 'Resume generation returned invalid sections after retry: expected array, got '.gettype($response['sections'] ?? null)
             );
         }
@@ -359,7 +372,7 @@ class GenerateResumeJob implements ShouldQueue
         }
 
         if (empty($variants)) {
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 "Resume section [{$type->value}] returned invalid variants after retry: expected array, got ".gettype($response['variants'] ?? null)
             );
         }
@@ -427,6 +440,16 @@ class GenerateResumeJob implements ShouldQueue
             ResumeSectionType::Publications => array_intersect_key($library, array_flip(['publications'])),
             ResumeSectionType::Projects => array_intersect_key($library, array_flip(['projects', 'experiences'])),
         };
+    }
+
+    /**
+     * Verify the resume still exists in the database, throwing if it was deleted mid-generation.
+     */
+    private function ensureResumeExists(): void
+    {
+        if (! Resume::where('id', $this->resume->id)->exists()) {
+            throw new RuntimeException("Resume {$this->resume->id} was deleted during generation.");
+        }
     }
 
     /**
