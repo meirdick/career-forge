@@ -41,6 +41,13 @@ return [
         'base_url' => env('CLOUDFLARE_BR_BASE_URL', 'https://api.cloudflare.com/client/v4'),
     ],
 
+    'resume_worker' => [
+        'url' => env('RESUME_WORKER_URL'),
+        'secret' => env('RESUME_WORKER_SECRET'),
+        'timeout' => (int) env('RESUME_WORKER_TIMEOUT', 120),
+        'enabled' => (bool) env('RESUME_WORKER_ENABLED', false),
+    ],
+
     'firecrawl' => [
         'api_key' => env('FIRECRAWL_API_KEY'),
         'base_url' => env('FIRECRAWL_BASE_URL', 'https://api.firecrawl.dev'),

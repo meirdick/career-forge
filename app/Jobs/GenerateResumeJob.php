@@ -8,11 +8,18 @@ use App\Concerns\ConfiguresAiForUser;
 use App\Enums\AiPurpose;
 use App\Enums\EducationType;
 use App\Enums\ResumeSectionType;
+use App\Models\GapAnalysis;
+use App\Models\IdealCandidateProfile;
+use App\Models\JobPosting;
 use App\Models\Resume;
+use App\Models\ResumeSection;
+use App\Models\ResumeSectionVariant;
+use App\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Laravel\Ai\Responses\AgentResponse;
 
 class GenerateResumeJob implements ShouldQueue
 {
@@ -83,7 +90,7 @@ class GenerateResumeJob implements ShouldQueue
     /**
      * Gather all data needed for resume generation.
      *
-     * @return array{user: \App\Models\User, library: array, sectionTypes: list<ResumeSectionType>, expectedSections: list<string>, blockTypes: list<ResumeSectionType>, jobPosting: \App\Models\JobPosting, profile: \App\Models\IdealCandidateProfile, gapAnalysis: \App\Models\GapAnalysis}
+     * @return array{user: User, library: array, sectionTypes: list<ResumeSectionType>, expectedSections: list<string>, blockTypes: list<ResumeSectionType>, jobPosting: JobPosting, profile: IdealCandidateProfile, gapAnalysis: GapAnalysis}
      */
     private function prepareContext(): array
     {
@@ -160,6 +167,7 @@ class GenerateResumeJob implements ShouldQueue
             'experience' => $context['library'],
             'languageGuidance' => $context['profile']->language_guidance ?? [],
             'sectionTypes' => array_map(fn ($type) => $type->value, $context['sectionTypes']),
+            'pageLimit' => $this->resume->page_limit ?? 1,
         ])->render();
 
         $generator = new ResumeGenerator;
@@ -231,6 +239,7 @@ class GenerateResumeJob implements ShouldQueue
         foreach ($context['sectionTypes'] as $index => $type) {
             $promptData = [
                 'sectionType' => $type->value,
+                'pageLimit' => $this->resume->page_limit ?? 1,
             ];
 
             if ($type === ResumeSectionType::Projects && $generatedExperienceContent) {
@@ -307,7 +316,7 @@ class GenerateResumeJob implements ShouldQueue
      *
      * @return array<int, array>
      */
-    private function extractSections(\Laravel\Ai\Responses\AgentResponse $response): array
+    private function extractSections(AgentResponse $response): array
     {
         $sections = $response['sections'] ?? [];
 
@@ -363,7 +372,7 @@ class GenerateResumeJob implements ShouldQueue
      *
      * @return array<int, array>
      */
-    private function extractVariants(\Laravel\Ai\Responses\AgentResponse $response): array
+    private function extractVariants(AgentResponse $response): array
     {
         $variants = $response['variants'] ?? [];
 
@@ -423,14 +432,14 @@ class GenerateResumeJob implements ShouldQueue
     /**
      * Create variant records for a section from the AI response data.
      *
-     * @return \App\Models\ResumeSectionVariant|null The first variant created.
+     * @return ResumeSectionVariant|null The first variant created.
      */
     private function createVariants(
-        \App\Models\ResumeSection $section,
+        ResumeSection $section,
         ResumeSectionType $sectionType,
         array $variants,
         array $blockTypes,
-    ): ?\App\Models\ResumeSectionVariant {
+    ): ?ResumeSectionVariant {
         if (is_string($variants)) {
             $decoded = json_decode($variants, true);
             $variants = is_array($decoded) ? $decoded : [];

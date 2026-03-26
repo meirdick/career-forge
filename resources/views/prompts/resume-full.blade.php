@@ -96,6 +96,28 @@ Use this format:
 
 For each variant, also generate a `compact_content` field: a condensed version in 1-2 lines maximum. No bullet points, no markdown. Just essential facts.
 
+## Page Budget
+
+This resume MUST fit within {{ $pageLimit ?? 1 }} page(s) when rendered as a PDF.
+
+@if(($pageLimit ?? 1) === 1)
+Target approximately 400-500 words total across all sections:
+- Summary: 2-3 sentences (40-60 words)
+- Experience: 3-5 bullet points per role, most recent 2-3 roles only (~200-250 words)
+- Skills: 3-5 category lines (~50-70 words)
+- Education: 1-2 entries, minimal detail (~30-40 words)
+- Other sections: 2-4 entries each, brief (~30-50 words each)
+@else
+Target approximately 700-900 words total across all sections:
+- Summary: 3-5 sentences (60-100 words)
+- Experience: 4-7 bullet points per role, up to 4-5 roles (~400-500 words)
+- Skills: 4-7 category lines (~70-100 words)
+- Education: 1-3 entries with relevant details (~50-70 words)
+- Other sections: 3-6 entries each (~50-80 words each)
+@endif
+
+Be concise. Every word must earn its place. Prioritize impact over exhaustiveness.
+
 ## General Rules
 
 Each variant should:

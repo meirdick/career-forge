@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ResumeTemplate;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,6 +21,7 @@ class Resume extends Model
         'section_order',
         'is_finalized',
         'template',
+        'page_limit',
         'exported_path',
         'exported_format',
         'header_config',
@@ -43,9 +45,9 @@ class Resume extends Model
         ];
     }
 
-    protected function isGenerating(): \Illuminate\Database\Eloquent\Casts\Attribute
+    protected function isGenerating(): Attribute
     {
-        return \Illuminate\Database\Eloquent\Casts\Attribute::get(
+        return Attribute::get(
             fn () => in_array($this->generation_status, ['pending', 'generating'])
         );
     }

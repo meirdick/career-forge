@@ -1,3 +1,16 @@
+@php
+    $fsa = $fontSizeAdjust ?? 0;
+    $spa = $spacingAdjust ?? 0;
+    $mga = $marginAdjust ?? 0;
+    $overrides = $sectionOverrides ?? [];
+    $hidden = $hiddenSections ?? [];
+
+    $bodyFontSize = 10.5 + $fsa;
+    $contentFontSize = 10.5 + $fsa;
+    $sectionHeadingSize = 11 + $fsa;
+    $pageMarginV = 0.5 + $mga;
+    $pageMarginH = 0.6 + $mga;
+@endphp
 <!DOCTYPE html>
 <html>
 <head>
@@ -6,12 +19,12 @@
     <style>
         @page {
             size: letter;
-            margin: 0.5in 0.6in;
+            margin: {{ $pageMarginV }}in {{ $pageMarginH }}in;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Times New Roman', 'Georgia', serif;
-            font-size: 10.5pt;
+            font-size: {{ $bodyFontSize }}pt;
             line-height: 1.4;
             color: #1a1a1a;
             padding: 0;
@@ -19,8 +32,8 @@
         .contact-header {
             text-align: center;
             border-bottom: 2.5px solid #333;
-            margin-bottom: 14px;
-            padding-bottom: 10px;
+            margin-bottom: {{ max(6, 14 + $spa) }}px;
+            padding-bottom: {{ max(4, 10 + $spa) }}px;
         }
         .contact-header h1 {
             font-size: 20pt;
@@ -38,27 +51,27 @@
             text-decoration: none;
         }
         .section {
-            margin-top: 12px;
+            margin-top: {{ max(4, 12 + $spa) }}px;
             page-break-inside: avoid;
         }
         .section h2 {
-            font-size: 11pt;
+            font-size: {{ $sectionHeadingSize }}pt;
             font-weight: 700;
             color: #111;
             text-transform: uppercase;
             letter-spacing: 0.8px;
             border-bottom: 1px solid #999;
             padding-bottom: 2px;
-            margin-bottom: 6px;
+            margin-bottom: {{ max(2, 6 + $spa) }}px;
             page-break-after: avoid;
         }
         .section-content {
-            font-size: 10.5pt;
-            line-height: 1.4;
+            font-size: {{ $contentFontSize }}pt;
+            line-height: {{ 1.4 + ($spa * 0.02) }};
         }
-        .section-content p { margin-bottom: 3px; }
-        .section-content ul { margin: 2px 0 6px 18px; }
-        .section-content li { margin-bottom: 2px; }
+        .section-content p { margin-bottom: {{ max(1, 3 + $spa) }}px; }
+        .section-content ul { margin: {{ max(0, 2 + $spa) }}px 0 {{ max(2, 6 + $spa) }}px 18px; }
+        .section-content li { margin-bottom: {{ max(0, 2 + $spa) }}px; }
         .section-content strong { font-weight: 700; }
     </style>
 </head>
@@ -80,14 +93,19 @@
     </div>
 
     @foreach($resume->sections->sortBy('sort_order') as $section)
-        @if(!$section->is_hidden && $section->selectedVariant && trim($section->selectedVariant->content) !== '')
+        @if(!$section->is_hidden && !in_array($section->id, $hidden) && $section->selectedVariant && trim($section->selectedVariant->content) !== '')
             @php
                 $variant = $section->selectedVariant;
-                $sectionContent = ($section->display_mode === 'compact' && $variant->compact_content)
-                    ? $variant->compact_content
-                    : $variant->content;
+                $cOverrides = $contentOverrides ?? [];
+                if (isset($cOverrides[$section->id])) {
+                    $sectionContent = $cOverrides[$section->id];
+                } elseif (($section->display_mode === 'compact' || isset($overrides[$section->id])) && $variant->compact_content) {
+                    $sectionContent = $variant->compact_content;
+                } else {
+                    $sectionContent = $variant->content;
+                }
             @endphp
-            <div class="section">
+            <div class="section" data-section-id="{{ $section->id }}" data-section-type="{{ $section->type?->value }}">
                 <h2>{{ $section->title }}</h2>
                 <div class="section-content">
                     {!! Str::markdown(str_replace(['\\n', '\\r'], ["\n", "\r"], $sectionContent)) !!}

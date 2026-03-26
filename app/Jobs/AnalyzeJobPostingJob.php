@@ -7,8 +7,10 @@ use App\Concerns\ConfiguresAiForUser;
 use App\Enums\AiPurpose;
 use App\Models\JobPosting;
 use App\Notifications\JobPostingAnalyzed;
+use App\Services\ParseQualityValidator;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
 
 class AnalyzeJobPostingJob implements ShouldQueue
 {
@@ -30,6 +32,33 @@ class AnalyzeJobPostingJob implements ShouldQueue
         $prompt = view('prompts.job-analysis', ['text' => $this->jobPosting->raw_text])->render();
         $response = (new JobAnalyzer)->prompt($prompt);
 
+        $responseData = $response->toArray();
+        $inputLength = mb_strlen($this->jobPosting->raw_text ?? '');
+
+        $validator = new ParseQualityValidator;
+        $quality = $validator->validateJobAnalysis($responseData, $inputLength);
+        $attempts = 1;
+
+        if (! $quality->passed && ! $quality->inputTooShort && $quality->score >= 0.2) {
+            Log::info('Job analysis quality below threshold, retrying with enhanced prompt', [
+                'job_posting_id' => $this->jobPosting->id,
+                'score' => $quality->score,
+                'failed_rules' => $quality->failedRules,
+            ]);
+
+            $enhancedPrompt = $prompt."\n\n".$quality->retryHint;
+            $retryResponse = (new JobAnalyzer)->prompt($enhancedPrompt);
+            $retryData = $retryResponse->toArray();
+            $retryQuality = $validator->validateJobAnalysis($retryData, $inputLength);
+            $attempts = 2;
+
+            if ($retryQuality->score > $quality->score) {
+                $responseData = $retryData;
+                $response = $retryResponse;
+                $quality = $retryQuality;
+            }
+        }
+
         $this->jobPosting->update([
             'title' => $this->jobPosting->title ?? ($response['title'] ?? null),
             'company' => $this->jobPosting->company ?? ($response['company'] ?? null),
@@ -37,7 +66,12 @@ class AnalyzeJobPostingJob implements ShouldQueue
             'seniority_level' => $response['seniority_level'] ?? null,
             'compensation' => $response['compensation'] ?? null,
             'remote_policy' => $response['remote_policy'] ?? null,
-            'parsed_data' => $response->toArray(),
+            'parsed_data' => array_merge($responseData, [
+                '_parse_meta' => [
+                    'quality_score' => $quality->score,
+                    'attempts' => $attempts,
+                ],
+            ]),
             'analyzed_at' => now(),
         ]);
 

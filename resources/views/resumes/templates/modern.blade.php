@@ -1,3 +1,16 @@
+@php
+    $fsa = $fontSizeAdjust ?? 0;
+    $spa = $spacingAdjust ?? 0;
+    $mga = $marginAdjust ?? 0;
+    $overrides = $sectionOverrides ?? [];
+    $hidden = $hiddenSections ?? [];
+
+    $bodyFontSize = 10.5 + $fsa;
+    $contentFontSize = 10.5 + $fsa;
+    $sectionHeadingSize = 12 + $fsa;
+    $pageMarginV = 0.5 + $mga;
+    $pageMarginH = 0.6 + $mga;
+@endphp
 <!DOCTYPE html>
 <html>
 <head>
@@ -6,12 +19,12 @@
     <style>
         @page {
             size: letter;
-            margin: 0.5in 0.6in;
+            margin: {{ $pageMarginV }}in {{ $pageMarginH }}in;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Calibri', 'Helvetica Neue', 'Arial', sans-serif;
-            font-size: 10.5pt;
+            font-size: {{ $bodyFontSize }}pt;
             line-height: 1.4;
             color: #1a1a1a;
         }
@@ -36,31 +49,31 @@
             text-decoration: none;
         }
         .body-content {
-            padding: 20px 48px 36px;
+            padding: {{ max(10, 20 + $spa) }}px 48px 36px;
         }
         .section {
-            margin-bottom: 16px;
+            margin-bottom: {{ max(6, 16 + $spa) }}px;
             page-break-inside: avoid;
         }
         .section h2 {
-            font-size: 12pt;
+            font-size: {{ $sectionHeadingSize }}pt;
             font-weight: 700;
             color: #1e3a5f;
             border-left: 3px solid #1e3a5f;
             padding-left: 10px;
-            margin-bottom: 8px;
+            margin-bottom: {{ max(4, 8 + $spa) }}px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             page-break-after: avoid;
         }
         .section-content {
-            font-size: 10.5pt;
-            line-height: 1.45;
+            font-size: {{ $contentFontSize }}pt;
+            line-height: {{ 1.45 + ($spa * 0.02) }};
             padding-left: 13px;
         }
-        .section-content p { margin-bottom: 4px; }
-        .section-content ul { margin: 2px 0 6px 18px; }
-        .section-content li { margin-bottom: 2px; }
+        .section-content p { margin-bottom: {{ max(1, 4 + $spa) }}px; }
+        .section-content ul { margin: {{ max(0, 2 + $spa) }}px 0 {{ max(2, 6 + $spa) }}px 18px; }
+        .section-content li { margin-bottom: {{ max(0, 2 + $spa) }}px; }
         .section-content strong { font-weight: 600; }
     </style>
 </head>
@@ -83,14 +96,19 @@
 
     <div class="body-content">
         @foreach($resume->sections->sortBy('sort_order') as $section)
-            @if(!$section->is_hidden && $section->selectedVariant && trim($section->selectedVariant->content) !== '')
+            @if(!$section->is_hidden && !in_array($section->id, $hidden) && $section->selectedVariant && trim($section->selectedVariant->content) !== '')
                 @php
                     $variant = $section->selectedVariant;
-                    $sectionContent = ($section->display_mode === 'compact' && $variant->compact_content)
-                        ? $variant->compact_content
-                        : $variant->content;
+                    $cOverrides = $contentOverrides ?? [];
+                    if (isset($cOverrides[$section->id])) {
+                        $sectionContent = $cOverrides[$section->id];
+                    } elseif (($section->display_mode === 'compact' || isset($overrides[$section->id])) && $variant->compact_content) {
+                        $sectionContent = $variant->compact_content;
+                    } else {
+                        $sectionContent = $variant->content;
+                    }
                 @endphp
-                <div class="section">
+                <div class="section" data-section-id="{{ $section->id }}" data-section-type="{{ $section->type?->value }}">
                     <h2>{{ $section->title }}</h2>
                     <div class="section-content">
                         {!! Str::markdown(str_replace(['\\n', '\\r'], ["\n", "\r"], $sectionContent)) !!}

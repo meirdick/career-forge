@@ -74,6 +74,36 @@ Each block should have:
 Do NOT include a top-level `content` field for this section — the system will assemble it from blocks automatically.
 @endif
 
+## Page Budget
+
+This resume targets {{ $pageLimit ?? 1 }} page(s). Keep this section concise to fit the overall budget.
+
+@if(($pageLimit ?? 1) === 1)
+@if($sectionType === 'summary')
+Budget: 2-3 sentences, ~40-60 words.
+@elseif($sectionType === 'experience')
+Budget: Most recent 2-3 roles only. 3-5 bullet points per role. ~200-250 words total.
+@elseif($sectionType === 'skills')
+Budget: 3-5 category lines. ~50-70 words total.
+@elseif($sectionType === 'education')
+Budget: 1-2 entries, minimal detail. ~30-40 words total.
+@else
+Budget: 2-4 entries, very brief. ~30-50 words total.
+@endif
+@else
+@if($sectionType === 'summary')
+Budget: 3-5 sentences, ~60-100 words.
+@elseif($sectionType === 'experience')
+Budget: Up to 4-5 roles. 4-7 bullet points per role. ~400-500 words total.
+@elseif($sectionType === 'skills')
+Budget: 4-7 category lines. ~70-100 words total.
+@elseif($sectionType === 'education')
+Budget: 1-3 entries with relevant details. ~50-70 words total.
+@else
+Budget: 3-6 entries. ~50-80 words total.
+@endif
+@endif
+
 ## Instructions
 
 Generate 2-3 VARIANTS of this section, each with a different emphasis or approach:
