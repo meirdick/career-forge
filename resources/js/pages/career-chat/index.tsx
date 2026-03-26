@@ -160,11 +160,11 @@ export default function CareerChatIndex({
                                 </Link>
                                 {session.has_conversation && (
                                     <div className="border-t px-6 py-2">
-                                        <Link href={`${show(session.id).url}?extract=1`}>
-                                            <Button variant="ghost" size="sm" className="h-7 text-xs">
+                                        <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
+                                            <Link href={`${show(session.id).url}?extract=1`}>
                                                 <Package className="mr-1 h-3 w-3" /> Extract Experiences
-                                            </Button>
-                                        </Link>
+                                            </Link>
+                                        </Button>
                                     </div>
                                 )}
                             </Card>

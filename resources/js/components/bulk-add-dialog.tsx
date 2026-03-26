@@ -69,7 +69,7 @@ export default function BulkAddDialog() {
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button variant="outline"><Layers className="mr-1 h-4 w-4" /> Bulk Add</Button>
+                <Button variant="outline" size="sm"><Layers className="mr-1 h-4 w-4" /> Bulk Add</Button>
             </DialogTrigger>
             <DialogContent>
                 <form onSubmit={submit}>

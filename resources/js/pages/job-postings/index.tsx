@@ -46,7 +46,7 @@ export default function JobPostingsIndex({ postings }: { postings: JobPosting[] 
                 <div className="flex items-center justify-between">
                     <Heading title="Job Postings" description="Analyze job postings to build ideal candidate profiles." />
                     <div className="flex gap-2">
-                        <Button variant="outline" asChild>
+                        <Button variant="outline" size="sm" asChild>
                             <Link href="/job-postings/create"><Plus className="mr-1 h-4 w-4" /> New Posting</Link>
                         </Button>
                         <BulkAddDialog />

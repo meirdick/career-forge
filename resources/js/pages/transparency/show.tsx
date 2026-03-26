@@ -66,11 +66,11 @@ export default function ShowTransparency({ application, page, viewCount = 0, rec
                     />
                     <div className="flex gap-2">
                         {page.is_published && (
-                            <Link href={`/t/${page.slug}`} target="_blank">
-                                <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" asChild>
+                                <Link href={`/t/${page.slug}`} target="_blank">
                                     <Globe className="mr-1 h-4 w-4" /> View Public Page
-                                </Button>
-                            </Link>
+                                </Link>
+                            </Button>
                         )}
                         {!page.is_published && (
                             <Button variant="outline" size="sm" onClick={publish}>

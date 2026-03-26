@@ -93,7 +93,7 @@ export default function ShowExperience({ experience, tags: availableTags }: { ex
                                 }
                             }}
                         >
-                            <Trash2 className="mr-1 h-4 w-4" /> Delete
+                            <Trash2 className="mr-1 h-4 w-4" />
                         </Button>
                     </div>
                 </div>

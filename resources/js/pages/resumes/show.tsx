@@ -376,14 +376,14 @@ export default function ShowResume({ resume, contact, globalHeaderConfig }: { re
                     <Heading title={resume.title} description={resume.job_posting ? `For ${resume.job_posting.title ?? 'Untitled'} at ${resume.job_posting.company ?? 'Unknown'}` : undefined} />
                     <div className="flex gap-2">
                         {!isGenerating && !isFailed && (
-                            <Link href={`/resumes/${resume.id}/preview`}>
-                                <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" asChild>
+                                <Link href={`/resumes/${resume.id}/preview`}>
                                     <Eye className="mr-1 h-4 w-4" /> Preview & Export
-                                </Button>
-                            </Link>
+                                </Link>
+                            </Button>
                         )}
                         {!resume.is_finalized && !isGenerating && !isFailed && (
-                            <Button onClick={() => router.post(`/resumes/${resume.id}/finalize`)}>
+                            <Button size="sm" onClick={() => router.post(`/resumes/${resume.id}/finalize`)}>
                                 <Check className="mr-1 h-4 w-4" /> Finalize
                             </Button>
                         )}

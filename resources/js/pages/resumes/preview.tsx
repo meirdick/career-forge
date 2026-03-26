@@ -48,11 +48,11 @@ export default function PreviewResume({ resume, contact }: { resume: ResumeData;
                         description={resume.job_posting ? `${resume.job_posting.title ?? 'Untitled'} at ${resume.job_posting.company ?? 'Unknown'}` : undefined}
                     />
                     <div className="flex gap-2">
-                        <Link href={`/resumes/${resume.id}`}>
-                            <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href={`/resumes/${resume.id}`}>
                                 <ArrowLeft className="mr-1 h-4 w-4" /> Back to Editor
-                            </Button>
-                        </Link>
+                            </Link>
+                        </Button>
                     </div>
                 </div>
 
@@ -63,17 +63,17 @@ export default function PreviewResume({ resume, contact }: { resume: ResumeData;
                 </div>
 
                 {/* Export Actions */}
-                <div className="flex gap-3">
-                    <a href={`/resumes/${resume.id}/export/pdf`}>
-                        <Button size="sm">
+                <div className="flex gap-2">
+                    <Button size="sm" asChild>
+                        <a href={`/resumes/${resume.id}/export/pdf`}>
                             <Download className="mr-1 h-4 w-4" /> Download PDF
-                        </Button>
-                    </a>
-                    <a href={`/resumes/${resume.id}/export/docx`}>
-                        <Button variant="outline" size="sm">
+                        </a>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild>
+                        <a href={`/resumes/${resume.id}/export/docx`}>
                             <Download className="mr-1 h-4 w-4" /> Download DOCX
-                        </Button>
-                    </a>
+                        </a>
+                    </Button>
                 </div>
 
                 {/* Resume Document Preview */}

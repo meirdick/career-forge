@@ -60,11 +60,11 @@ export default function ResumesIndex({ resumes, uploadedDocuments }: { resumes: 
                         description="Tailored resumes are generated after analyzing a job posting and running a gap analysis."
                         action={
                             <div className="flex flex-col items-center gap-2">
-                                <Link href={jobPostingsIndex()}>
-                                    <Button>
+                                <Button asChild>
+                                    <Link href={jobPostingsIndex()}>
                                         <Target className="mr-2 h-4 w-4" /> Go to Job Postings
-                                    </Button>
-                                </Link>
+                                    </Link>
+                                </Button>
                                 <Link href={resumeUploadCreate()} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
                                     Or upload an existing resume
                                 </Link>

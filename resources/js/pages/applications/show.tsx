@@ -127,16 +127,16 @@ export default function ShowApplication({ application }: { application: Applicat
                         description={application.company}
                     />
                     <div className="flex gap-2">
-                        <Link href={`/applications/${application.id}/transparency`}>
-                            <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href={`/applications/${application.id}/transparency`}>
                                 <Globe className="mr-1 h-4 w-4" /> Transparency
-                            </Button>
-                        </Link>
-                        <Link href={`/applications/${application.id}/edit`}>
-                            <Button variant="outline" size="sm">
+                            </Link>
+                        </Button>
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href={`/applications/${application.id}/edit`}>
                                 <Pencil className="mr-1 h-4 w-4" /> Edit
-                            </Button>
-                        </Link>
+                            </Link>
+                        </Button>
                         <Button variant="destructive" size="sm" onClick={() => { if (confirm('Delete this application?')) router.delete(`/applications/${application.id}`); }}>
                             <Trash2 className="mr-1 h-4 w-4" />
                         </Button>

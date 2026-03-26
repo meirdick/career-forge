@@ -59,7 +59,7 @@ export default function QuickAddDialog() {
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button><Zap className="mr-1 h-4 w-4" /> Quick Add</Button>
+                <Button size="sm"><Zap className="mr-1 h-4 w-4" /> Quick Add</Button>
             </DialogTrigger>
             <DialogContent>
                 <form onSubmit={submit}>

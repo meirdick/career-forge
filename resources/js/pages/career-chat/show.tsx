@@ -114,11 +114,11 @@ export default function CareerChatShow({
                 >
                     <div className="flex items-center justify-between border-b p-3">
                         <h3 className="text-sm font-semibold">Sessions</h3>
-                        <Link href={careerChatIndex().url}>
-                            <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" asChild>
+                            <Link href={careerChatIndex().url}>
                                 View All
-                            </Button>
-                        </Link>
+                            </Link>
+                        </Button>
                     </div>
                     <div className="flex-1 space-y-1 p-2">
                         {sessions.map((s) => (

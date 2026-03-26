@@ -46,11 +46,11 @@ export default function ApplicationsIndex({ applications }: { applications: Appl
             <div className="mx-auto max-w-4xl space-y-6 p-4">
                 <div className="flex items-start justify-between">
                     <Heading title="Applications" description="Track your job applications." />
-                    <Link href="/applications/create">
-                        <Button size="sm">
+                    <Button size="sm" asChild>
+                        <Link href="/applications/create">
                             <Plus className="mr-1 h-4 w-4" /> New Application
-                        </Button>
-                    </Link>
+                        </Link>
+                    </Button>
                 </div>
 
                 {/* Pipeline Summary */}
@@ -78,11 +78,11 @@ export default function ApplicationsIndex({ applications }: { applications: Appl
                         description="Applications track your full pipeline — start by analyzing a job posting, then generate a resume and apply."
                         action={
                             <div className="flex flex-col items-center gap-2">
-                                <Link href={jobPostingsIndex()}>
-                                    <Button>
+                                <Button asChild>
+                                    <Link href={jobPostingsIndex()}>
                                         <Target className="mr-1 h-4 w-4" /> Go to Job Postings
-                                    </Button>
-                                </Link>
+                                    </Link>
+                                </Button>
                                 <Link href="/applications/create" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
                                     Or create an application manually
                                 </Link>
