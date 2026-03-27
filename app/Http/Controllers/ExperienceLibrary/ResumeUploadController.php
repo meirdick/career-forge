@@ -119,7 +119,7 @@ class ResumeUploadController extends Controller
             'experiences' => 'array',
             'experiences.*.company' => 'required|string',
             'experiences.*.title' => 'required|string',
-            'experiences.*.started_at' => 'required|date',
+            'experiences.*.started_at' => 'nullable|date',
             'accomplishments' => 'array',
             'accomplishments.*.title' => 'required|string',
             'accomplishments.*.description' => 'required|string',
@@ -134,7 +134,7 @@ class ResumeUploadController extends Controller
             'projects.*.name' => 'required|string',
             'projects.*.description' => 'required|string',
             'urls' => 'array',
-            'urls.*.url' => 'required|url',
+            'urls.*.url' => 'required|string',
             'urls.*.type' => 'required|string',
             'urls.*.label' => 'nullable|string',
         ]);

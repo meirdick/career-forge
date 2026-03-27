@@ -1,10 +1,11 @@
-import { Head, router } from '@inertiajs/react';
-import { Loader2, X } from 'lucide-react';
-import { useEffect } from 'react';
+import { Head, router, usePage } from '@inertiajs/react';
+import { AlertCircle, Loader2, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import ResumeUploadController from '@/actions/App/Http/Controllers/ExperienceLibrary/ResumeUploadController';
 import ExtractionReviewContent from '@/components/extraction-review/extraction-review-content';
 import type { ExtractionData, MatchAnalysis } from '@/components/extraction-review/types';
 import Heading from '@/components/heading';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
@@ -27,6 +28,10 @@ export default function ReviewImport({
     parseResult: ParseResult;
     matchAnalysis?: MatchAnalysis;
 }) {
+    const { errors } = usePage().props;
+    const [importing, setImporting] = useState(false);
+    const [importError, setImportError] = useState<string | null>(null);
+
     useEffect(() => {
         if (parseResult.status === 'processing') {
             const interval = setInterval(() => {
@@ -42,7 +47,12 @@ export default function ReviewImport({
     ];
 
     function handleImport(payload: ExtractionData) {
-        router.post(ResumeUploadController.commit(document.id).url, payload);
+        setImportError(null);
+        router.post(ResumeUploadController.commit(document.id).url, payload, {
+            onStart: () => setImporting(true),
+            onFinish: () => setImporting(false),
+            onError: () => setImportError('Import failed. Some items may have invalid data. Please review and try again.'),
+        });
     }
 
     if (parseResult.status === 'processing') {
@@ -90,7 +100,13 @@ export default function ReviewImport({
 
             <div className="mx-auto max-w-3xl space-y-6 p-4">
                 <Heading title="Review Import" description={`Parsed from ${document.filename}. Edit, enhance, or deselect items before importing.`} />
-                <ExtractionReviewContent data={data} onImport={handleImport} matchAnalysis={matchAnalysis} />
+                {(importError || Object.keys(errors).length > 0) && (
+                    <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{importError || 'Some fields failed validation. Please review the highlighted items and try again.'}</AlertDescription>
+                    </Alert>
+                )}
+                <ExtractionReviewContent data={data} onImport={handleImport} importing={importing} matchAnalysis={matchAnalysis} />
             </div>
         </AppLayout>
     );
