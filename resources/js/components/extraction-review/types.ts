@@ -4,7 +4,7 @@ export type ParsedExperience = {
     company: string;
     title: string;
     location?: string;
-    started_at: string;
+    started_at?: string;
     ended_at?: string;
     is_current: boolean;
     description?: string;

@@ -1,4 +1,4 @@
-import { Check, Loader2, Pencil, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, Check, Loader2, Pencil, Sparkles, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -75,6 +75,22 @@ function MatchSummaryLine({ matchInfo, compact }: { matchInfo?: ItemMatchInfo; c
         <p className={`text-muted-foreground/70 italic ${compact ? 'text-xs' : 'text-xs'}`}>
             Matches: {matchInfo.existing_summary}
         </p>
+    );
+}
+
+function MissingFieldBadge({ fields }: { fields: string[] }) {
+    if (fields.length === 0) return null;
+    const label = fields.length === 1 ? `Missing ${fields[0]}` : `Missing ${fields.join(', ')}`;
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Badge variant="outline" className="gap-1 border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-400">
+                    <AlertTriangle className="h-3 w-3" />
+                    {label}
+                </Badge>
+            </TooltipTrigger>
+            <TooltipContent>Click edit to add — this data improves your resume quality</TooltipContent>
+        </Tooltip>
     );
 }
 
@@ -186,6 +202,11 @@ export function ExperienceCard({
     compact,
     matchInfo,
 }: ItemCardProps & { item: ParsedExperience }) {
+    const missingFields: string[] = [];
+    if (!item.started_at) missingFields.push('start date');
+    if (!item.is_current && !item.ended_at) missingFields.push('end date');
+    if (!item.description) missingFields.push('description');
+
     return (
         <Card className={`cursor-pointer ${!selected ? 'opacity-40' : ''} ${compact ? 'py-3 gap-2' : ''}`}>
             <CardHeader className={`pb-2 ${compact ? 'px-4' : ''}`}>
@@ -197,9 +218,10 @@ export function ExperienceCard({
                             </CardTitle>
                             <ExtractionTypeBadge type={item.extraction_type} enhances={item.enhances} />
                             <MatchStatusBadge matchInfo={matchInfo} />
+                            {selected && <MissingFieldBadge fields={missingFields} />}
                         </div>
                         <p className={`text-muted-foreground ${compact ? 'text-xs' : 'text-sm'}`}>
-                            {item.started_at} — {item.is_current ? 'Present' : (item.ended_at ?? 'N/A')}
+                            {item.started_at ?? '???'} — {item.is_current ? 'Present' : (item.ended_at ?? 'N/A')}
                             {item.location && ` · ${item.location}`}
                         </p>
                         <MatchSummaryLine matchInfo={matchInfo} compact={compact} />
@@ -302,6 +324,10 @@ export function EducationCard({
     compact,
     matchInfo,
 }: ItemCardProps & { item: ParsedEducation }) {
+    const missingFields: string[] = [];
+    if (!item.completed_at) missingFields.push('completion date');
+    if (!item.field) missingFields.push('field of study');
+
     return (
         <Card className={`cursor-pointer ${!selected ? 'opacity-40' : ''} ${compact ? 'py-3 gap-2' : ''}`}>
             <CardHeader className={`pb-2 ${compact ? 'px-4' : ''}`}>
@@ -311,6 +337,7 @@ export function EducationCard({
                             <CardTitle className={compact ? 'text-sm' : 'text-base'}>{item.title}</CardTitle>
                             <ExtractionTypeBadge type={item.extraction_type} enhances={item.enhances} />
                             <MatchStatusBadge matchInfo={matchInfo} />
+                            {selected && <MissingFieldBadge fields={missingFields} />}
                         </div>
                         <p className={`text-muted-foreground ${compact ? 'text-xs' : 'text-sm'}`}>
                             {item.institution}
@@ -341,6 +368,10 @@ export function ProjectCard({
     compact,
     matchInfo,
 }: ItemCardProps & { item: ParsedProject }) {
+    const missingFields: string[] = [];
+    if (!item.role) missingFields.push('role');
+    if (!item.outcome) missingFields.push('outcome');
+
     return (
         <Card className={`cursor-pointer ${!selected ? 'opacity-40' : ''} ${compact ? 'py-3 gap-2' : ''}`}>
             <CardHeader className={`pb-2 ${compact ? 'px-4' : ''}`}>
@@ -350,6 +381,7 @@ export function ProjectCard({
                             <CardTitle className={compact ? 'text-sm' : 'text-base'}>{item.name}</CardTitle>
                             <ExtractionTypeBadge type={item.extraction_type} enhances={item.enhances} />
                             <MatchStatusBadge matchInfo={matchInfo} />
+                            {selected && <MissingFieldBadge fields={missingFields} />}
                         </div>
                         {item.role && <p className={`text-muted-foreground ${compact ? 'text-xs' : 'text-sm'}`}>{item.role}</p>}
                         <MatchSummaryLine matchInfo={matchInfo} compact={compact} />
