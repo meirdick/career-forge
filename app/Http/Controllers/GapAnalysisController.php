@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Jobs\PerformGapAnalysisJob;
 use App\Models\GapAnalysis;
 use App\Models\JobPosting;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -45,15 +47,40 @@ class GapAnalysisController extends Controller
             ->latest()
             ->first(['id', 'title', 'is_finalized', 'created_at']);
 
+        $libraryAdditions = $this->getLibraryAdditions($request->user(), $gapAnalysis);
+
         return Inertia::render('gap-analyses/show', [
             'gapAnalysis' => $gapAnalysis,
             'experiences' => $experiences,
+            'libraryAdditions' => $libraryAdditions,
             'latestResume' => $latestResume ? [
                 'id' => $latestResume->id,
                 'title' => $latestResume->title,
                 'is_finalized' => $latestResume->is_finalized,
             ] : null,
         ]);
+    }
+
+    /**
+     * @return array{accomplishments: Collection, skills: Collection}
+     */
+    private function getLibraryAdditions(User $user, GapAnalysis $gapAnalysis): array
+    {
+        $accomplishments = $user->accomplishments()
+            ->where('source_type', 'gap_analysis')
+            ->where('source_id', $gapAnalysis->id)
+            ->with('experience:id,title,company')
+            ->get(['id', 'title', 'description', 'experience_id']);
+
+        $skills = $user->skills()
+            ->where('source_type', 'gap_analysis')
+            ->where('source_id', $gapAnalysis->id)
+            ->get(['id', 'name', 'category', 'proficiency', 'ai_inferred_proficiency']);
+
+        return [
+            'accomplishments' => $accomplishments,
+            'skills' => $skills,
+        ];
     }
 
     public function reanalyze(Request $request, GapAnalysis $gapAnalysis): RedirectResponse

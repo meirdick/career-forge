@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { ArrowRight, CheckCircle, FileText, Loader2, RefreshCw } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import GapActionCard from '@/components/gap-resolution/gap-action-card';
+import LibraryAdditionsSummary from '@/components/gap-resolution/library-additions-summary';
 import Heading from '@/components/heading';
 import MatchScoreRing from '@/components/match-score-ring';
 import PipelineAssistantPanel from '@/components/pipeline-assistant-panel';
@@ -51,13 +52,30 @@ type GapAnalysis = {
     };
 };
 
+type LibraryAdditions = {
+    accomplishments: {
+        id: number;
+        title: string;
+        description: string;
+        experience_id: number | null;
+        experience?: { id: number; title: string; company: string } | null;
+    }[];
+    skills: {
+        id: number;
+        name: string;
+        category: string;
+        proficiency: string | null;
+        ai_inferred_proficiency: string | null;
+    }[];
+};
+
 type LatestResume = {
     id: number;
     title: string;
     is_finalized: boolean;
 } | null;
 
-export default function ShowGapAnalysis({ gapAnalysis, experiences, latestResume }: { gapAnalysis: GapAnalysis; experiences: Experience[]; latestResume: LatestResume }) {
+export default function ShowGapAnalysis({ gapAnalysis, experiences, libraryAdditions, latestResume }: { gapAnalysis: GapAnalysis; experiences: Experience[]; libraryAdditions: LibraryAdditions; latestResume: LatestResume }) {
     const assistantRef = useRef<PipelineAssistantHandle>(null);
     const posting = gapAnalysis.ideal_candidate_profile.job_posting;
     const isAnalyzing = gapAnalysis.strengths.length === 0 && gapAnalysis.gaps.length === 0 && !gapAnalysis.ai_summary;
@@ -223,6 +241,19 @@ export default function ShowGapAnalysis({ gapAnalysis, experiences, latestResume
                                 onCoach={(message) => assistantRef.current?.openWithMessage(message)}
                             />
                         ))}
+                    </>
+                )}
+
+                {!isAnalyzing && (libraryAdditions.accomplishments.length > 0 || libraryAdditions.skills.length > 0) && (
+                    <>
+                        <Separator />
+                        <LibraryAdditionsSummary
+                            gapAnalysisId={gapAnalysis.id}
+                            accomplishments={libraryAdditions.accomplishments}
+                            skills={libraryAdditions.skills}
+                            experiences={experiences}
+                            onOrganized={() => router.reload({ only: ['libraryAdditions'] })}
+                        />
                     </>
                 )}
 

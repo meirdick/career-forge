@@ -21,6 +21,8 @@ class Accomplishment extends Model
         'description',
         'impact',
         'sort_order',
+        'source_type',
+        'source_id',
     ];
 
     protected $appends = ['formatted_description'];

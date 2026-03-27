@@ -77,6 +77,16 @@ class GapClosureCoach implements Agent, Conversational, HasTools
             - When you identify existing experience that could be reframed to address a gap, suggest a reframe and use the reframe tool with the experience ID.
             - After the user has resolved several gaps, offer to trigger a re-analysis to see their updated match score.
 
+            === EXPERIENCE LIBRARY INTEGRATION ===
+            When using the answer tool to record accomplishments:
+            - Look at the experience library to identify which experience (by ID) the accomplishment relates to and include the experience_id. Match by company, role, or time period relevance.
+            - Include skill_names — list the specific skills demonstrated by this accomplishment.
+            - Infer proficiency level from context:
+              * Evidence of deep expertise, leadership, or teaching others → "expert"
+              * Evidence of independent work and strong results → "advanced"
+              * Evidence of competent usage with guidance → "intermediate"
+              * Awareness or early exposure → "beginner"
+
             Always confirm what you're about to do before calling a tool. After making changes, summarize what was done and suggest next steps.
             TOOLS;
         }

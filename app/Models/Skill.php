@@ -21,6 +21,8 @@ class Skill extends Model
         'proficiency',
         'ai_inferred_proficiency',
         'notes',
+        'source_type',
+        'source_id',
     ];
 
     protected function casts(): array

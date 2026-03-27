@@ -48,27 +48,55 @@ class GapClosureChatController extends Controller
             'entries' => 'required|array|min:1',
             'entries.*.type' => 'required|in:skill,accomplishment,experience_detail',
             'entries.*.data' => 'required|array',
+            'entries.*.data.experience_id' => 'nullable|integer|exists:experiences,id',
+            'entries.*.data.proficiency' => 'nullable|string|in:beginner,intermediate,advanced,expert',
+            'entries.*.data.ai_inferred_proficiency' => 'nullable|string|in:beginner,intermediate,advanced,expert',
         ]);
 
         $user = $request->user();
+        $created = ['accomplishment_ids' => [], 'skill_ids' => []];
 
         foreach ($request->input('entries') as $entry) {
+            $experienceId = isset($entry['data']['experience_id'])
+                ? $user->experiences()->where('id', $entry['data']['experience_id'])->value('id')
+                : null;
+
             match ($entry['type']) {
-                'skill' => $user->skills()->firstOrCreate(
-                    ['name' => $entry['data']['name']],
-                    ['category' => $entry['data']['category'] ?? 'technical'],
-                ),
-                'accomplishment' => $user->accomplishments()->create([
-                    'title' => $entry['data']['title'],
-                    'description' => $entry['data']['description'],
-                    'impact' => $entry['data']['impact'] ?? null,
-                    'sort_order' => 0,
-                ]),
+                'skill' => (function () use ($user, $entry, $gapAnalysis, &$created) {
+                    $skill = $user->skills()->firstOrCreate(
+                        ['name' => $entry['data']['name']],
+                        [
+                            'category' => $entry['data']['category'] ?? 'technical',
+                            'ai_inferred_proficiency' => $entry['data']['ai_inferred_proficiency'] ?? null,
+                            'source_type' => 'gap_analysis',
+                            'source_id' => $gapAnalysis->id,
+                        ],
+                    );
+
+                    if (isset($entry['data']['ai_inferred_proficiency']) && ! $skill->ai_inferred_proficiency) {
+                        $skill->update(['ai_inferred_proficiency' => $entry['data']['ai_inferred_proficiency']]);
+                    }
+
+                    $created['skill_ids'][] = $skill->id;
+                })(),
+                'accomplishment' => (function () use ($user, $entry, $experienceId, $gapAnalysis, &$created) {
+                    $accomplishment = $user->accomplishments()->create([
+                        'title' => $entry['data']['title'],
+                        'description' => $entry['data']['description'],
+                        'impact' => $entry['data']['impact'] ?? null,
+                        'experience_id' => $experienceId,
+                        'sort_order' => 0,
+                        'source_type' => 'gap_analysis',
+                        'source_id' => $gapAnalysis->id,
+                    ]);
+
+                    $created['accomplishment_ids'][] = $accomplishment->id;
+                })(),
                 'experience_detail' => null,
             };
         }
 
-        return response()->json(['success' => true]);
+        return response()->json(['success' => true, 'created' => $created]);
     }
 
     private function buildGapContext(GapAnalysis $gapAnalysis): string

@@ -30,6 +30,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('gap-analyses/{gapAnalysis}/resolve/{gapArea}/reject-reframe', [GapResolutionController::class, 'rejectReframe'])->name('gap-resolutions.rejectReframe');
     Route::post('gap-analyses/{gapAnalysis}/resolve/{gapArea}/answer', [GapResolutionController::class, 'answer'])->name('gap-resolutions.answer');
     Route::post('gap-analyses/{gapAnalysis}/resolve/{gapArea}/acknowledge', [GapResolutionController::class, 'acknowledge'])->name('gap-resolutions.acknowledge');
+    Route::post('gap-analyses/{gapAnalysis}/organize', [GapResolutionController::class, 'organize'])->name('gap-resolutions.organize');
 
     // Pipeline Chat
     Route::post('pipeline-chat/resolve', [PipelineChatController::class, 'resolve'])->name('pipeline-chat.resolve');
@@ -49,8 +50,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('resumes/{resume}/variants/{resumeSectionVariant}/blocks', [ResumeController::class, 'updateBlocks'])->name('resumes.update-blocks');
     Route::delete('resumes/{resume}', [ResumeController::class, 'destroy'])->name('resumes.destroy');
 
-    // Resume Export
+    // Resume Export & Fitting
     Route::get('resumes/{resume}/preview', [ResumeExportController::class, 'preview'])->name('resumes.preview');
+    Route::post('resumes/{resume}/fit', [ResumeExportController::class, 'fit'])->name('resumes.fit');
+    Route::post('resumes/{resume}/fit/accept', [ResumeExportController::class, 'acceptSuggestions'])->name('resumes.fit.accept');
+    Route::get('resumes/{resume}/preview-pdf', [ResumeExportController::class, 'previewPdf'])->name('resumes.preview-pdf');
     Route::get('resumes/{resume}/export/{format}', [ResumeExportController::class, 'export'])->name('resumes.export');
     Route::post('resumes/{resume}/finalize', [ResumeExportController::class, 'finalize'])->name('resumes.finalize');
 });
