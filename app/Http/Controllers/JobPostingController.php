@@ -109,7 +109,14 @@ class JobPostingController extends Controller
     {
         abort_unless($jobPosting->user_id === $request->user()->id, 403);
 
+        $rawTextChanged = $jobPosting->raw_text !== $request->validated('raw_text');
+
         $jobPosting->update($request->validated());
+
+        if ($rawTextChanged && filled($jobPosting->raw_text)) {
+            $jobPosting->update(['analyzed_at' => null]);
+            AnalyzeJobPostingJob::dispatch($jobPosting);
+        }
 
         return to_route('job-postings.show', $jobPosting)
             ->with('success', 'Job posting updated.');

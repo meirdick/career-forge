@@ -25,6 +25,7 @@ class TestScrapersCommand extends Command
         'lever' => 'https://jobs.lever.co/cloudflare/1234abcd',
         'workday' => 'https://gen.wd1.myworkdayjobs.com/en-US/careers/job/USA---California-Mountain-View/Senior-Director--Lead-Product-Manager---Norton-360_55006',
         'ashby' => 'https://jobs.ashbyhq.com/notion/12345',
+        'risepeople' => 'https://careers.risepeople.com/exa-software-inc/en/15507_director-of-ai-enablement',
         'smartrecruiters' => 'https://jobs.smartrecruiters.com/Bosch/12345-software-engineer',
         'icims' => 'https://careers-accenture.icims.com/jobs/12345/job',
         'bamboohr' => 'https://startupco.bamboohr.com/careers/12345',

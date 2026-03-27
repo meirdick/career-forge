@@ -66,7 +66,7 @@ test('stores content and dispatches analyze job when scrape returns quality cont
     Queue::assertPushed(AnalyzeJobPostingJob::class);
 });
 
-test('sends failure notification when scrape returns null', function () {
+test('sends failure notification and sets analyzed_at when scrape returns null', function () {
     Notification::fake();
 
     $scraper = Mockery::mock(WebScraperService::class);
@@ -75,12 +75,13 @@ test('sends failure notification when scrape returns null', function () {
     (new FetchJobPostingUrlJob($this->jobPosting))->handle($scraper);
 
     $this->jobPosting->refresh();
-    expect($this->jobPosting->raw_text)->toBeNull();
+    expect($this->jobPosting->raw_text)->toBeNull()
+        ->and($this->jobPosting->analyzed_at)->not->toBeNull();
 
     Notification::assertSentTo($this->user, JobPostingScrapeFailed::class);
 });
 
-test('sends failure notification when scrape returns shell content', function () {
+test('sends failure notification and sets analyzed_at when scrape returns shell content', function () {
     Notification::fake();
     Queue::fake([AnalyzeJobPostingJob::class]);
 
@@ -95,17 +96,21 @@ test('sends failure notification when scrape returns shell content', function ()
     (new FetchJobPostingUrlJob($this->jobPosting))->handle($scraper);
 
     $this->jobPosting->refresh();
-    expect($this->jobPosting->raw_text)->toBeNull();
+    expect($this->jobPosting->raw_text)->toBeNull()
+        ->and($this->jobPosting->analyzed_at)->not->toBeNull();
 
     Notification::assertSentTo($this->user, JobPostingScrapeFailed::class);
     Queue::assertNotPushed(AnalyzeJobPostingJob::class);
 });
 
-test('sends failure notification on final retry failure', function () {
+test('sends failure notification and sets analyzed_at on final retry failure', function () {
     Notification::fake();
 
     $job = new FetchJobPostingUrlJob($this->jobPosting);
     $job->failed(new RuntimeException('Connection timed out'));
+
+    $this->jobPosting->refresh();
+    expect($this->jobPosting->analyzed_at)->not->toBeNull();
 
     Notification::assertSentTo($this->user, JobPostingScrapeFailed::class);
 });

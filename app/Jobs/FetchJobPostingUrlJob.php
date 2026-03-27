@@ -49,6 +49,8 @@ class FetchJobPostingUrlJob implements ShouldQueue
                 'url' => $this->jobPosting->url,
             ]);
 
+            $this->jobPosting->update(['analyzed_at' => now()]);
+
             $this->jobPosting->user->notify(
                 new JobPostingScrapeFailed($this->jobPosting, 'No content could be extracted from the page.')
             );
@@ -69,6 +71,8 @@ class FetchJobPostingUrlJob implements ShouldQueue
                 'failing_signals' => array_keys(array_filter($quality->signals, fn (bool $passed) => ! $passed)),
                 'content_preview' => mb_substr($content, 0, 200),
             ]);
+
+            $this->jobPosting->update(['analyzed_at' => now()]);
 
             $this->jobPosting->user->notify(
                 new JobPostingScrapeFailed(
@@ -145,6 +149,8 @@ class FetchJobPostingUrlJob implements ShouldQueue
             'url' => $this->jobPosting->url,
             'error' => $exception->getMessage(),
         ]);
+
+        $this->jobPosting->update(['analyzed_at' => now()]);
 
         $this->jobPosting->user->notify(
             new JobPostingScrapeFailed(

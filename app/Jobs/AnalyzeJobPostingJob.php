@@ -7,10 +7,12 @@ use App\Concerns\ConfiguresAiForUser;
 use App\Enums\AiPurpose;
 use App\Models\JobPosting;
 use App\Notifications\JobPostingAnalyzed;
+use App\Notifications\JobPostingScrapeFailed;
 use App\Services\ParseQualityValidator;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class AnalyzeJobPostingJob implements ShouldQueue
 {
@@ -93,5 +95,22 @@ class AnalyzeJobPostingJob implements ShouldQueue
         $this->chargeAiUsage($this->jobPosting->user, AiPurpose::JobAnalysis);
 
         $this->jobPosting->user->notify(new JobPostingAnalyzed($this->jobPosting));
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        Log::error('AnalyzeJobPostingJob failed after all retries', [
+            'job_posting_id' => $this->jobPosting->id,
+            'error' => $exception->getMessage(),
+        ]);
+
+        $this->jobPosting->update(['analyzed_at' => now()]);
+
+        $this->jobPosting->user->notify(
+            new JobPostingScrapeFailed(
+                $this->jobPosting,
+                'Analysis of the job posting failed. Please try clicking "Reanalyze" or paste the job description again.'
+            )
+        );
     }
 }

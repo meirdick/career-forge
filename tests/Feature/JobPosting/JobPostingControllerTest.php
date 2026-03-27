@@ -136,6 +136,47 @@ test('update modifies posting', function () {
         ->title->toBe('Updated Title');
 });
 
+test('update dispatches analysis job when raw_text changes', function () {
+    $posting = JobPosting::factory()->create([
+        'user_id' => $this->user->id,
+        'raw_text' => 'Original text',
+        'analyzed_at' => now(),
+    ]);
+
+    $this->actingAs($this->user)
+        ->put("/job-postings/{$posting->id}", [
+            'raw_text' => 'Updated posting with new content',
+            'title' => 'Updated Title',
+        ])
+        ->assertRedirect("/job-postings/{$posting->id}");
+
+    expect($posting->fresh())
+        ->raw_text->toBe('Updated posting with new content')
+        ->analyzed_at->toBeNull();
+
+    Queue::assertPushed(AnalyzeJobPostingJob::class, function ($job) use ($posting) {
+        return $job->jobPosting->id === $posting->id;
+    });
+});
+
+test('update does not dispatch analysis job when raw_text unchanged', function () {
+    $posting = JobPosting::factory()->analyzed()->create([
+        'user_id' => $this->user->id,
+        'raw_text' => 'Same text',
+    ]);
+
+    $this->actingAs($this->user)
+        ->put("/job-postings/{$posting->id}", [
+            'raw_text' => 'Same text',
+            'title' => 'New Title',
+        ])
+        ->assertRedirect("/job-postings/{$posting->id}");
+
+    expect($posting->fresh()->analyzed_at)->not->toBeNull();
+
+    Queue::assertNotPushed(AnalyzeJobPostingJob::class);
+});
+
 test('destroy deletes posting', function () {
     $posting = JobPosting::factory()->create(['user_id' => $this->user->id]);
 

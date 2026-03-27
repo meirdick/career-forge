@@ -75,15 +75,18 @@ class CloudflareScraperDriver implements WebScraperContract
             return $result;
         }
 
-        // Phase 2: SPA-aware scrape — wait for an h1 to appear (signals JS has rendered)
+        // Phase 2: SPA-aware scrape — wait for content-bearing elements to appear
         Log::info('Cloudflare scrape Phase 1 insufficient, trying Phase 2 with waitForSelector', [
             'url' => $url,
             'phase1_length' => $result ? mb_strlen(trim($result)) : 0,
         ]);
 
         $result = $this->requestMarkdown($url, [
-            'gotoOptions' => ['waitUntil' => 'domcontentloaded', 'timeout' => 60000],
-            'waitForSelector' => ['selector' => 'h1', 'timeout' => 30000],
+            'gotoOptions' => ['waitUntil' => 'networkidle0', 'timeout' => 60000],
+            'waitForSelector' => [
+                'selector' => 'h1, h2, article, main, [class*="job"], [class*="description"], [class*="posting"], [role="main"]',
+                'timeout' => 30000,
+            ],
             'rejectResourceTypes' => ['image', 'font', 'media'],
         ], 65);
 

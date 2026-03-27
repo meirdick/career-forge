@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowRight, Check, Edit, Loader2, Pencil, Plus, RefreshCw, Target, Trash2, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, Edit, Loader2, Pencil, Plus, RefreshCw, Target, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import JobPostingController from '@/actions/App/Http/Controllers/JobPostingController';
 import Heading from '@/components/heading';
@@ -369,6 +369,26 @@ export default function ShowJobPosting({ posting, latestGapAnalysis }: { posting
                         <CardContent className="flex items-center gap-3 py-8">
                             <Loader2 className="text-primary h-6 w-6 animate-spin" />
                             <p className="text-muted-foreground">Analyzing job posting... This usually takes 15-30 seconds.</p>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {posting.analyzed_at && !profile && (
+                    <Card className="border-destructive/30 bg-destructive/5">
+                        <CardContent className="flex items-center gap-3 py-6">
+                            <AlertTriangle className="text-destructive h-6 w-6 shrink-0" />
+                            <div className="flex-1">
+                                <p className="font-medium">
+                                    {!posting.raw_text
+                                        ? 'The job posting could not be scraped from the URL.'
+                                        : 'Analysis of the job posting failed.'}
+                                </p>
+                                <p className="text-muted-foreground text-sm mt-1">
+                                    {!posting.raw_text
+                                        ? 'Please paste the job description manually using the Edit button above.'
+                                        : 'Click "Reanalyze" to try again.'}
+                                </p>
+                            </div>
                         </CardContent>
                     </Card>
                 )}
