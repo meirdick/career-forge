@@ -4,6 +4,7 @@ import { ArrowUp, Check, CheckCircle2, MessageCircle, Sparkles } from 'lucide-re
 import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string; toolActions?: string[] };
@@ -201,6 +202,7 @@ export default function PipelineAssistantPanel({ context, ref }: { context: Pipe
     const [resolving, setResolving] = useState(false);
     const [resolved, setResolved] = useState(false);
     const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+    const [ctaVisible, setCtaVisible] = useState(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
 
     const config = stepConfig[context.step];
@@ -353,6 +355,19 @@ export default function PipelineAssistantPanel({ context, ref }: { context: Pipe
         }
     }, [pendingMessage, sessionId, sending, sendMessage]);
 
+    useEffect(() => {
+        const ctaEl = document.querySelector('[data-pipeline-cta]');
+        if (!ctaEl) return;
+
+        const observer = new IntersectionObserver(
+            ([entry]) => setCtaVisible(entry.isIntersecting),
+            { threshold: 0 },
+        );
+        observer.observe(ctaEl);
+
+        return () => observer.disconnect();
+    }, []);
+
     function handlePromptClick(prompt: string) {
         sendMessage(prompt);
     }
@@ -361,7 +376,10 @@ export default function PipelineAssistantPanel({ context, ref }: { context: Pipe
         <>
             <Button
                 onClick={handleOpen}
-                className="fixed right-6 bottom-6 z-50 h-12 gap-2 rounded-full px-4 shadow-elevated animate-fade-in-up"
+                className={cn(
+                    'fixed right-6 z-50 h-12 gap-2 rounded-full px-4 shadow-elevated animate-fade-in-up transition-all duration-300',
+                    ctaVisible ? 'bottom-24' : 'bottom-6',
+                )}
                 size="lg"
             >
                 <MessageCircle className="h-5 w-5" />

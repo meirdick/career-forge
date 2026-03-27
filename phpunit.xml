@@ -33,5 +33,6 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="AI_GATING_MODE" value="selfhosted"/>
+        <env name="RESUME_WORKER_ENABLED" value="false"/>
     </php>
 </phpunit>

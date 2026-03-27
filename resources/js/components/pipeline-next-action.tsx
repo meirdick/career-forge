@@ -13,7 +13,7 @@ type PipelineNextActionProps = {
 
 export default function PipelineNextAction({ label, description, href, onClick, className }: PipelineNextActionProps) {
     const content = (
-        <div className={cn('flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-4 py-3', className)}>
+        <div data-pipeline-cta className={cn('flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-4 py-3', className)}>
             <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
                     <ArrowRight className="h-4 w-4 text-primary" />
