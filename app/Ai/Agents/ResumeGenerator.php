@@ -13,7 +13,7 @@ use Stringable;
 
 #[MaxTokens(65536)]
 #[Temperature(0.5)]
-#[Timeout(180)]
+#[Timeout(300)]
 class ResumeGenerator implements Agent, HasStructuredOutput
 {
     use FailsOverOnBillingErrors;
