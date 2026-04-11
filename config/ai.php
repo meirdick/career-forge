@@ -210,9 +210,9 @@ return [
             'url' => env('WORKERS_AI_URL'),
             'models' => [
                 'text' => [
-                    'default' => 'workers-ai/@cf/moonshotai/kimi-k2.5',
+                    'default' => 'workers-ai/@cf/google/gemma-4-26b-a4b-it',
                     'cheapest' => 'workers-ai/@cf/meta/llama-3.1-8b-instruct',
-                    'smartest' => 'workers-ai/@cf/moonshotai/kimi-k2.5',
+                    'smartest' => 'workers-ai/@cf/google/gemma-4-26b-a4b-it',
                 ],
             ],
         ],
