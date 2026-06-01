@@ -205,7 +205,7 @@ return [
         ],
 
         'workers-ai' => [
-            'driver' => 'workersai',
+            'driver' => 'workers-ai',
             'key' => env('CLOUDFLARE_AI_API_KEY'),
             'account_id' => env('CLOUDFLARE_ACCOUNT_ID'),
             'gateway' => env('WORKERSAI_GATEWAY', 'resume-forge'),

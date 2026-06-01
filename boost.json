@@ -7,16 +7,17 @@
     "herd_mcp": false,
     "mcp": true,
     "nightwatch_mcp": true,
-    "packages": [
-        "laravel/fortify"
-    ],
     "sail": false,
     "skills": [
+        "ai-sdk-development",
+        "fortify-development",
+        "laravel-best-practices",
+        "configure-nightwatch",
+        "scout-development",
         "wayfinder-development",
         "pest-testing",
         "inertia-react-development",
         "tailwindcss-development",
-        "developing-with-fortify",
         "growth-product-context",
         "laravel-cloudflare-ai-gateway"
     ]
