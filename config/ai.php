@@ -95,19 +95,19 @@ return [
     'purpose_providers' => [
         'chat_message' => [
             'providers' => env('AI_CHAT_PROVIDERS', env('AI_CHAT_PROVIDER', 'workers-ai,gemini')),
-            'model' => env('AI_CHAT_MODEL', 'workers-ai/@cf/google/gemma-4-26b-a4b-it'),
+            'model' => env('AI_CHAT_MODEL', '@cf/google/gemma-4-26b-a4b-it'),
         ],
         'content_enhance' => [
             'providers' => env('AI_CONTENT_ENHANCE_PROVIDERS', env('AI_CONTENT_ENHANCE_PROVIDER', 'workers-ai,gemini')),
-            'model' => env('AI_CONTENT_ENHANCE_MODEL', 'workers-ai/@cf/google/gemma-4-26b-a4b-it'),
+            'model' => env('AI_CONTENT_ENHANCE_MODEL', '@cf/google/gemma-4-26b-a4b-it'),
         ],
         'gap_reframe' => [
             'providers' => env('AI_GAP_REFRAME_PROVIDERS', env('AI_GAP_REFRAME_PROVIDER', 'workers-ai,gemini')),
-            'model' => env('AI_GAP_REFRAME_MODEL', 'workers-ai/@cf/google/gemma-4-26b-a4b-it'),
+            'model' => env('AI_GAP_REFRAME_MODEL', '@cf/google/gemma-4-26b-a4b-it'),
         ],
         'link_indexing' => [
             'providers' => env('AI_LINK_INDEXING_PROVIDERS', env('AI_LINK_INDEXING_PROVIDER', 'workers-ai,gemini')),
-            'model' => env('AI_LINK_INDEXING_MODEL', 'workers-ai/@cf/google/gemma-4-26b-a4b-it'),
+            'model' => env('AI_LINK_INDEXING_MODEL', '@cf/google/gemma-4-26b-a4b-it'),
         ],
         'resume_generation' => [
             'providers' => env('AI_RESUME_GENERATION_PROVIDERS', env('AI_RESUME_GENERATION_PROVIDER', 'gemini,workers-ai')),
@@ -205,14 +205,38 @@ return [
         ],
 
         'workers-ai' => [
-            'driver' => 'workers-ai',
+            'driver' => 'workersai',
             'key' => env('CLOUDFLARE_AI_API_KEY'),
-            'url' => env('WORKERS_AI_URL'),
+            'account_id' => env('CLOUDFLARE_ACCOUNT_ID'),
+            'gateway' => env('WORKERSAI_GATEWAY', 'resume-forge'),
             'models' => [
                 'text' => [
-                    'default' => 'workers-ai/@cf/google/gemma-4-26b-a4b-it',
-                    'cheapest' => 'workers-ai/@cf/meta/llama-3.1-8b-instruct',
-                    'smartest' => 'workers-ai/@cf/google/gemma-4-26b-a4b-it',
+                    'default' => '@cf/google/gemma-4-26b-a4b-it',
+                    'cheapest' => '@cf/meta/llama-3.1-8b-instruct',
+                    'smartest' => '@cf/moonshotai/kimi-k2.5',
+                ],
+                'embeddings' => [
+                    'default' => '@cf/baai/bge-large-en-v1.5',
+                    'dimensions' => 1024,
+                ],
+            ],
+        ],
+
+        'workersai' => [
+            'driver' => 'workersai',
+            'key' => env('CLOUDFLARE_AI_API_KEY'),
+            'account_id' => env('CLOUDFLARE_ACCOUNT_ID'),
+            'gateway' => env('WORKERSAI_GATEWAY'),
+            'url' => env('WORKERSAI_URL'),
+            'models' => [
+                'text' => [
+                    'default' => '@cf/google/gemma-4-26b-a4b-it',
+                    'cheapest' => '@cf/meta/llama-3.1-8b-instruct',
+                    'smartest' => '@cf/moonshotai/kimi-k2.5',
+                ],
+                'embeddings' => [
+                    'default' => '@cf/baai/bge-large-en-v1.5',
+                    'dimensions' => 1024,
                 ],
             ],
         ],
