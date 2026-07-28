@@ -16,7 +16,8 @@ class ProjectController extends Controller
         $project = $request->user()->projects()->create($request->validated());
 
         if ($request->has('skill_ids')) {
-            $project->skills()->sync($request->input('skill_ids', []));
+            $skillIds = $request->user()->skills()->whereIn('id', $request->input('skill_ids', []))->pluck('id');
+            $project->skills()->sync($skillIds);
         }
 
         $route = $project->experience_id
@@ -33,7 +34,8 @@ class ProjectController extends Controller
         $project->update($request->validated());
 
         if ($request->has('skill_ids')) {
-            $project->skills()->sync($request->input('skill_ids', []));
+            $skillIds = $request->user()->skills()->whereIn('id', $request->input('skill_ids', []))->pluck('id');
+            $project->skills()->sync($skillIds);
         }
 
         $route = $project->experience_id

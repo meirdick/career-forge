@@ -73,6 +73,58 @@ test('update modifies accomplishment', function () {
     expect($accomplishment->fresh()->title)->toBe('Updated title');
 });
 
+test('store rejects experience_id belonging to another user', function () {
+    $other = User::factory()->create();
+    $otherExperience = Experience::factory()->create(['user_id' => $other->id]);
+
+    $this->actingAs($this->user)->post('/accomplishments', [
+        'experience_id' => $otherExperience->id,
+        'title' => 'Test',
+        'description' => 'Test description',
+        'sort_order' => 0,
+    ])->assertSessionHasErrors('experience_id');
+
+    expect(Accomplishment::count())->toBe(0);
+});
+
+test('update rejects experience_id belonging to another user', function () {
+    $accomplishment = Accomplishment::factory()->create([
+        'user_id' => $this->user->id,
+        'experience_id' => $this->experience->id,
+    ]);
+    $other = User::factory()->create();
+    $otherExperience = Experience::factory()->create(['user_id' => $other->id]);
+
+    $this->actingAs($this->user)
+        ->put("/accomplishments/{$accomplishment->id}", [
+            'experience_id' => $otherExperience->id,
+            'title' => 'Test',
+            'description' => 'Test description',
+            'sort_order' => 0,
+        ])
+        ->assertSessionHasErrors('experience_id');
+
+    expect($accomplishment->fresh()->experience_id)->toBe($this->experience->id);
+});
+
+test('store does not attach skills belonging to another user', function () {
+    $other = User::factory()->create();
+    $otherSkill = Skill::factory()->create(['user_id' => $other->id]);
+    $ownSkill = Skill::factory()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)->post('/accomplishments', [
+        'title' => 'Test',
+        'description' => 'Test description',
+        'sort_order' => 0,
+        'skill_ids' => [$otherSkill->id, $ownSkill->id],
+    ]);
+
+    $skillIds = Accomplishment::first()->skills->pluck('id');
+    expect($skillIds)->toHaveCount(1)
+        ->and($skillIds)->toContain($ownSkill->id)
+        ->and($skillIds)->not->toContain($otherSkill->id);
+});
+
 test('update returns 403 for other users accomplishment', function () {
     $other = User::factory()->create();
     $accomplishment = Accomplishment::factory()->create(['user_id' => $other->id]);

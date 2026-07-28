@@ -83,6 +83,58 @@ test('update modifies project', function () {
     expect($project->fresh()->name)->toBe('Updated name');
 });
 
+test('store rejects experience_id belonging to another user', function () {
+    $other = User::factory()->create();
+    $otherExperience = Experience::factory()->create(['user_id' => $other->id]);
+
+    $this->actingAs($this->user)->post('/projects', [
+        'experience_id' => $otherExperience->id,
+        'name' => 'Test',
+        'description' => 'Test description',
+        'sort_order' => 0,
+    ])->assertSessionHasErrors('experience_id');
+
+    expect(Project::count())->toBe(0);
+});
+
+test('update rejects experience_id belonging to another user', function () {
+    $project = Project::factory()->create([
+        'user_id' => $this->user->id,
+        'experience_id' => $this->experience->id,
+    ]);
+    $other = User::factory()->create();
+    $otherExperience = Experience::factory()->create(['user_id' => $other->id]);
+
+    $this->actingAs($this->user)
+        ->put("/projects/{$project->id}", [
+            'experience_id' => $otherExperience->id,
+            'name' => 'Test',
+            'description' => 'Test description',
+            'sort_order' => 0,
+        ])
+        ->assertSessionHasErrors('experience_id');
+
+    expect($project->fresh()->experience_id)->toBe($this->experience->id);
+});
+
+test('store does not attach skills belonging to another user', function () {
+    $other = User::factory()->create();
+    $otherSkill = Skill::factory()->create(['user_id' => $other->id]);
+    $ownSkill = Skill::factory()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)->post('/projects', [
+        'name' => 'Test',
+        'description' => 'Test description',
+        'sort_order' => 0,
+        'skill_ids' => [$otherSkill->id, $ownSkill->id],
+    ]);
+
+    $skillIds = Project::first()->skills->pluck('id');
+    expect($skillIds)->toHaveCount(1)
+        ->and($skillIds)->toContain($ownSkill->id)
+        ->and($skillIds)->not->toContain($otherSkill->id);
+});
+
 test('update returns 403 for other users project', function () {
     $other = User::factory()->create();
     $project = Project::factory()->create(['user_id' => $other->id]);

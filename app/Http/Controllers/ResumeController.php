@@ -122,7 +122,12 @@ class ResumeController extends Controller
         abort_unless($resume->user_id === $request->user()->id, 403);
         abort_unless($resumeSection->resume_id === $resume->id, 404);
 
-        $request->validate(['variant_id' => 'required|exists:resume_section_variants,id']);
+        $request->validate([
+            'variant_id' => [
+                'required',
+                Rule::exists('resume_section_variants', 'id')->where('resume_section_id', $resumeSection->id),
+            ],
+        ]);
 
         $resumeSection->update(['selected_variant_id' => $request->input('variant_id')]);
 
@@ -133,6 +138,7 @@ class ResumeController extends Controller
     public function editVariant(Request $request, Resume $resume, ResumeSectionVariant $resumeSectionVariant): RedirectResponse
     {
         abort_unless($resume->user_id === $request->user()->id, 403);
+        abort_unless($resumeSectionVariant->section->resume_id === $resume->id, 404);
 
         $request->validate(['content' => 'required|string']);
 
@@ -188,6 +194,7 @@ class ResumeController extends Controller
     public function updateBlocks(Request $request, Resume $resume, ResumeSectionVariant $resumeSectionVariant): RedirectResponse
     {
         abort_unless($resume->user_id === $request->user()->id, 403);
+        abort_unless($resumeSectionVariant->section->resume_id === $resume->id, 404);
 
         $request->validate([
             'blocks' => 'required|array',

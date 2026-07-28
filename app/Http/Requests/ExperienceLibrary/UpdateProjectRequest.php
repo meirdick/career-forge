@@ -3,7 +3,9 @@
 namespace App\Http\Requests\ExperienceLibrary;
 
 use App\Concerns\NormalizesUrls;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateProjectRequest extends FormRequest
 {
@@ -20,12 +22,15 @@ class UpdateProjectRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'experience_id' => 'nullable|exists:experiences,id',
+            'experience_id' => [
+                'nullable',
+                Rule::exists('experiences', 'id')->where('user_id', $this->user()->id),
+            ],
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'role' => 'nullable|string|max:255',

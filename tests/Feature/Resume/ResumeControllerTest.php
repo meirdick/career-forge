@@ -221,6 +221,76 @@ test('select variant validates variant exists', function () {
         ->assertSessionHasErrors('variant_id');
 });
 
+test('select variant rejects variant belonging to another section', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+    $otherSection = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+    $foreignVariant = ResumeSectionVariant::factory()->create(['resume_section_id' => $otherSection->id]);
+
+    $this->actingAs($this->user)
+        ->put("/resumes/{$resume->id}/sections/{$section->id}", [
+            'variant_id' => $foreignVariant->id,
+        ])
+        ->assertSessionHasErrors('variant_id');
+
+    expect($section->fresh()->selected_variant_id)->toBeNull();
+});
+
+test('select variant rejects variant belonging to another users resume', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+    $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);
+
+    $other = User::factory()->create();
+    $otherResume = Resume::factory()->create(['user_id' => $other->id]);
+    $otherSection = ResumeSection::factory()->create(['resume_id' => $otherResume->id]);
+    $otherVariant = ResumeSectionVariant::factory()->create(['resume_section_id' => $otherSection->id]);
+
+    $this->actingAs($this->user)
+        ->put("/resumes/{$resume->id}/sections/{$section->id}", [
+            'variant_id' => $otherVariant->id,
+        ])
+        ->assertSessionHasErrors('variant_id');
+
+    expect($section->fresh()->selected_variant_id)->toBeNull();
+});
+
+test('edit variant returns 404 for variant belonging to another users resume', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+
+    $other = User::factory()->create();
+    $otherResume = Resume::factory()->create(['user_id' => $other->id]);
+    $otherSection = ResumeSection::factory()->create(['resume_id' => $otherResume->id]);
+    $otherVariant = ResumeSectionVariant::factory()->create([
+        'resume_section_id' => $otherSection->id,
+        'content' => 'Private content belonging to the other user',
+    ]);
+
+    $this->actingAs($this->user)
+        ->put("/resumes/{$resume->id}/variants/{$otherVariant->id}", [
+            'content' => 'Hacked content',
+        ])
+        ->assertNotFound();
+
+    expect($otherVariant->fresh()->content)->toBe('Private content belonging to the other user');
+});
+
+test('update blocks returns 404 for variant belonging to another users resume', function () {
+    $resume = Resume::factory()->create(['user_id' => $this->user->id]);
+
+    $other = User::factory()->create();
+    $otherResume = Resume::factory()->create(['user_id' => $other->id]);
+    $otherSection = ResumeSection::factory()->create(['resume_id' => $otherResume->id]);
+    $otherVariant = ResumeSectionVariant::factory()->create(['resume_section_id' => $otherSection->id]);
+
+    $this->actingAs($this->user)
+        ->patch("/resumes/{$resume->id}/variants/{$otherVariant->id}/blocks", [
+            'blocks' => [
+                ['key' => 'k', 'label' => 'L', 'content' => 'Hacked', 'is_hidden' => false],
+            ],
+        ])
+        ->assertNotFound();
+});
+
 test('edit variant updates content and marks as user edited', function () {
     $resume = Resume::factory()->create(['user_id' => $this->user->id]);
     $section = ResumeSection::factory()->create(['resume_id' => $resume->id]);

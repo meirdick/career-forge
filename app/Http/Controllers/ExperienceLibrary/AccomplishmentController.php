@@ -16,7 +16,8 @@ class AccomplishmentController extends Controller
         $accomplishment = $request->user()->accomplishments()->create($request->validated());
 
         if ($request->has('skill_ids')) {
-            $accomplishment->skills()->sync($request->input('skill_ids', []));
+            $skillIds = $request->user()->skills()->whereIn('id', $request->input('skill_ids', []))->pluck('id');
+            $accomplishment->skills()->sync($skillIds);
         }
 
         $route = $accomplishment->experience_id
@@ -33,7 +34,8 @@ class AccomplishmentController extends Controller
         $accomplishment->update($request->validated());
 
         if ($request->has('skill_ids')) {
-            $accomplishment->skills()->sync($request->input('skill_ids', []));
+            $skillIds = $request->user()->skills()->whereIn('id', $request->input('skill_ids', []))->pluck('id');
+            $accomplishment->skills()->sync($skillIds);
         }
 
         $route = $accomplishment->experience_id
